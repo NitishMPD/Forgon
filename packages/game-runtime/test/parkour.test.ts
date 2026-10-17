@@ -199,7 +199,8 @@ test('a wall run sticks to the wall, softens gravity and awards a wall jump', ()
   const level = buildParkourLevel(scene)!;
   const state = createParkourState(level);
   state.velocity = { x: 3, y: 2, z: 6 };
-  const events = advance(state, level, 0.4, { moveX: 1, moveZ: 1, cameraYaw: 0 });
+  // Facing +Z (cameraYaw 0) makes +X the screen-left side, so moveX -1 pushes into the wall.
+  const events = advance(state, level, 0.4, { moveX: -1, moveZ: 1, cameraYaw: 0 });
   assert.ok(events.some(event => event.type === 'wall-run'), 'wall run should engage against the side wall');
   assert.ok(state.contacts.right || state.wall !== null);
   const wallJump = advance(state, level, 0.05, { jump: true });
@@ -207,7 +208,7 @@ test('a wall run sticks to the wall, softens gravity and awards a wall jump', ()
   // A burned-out run re-arms once its cooldown lapses and the runner touches a wall again.
   state.position = { x: 1.1, y: 6, z: 4 };
   state.velocity = { x: 3, y: 0, z: 6 };
-  const chained = advance(state, level, 0.6, { moveX: 1, moveZ: 1, cameraYaw: 0 });
+  const chained = advance(state, level, 0.6, { moveX: -1, moveZ: 1, cameraYaw: 0 });
   assert.ok(chained.some(event => event.type === 'wall-run'), 'a burned-out run re-arms after its cooldown');
 });
 

@@ -61,6 +61,17 @@ test('stream yields each Chunk value until the Exit', async () => {
   assert.deepEqual(items, [{ kind: 'synchronized' }, { kind: 'unknown-event', sequence: 1, eventType: 'x' }]);
 });
 
+test('each stream chunk is acked so an ack-gated server sends the next one', () => {
+  const transport = createFakeTransport();
+  const session = createRpcSession({ transport });
+  void session.stream('orchestration.subscribeThread', { threadId: 't' });
+  const id = lastSent(transport)['id'] as string;
+  transport.emit(serverChunk(id, [{ kind: 'synchronized' }]));
+  assert.deepEqual(lastSent(transport), { _tag: 'Ack', requestId: id });
+  transport.emit(serverChunk(id, [{ kind: 'unknown-event', sequence: 1, eventType: 'x' }]));
+  assert.equal(transport.sentFrames().filter((frame) => (frame as { _tag: string })._tag === 'Ack').length, 2);
+});
+
 test('a malformed frame fails the session and rejects in-flight calls', async () => {
   const transport = createFakeTransport();
   const session = createRpcSession({ transport });

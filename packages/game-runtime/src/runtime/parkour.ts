@@ -485,11 +485,12 @@ export function stepParkour(state: ParkourState, level: ParkourLevel, input: Par
   }
 
   const cos = Math.cos(input.cameraYaw), sin = Math.sin(input.cameraYaw);
-  // Camera-relative basis: forward = (sin, 0, cos), right = (cos, 0, -sin).
+  // Camera-relative basis: forward = (sin, 0, cos), right = (-cos, 0, sin) — the chase camera
+  // settles to yaw 180° facing +Z, so screen right points along world -X.
   const length = Math.hypot(input.moveX, input.moveZ);
   const clampedX = length > 1 ? input.moveX / length : input.moveX;
   const clampedZ = length > 1 ? input.moveZ / length : input.moveZ;
-  const wish = vec(clampedX * cos + clampedZ * sin, 0, -clampedX * sin + clampedZ * cos);
+  const wish = vec(-clampedX * cos + clampedZ * sin, 0, clampedX * sin + clampedZ * cos);
   const wishSpeed = Math.hypot(wish.x, wish.z);
 
   if (state.invulnerable > 0) state.invulnerable = Math.max(0, state.invulnerable - dt);

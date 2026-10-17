@@ -161,27 +161,32 @@ function hex(rgb: readonly number[]): string {
 }
 
 /**
- * Sector 07: one complete Vector-style 3D parkour course. Six rooftop decks, a wall-run chasm,
- * a slide gate, a relay ferry and a rising lift, four checkpoint gates, eight shards and three
- * sentinel hazards, plus a cinematic follow camera. Deterministic from the seed.
+ * Sector 07: one complete Vector-style 3D parkour course — blown-out white run surfaces and
+ * flanking panels backlighting ink-black silhouette sides and a black runner. Six rooftop decks,
+ * a wall-run chasm, a slide gate, a relay ferry and a rising lift, four checkpoint gates, eight
+ * shards and three sentinel hazards, plus a cinematic follow camera. Deterministic from the seed.
  */
 export function createSectorFixture(seed = 'forgon'): ProjectFixture {
   const author = new SceneAuthor('sector', seed);
   const root = author.entity('sector', 'Sector 07 relay course');
   const entities: Entity[] = [root];
 
-  const shell: [number, number, number] = [0.125, 0.14, 0.185];
-  const deckTint: [number, number, number] = [0.2, 0.225, 0.29];
+  // Art direction: blown-out white run surfaces and flank panels; ink shows up only as silhouette
+  // sides and occluders, with teal glass and amber hazard trim over the white sky.
+  const shell: [number, number, number] = [0.05, 0.055, 0.075];
+  const deckTint: [number, number, number] = [0.09, 0.1, 0.13];
+  const surfaceTint: [number, number, number] = [0.92, 0.94, 0.965];
+  const wallTint: [number, number, number] = [0.72, 0.78, 0.86];
   // The seed picks the course's signature neon accent (kept in the cold cyan-violet band).
   const edge: [number, number, number] = neon(0.5 + author.random('sector:accent:hue') * 0.25);
-  const warm: [number, number, number] = [1, 0.63, 0.24];
-  const dangerTint: [number, number, number] = [1, 0.18, 0.3];
-  const shardTint: [number, number, number] = [0.4, 0.95, 1];
-  const goalTint: [number, number, number] = [0.35, 1, 0.65];
+  const warm: [number, number, number] = [1, 0.74, 0.26];
+  const dangerTint: [number, number, number] = [1, 0.14, 0.2];
+  const shardTint: [number, number, number] = [0.42, 0.93, 1];
+  const goalTint: [number, number, number] = [1, 0.79, 0.32];
   const gateTint: [number, number, number] = [1, 0.72, 0.3];
-  const runner: [number, number, number] = [0.9, 0.93, 1];
-  const runnerTrim: [number, number, number] = edge;
-  const hurt: [number, number, number] = [0.24, 0.26, 0.32];
+  const runner: [number, number, number] = [0.04, 0.045, 0.062];
+  const runnerTrim: [number, number, number] = [0.055, 0.06, 0.08];
+  const hurt: [number, number, number] = [0.05, 0.055, 0.075];
 
   const add = (key: string, name: string, position: [number, number, number], size: [number, number, number], tint: readonly number[], solid = true, parentId = root.id): Entity => {
     const entity = box(author, key, name, position, size, [...tint], parentId, solid);
@@ -210,32 +215,40 @@ export function createSectorFixture(seed = 'forgon'): ProjectFixture {
   add('rig:leg:left', 'Left leg', [-0.18, 0.48, 0], [0.22, 0.9, 0.22], hurt, false, player.id);
   add('rig:leg:right', 'Right leg', [0.18, 0.48, 0], [0.22, 0.9, 0.22], hurt, false, player.id);
 
+  /** A blown-out white run surface cap on an ink deck; render-only, so the sim never sees it. */
+  const cap = (key: string, deck: Entity): void => {
+    const t = deck.transform;
+    add(key, `${deck.name} surface`,
+      [t.position[0], t.position[1] + t.scale[1] / 2 + 0.045, t.position[2]],
+      [t.scale[0] * 0.98, 0.09, t.scale[2] * 0.98], surfaceTint, false);
+  };
+
   // --- act 1: rooftop relay, 4-5m gaps with 0.5-1m rises --------------------------------------
-  add('roof:start', 'Entry rooftop', [0, 0, 0], [16, 2, 16], shell);
-  add('roof:a', 'Ferry rooftop', [0, 0, 17], [10, 2, 10], deckTint);
-  add('roof:b', 'Switchback rooftop', [0, 0.6, 31], [9, 2, 9], shell);
-  add('roof:c', 'Chasm launch', [0, 1.6, 45], [8, 2, 9], deckTint);
+  cap('roof:start:surface', add('roof:start', 'Entry rooftop', [0, 0, 0], [16, 2, 16], shell));
+  cap('roof:a:surface', add('roof:a', 'Ferry rooftop', [0, 0, 17], [10, 2, 10], deckTint));
+  cap('roof:b:surface', add('roof:b', 'Switchback rooftop', [0, 0.6, 31], [9, 2, 9], shell));
+  cap('roof:c:surface', add('roof:c', 'Chasm launch', [0, 1.6, 45], [8, 2, 9], deckTint));
   add('edge:start', 'Entry lip', [0, 1.03, 7.85], [15.6, 0.08, 0.32], edge, false);
   add('edge:a', 'Ferry lip', [0, 1.03, 21.85], [9.6, 0.08, 0.32], edge, false);
   add('edge:b', 'Switchback lip', [0, 1.63, 35.35], [8.6, 0.08, 0.32], warm, false);
 
-  // --- act 2: a 13m chasm with two wall-run faces and a rescue ferry ---------------------------
-  add('wall:left', 'Chasm wall left', [-4.8, 5, 57], [1.2, 10, 17], shell);
-  add('wall:right', 'Chasm wall right', [4.8, 5, 57], [1.2, 10, 17], shell);
+  // --- act 2: a 13m chasm with two flanking white panels and a rescue ferry --------------------
+  add('wall:left', 'Chasm wall left', [-4.8, 5, 57], [1.2, 10, 17], wallTint);
+  add('wall:right', 'Chasm wall right', [4.8, 5, 57], [1.2, 10, 17], wallTint);
   add('edge:wall:left', 'Left wall light line', [-4.16, 0.5, 57], [0.1, 0.28, 16.6], edge, false);
   add('edge:wall:right', 'Right wall light line', [4.16, 0.5, 57], [0.1, 0.28, 16.6], edge, false);
-  add('roof:d', 'Chasm landing', [0, 1.6, 67], [8, 2, 9], shell);
+  cap('roof:d:surface', add('roof:d', 'Chasm landing', [0, 1.6, 67], [8, 2, 9], shell));
   add('edge:c', 'Chasm landing lip', [0, 2.63, 71.35], [7.6, 0.08, 0.32], warm, false);
 
   // --- act 3: raised slide run with a low gate ------------------------------------------------
-  add('catwalk:slide', 'Slide run', [0, 3.1, 84], [7, 2, 22], deckTint);
+  cap('catwalk:slide:surface', add('catwalk:slide', 'Slide run', [0, 3.1, 84], [7, 2, 22], deckTint));
   add('gate:bar', 'Slide gate', [0, 5.7, 84], [7.4, 1.2, 0.7], dangerTint);
   add('edge:slide:left', 'Slide run lip left', [-3.4, 4.13, 84], [0.3, 0.08, 21.6], edge, false);
   add('edge:slide:right', 'Slide run lip right', [3.4, 4.13, 84], [0.3, 0.08, 21.6], edge, false);
   add('edge:gate', 'Slide gate lip', [0, 5.06, 84], [7.4, 0.12, 0.7], warm, false);
 
   // --- act 4: rising relay lift onto the uplink terrace ---------------------------------------
-  add('roof:goal', 'Uplink terrace', [0, 6.6, 106.5], [10, 2, 10], deckTint);
+  cap('roof:goal:surface', add('roof:goal', 'Uplink terrace', [0, 6.6, 106.5], [10, 2, 10], deckTint));
   add('edge:goal', 'Uplink lip', [0, 7.63, 101.6], [9.6, 0.08, 0.32], goalTint, false);
 
   // --- checkpoint gates (index 0 is the spawn) -------------------------------------------------
@@ -288,21 +301,21 @@ export function createSectorFixture(seed = 'forgon'): ProjectFixture {
   entities.push(goal);
 
   const camera = author.entity('camera', 'Relay camera');
-  camera.transform.position = [0, 10, -20];
-  camera.transform.rotationEuler = [-24, 0, 0];
+  camera.transform.position = [0, 7.5, -14];
+  camera.transform.rotationEuler = [-17, 0, 0];
   camera.components.push(component(author, 'camera', 'camera', {
-    fov: 62, nearClip: 0.1, farClip: 600, clearColor: [0.03, 0.045, 0.07],
-    mode: 'follow', distance: 7.6, height: 2.3, lag: 6.5, intro: 3.2, speedFov: 12, lookAhead: 0.3,
+    fov: 62, nearClip: 0.1, farClip: 600, clearColor: [0.82, 0.89, 0.95],
+    mode: 'follow', distance: 8.2, height: 2, lag: 6.5, intro: 3.6, speedFov: 14, lookAhead: 0.3,
   }));
   entities.push(camera);
-  const sun = author.entity('sun', 'Cold sky'); sun.transform.rotationEuler = [-54, 34, 0];
-  sun.components.push(component(author, 'sun', 'light', { kind: 'directional', color: [0.6, 0.72, 1], intensity: 1.1, castShadows: true, range: 80 }));
+  const sun = author.entity('sun', 'Blown-out sun'); sun.transform.rotationEuler = [-54, 34, 0];
+  sun.components.push(component(author, 'sun', 'light', { kind: 'directional', color: [1, 1, 1], intensity: 1.6, castShadows: true, range: 80 }));
   entities.push(sun);
   const fillStart = author.entity('fill:start', 'Entry fill'); fillStart.transform.position = [0, 7, 2];
-  fillStart.components.push(component(author, 'fill:start', 'light', { kind: 'omni', color: [0.4, 0.9, 1], intensity: 1.5, castShadows: false, range: 30 }));
+  fillStart.components.push(component(author, 'fill:start', 'light', { kind: 'omni', color: [0.5, 0.85, 1], intensity: 1.4, castShadows: false, range: 30 }));
   entities.push(fillStart);
   const fillGoal = author.entity('fill:goal', 'Uplink fill'); fillGoal.transform.position = [0, 13, 108];
-  fillGoal.components.push(component(author, 'fill:goal', 'light', { kind: 'omni', color: [1, 0.6, 0.3], intensity: 1.3, castShadows: false, range: 34 }));
+  fillGoal.components.push(component(author, 'fill:goal', 'light', { kind: 'omni', color: [1, 0.68, 0.3], intensity: 1.3, castShadows: false, range: 34 }));
   entities.push(fillGoal);
 
   // --- prefab: the relay lift, reused as the chasm ferry and the uplink lift ---------------------
@@ -376,8 +389,8 @@ export function createSectorFixture(seed = 'forgon'): ProjectFixture {
   ] };
   return finish(author, 'Sector 07', entities, [liftPrefab, sentinelPrefab], assets, {
     'assets/relay.wav': sectorWav(),
-    'assets/sector-mark.svg': `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="128" viewBox="0 0 512 128"><rect width="512" height="128" fill="#0a0d14"/><path d="M40 34h44v60H40z" fill="none" stroke="${hex(edge)}" stroke-width="6"/><path d="M52 46h20v36H52z" fill="${hex(edge)}"/><text x="108" y="80" font-family="sans-serif" font-size="42" letter-spacing="6" fill="#eef3f7">SECTOR 07</text></svg>\n`,
-    'assets/palette.json': json({ shell: '#202430', deck: '#333a4a', edge: hex(edge), warm: '#ffa03d', danger: '#ff2e4d', shard: '#66f2ff', goal: '#59ffa6' }),
+    'assets/sector-mark.svg': `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="128" viewBox="0 0 512 128"><rect width="512" height="128" fill="#dfe8f2"/><path d="M40 34h44v60H40z" fill="none" stroke="${hex(edge)}" stroke-width="6"/><path d="M52 46h20v36H52z" fill="#0c0e13"/><text x="108" y="80" font-family="sans-serif" font-size="42" letter-spacing="6" fill="#12151c">SECTOR 07</text></svg>\n`,
+    'assets/palette.json': json({ ink: '#0d0e13', deck: '#171921', surface: '#ebf0f6', wall: '#b8c7db', edge: hex(edge), warm: '#ffbd42', danger: '#ff2433', shard: '#6bedff', goal: '#ffc952', sky: '#d1e3f2' }),
     'assets/PROVENANCE.md': '# Original placeholder assets\nAuthor: Nitish\n\nAll Sector 07 geometry is authored as original primitives in the scene and prefab files. The Sector wordmark SVG, the material palette and the mathematically synthesized relay WAV were created for this repository, with no imported third-party artwork, audio or level data. These fixture assets are dedicated under CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/). The SVG uses a platform sans-serif font; no font file is distributed. Registry entries identify provenance. The SVG and palette are source placeholders; the scene uses inline primitive colors and does not claim texture/material import support.\n',
   }, [{ path: 'authoring/relay-lift.bindings.json', bindings: liftBindings }]);
 }

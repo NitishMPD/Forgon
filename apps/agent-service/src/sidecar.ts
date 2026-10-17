@@ -182,6 +182,8 @@ export interface StartSidecarOptions {
 
 const DEFAULT_READINESS_TIMEOUT_MS = 30_000;
 const DEFAULT_READINESS_INTERVAL_MS = 250;
+// A probe that connects while the server is still binding can stall with no reply; retry it instead.
+const READINESS_ATTEMPT_TIMEOUT_MS = 2_000;
 
 const sidecarUnavailable = (detail: string): AgentBridgeError =>
   new AgentBridgeError('sidecar_unavailable', 'The managed T3 sidecar could not be started.', {
@@ -253,7 +255,9 @@ const waitForReadiness = async (input: {
           );
     }
     try {
-      const response = await input.fetch(new URL('/.well-known/t3/environment', input.origin).toString());
+      const response = await input.fetch(new URL('/.well-known/t3/environment', input.origin).toString(), {
+        signal: AbortSignal.timeout(READINESS_ATTEMPT_TIMEOUT_MS),
+      });
       if (response.ok) {
         const parsed = executionEnvironmentDescriptorSchema.safeParse(await response.json());
         if (parsed.success) {

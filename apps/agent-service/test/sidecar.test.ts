@@ -310,6 +310,21 @@ test('a running server whose version differs from the pin is refused and killed'
   assert.equal(fake.isKilled(), true);
 });
 
+test('a readiness probe that stalls without a reply is aborted and retried', async () => {
+  const fake = createFakeChild();
+  let calls = 0;
+  const sidecar = await startSidecar(
+    baseOptions(fake, (_input, init) => {
+      calls += 1;
+      if (calls > 1) return Promise.resolve(descriptorResponse());
+      // Connected while the server was binding: no reply until the probe's own signal fires.
+      return new Promise((_resolve, reject) => init?.signal?.addEventListener('abort', () => reject(init.signal!.reason)));
+    }),
+  );
+  assert.equal(calls, 2);
+  sidecar.stop();
+});
+
 test('a non-isolated home is refused before any process is spawned', async () => {
   const fake = createFakeChild();
   const { spawn, calls } = spawnSpy(fake);

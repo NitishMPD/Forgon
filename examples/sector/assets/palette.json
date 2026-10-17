@@ -1,9 +1,12 @@
 {
-  "shell": "#202430",
-  "deck": "#333a4a",
+  "ink": "#0d0e13",
+  "deck": "#171921",
+  "surface": "#ebf0f6",
+  "wall": "#b8c7db",
   "edge": "#29cdff",
-  "warm": "#ffa03d",
-  "danger": "#ff2e4d",
-  "shard": "#66f2ff",
-  "goal": "#59ffa6"
+  "warm": "#ffbd42",
+  "danger": "#ff2433",
+  "shard": "#6bedff",
+  "goal": "#ffc952",
+  "sky": "#d1e3f2"
 }

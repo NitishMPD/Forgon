@@ -118,9 +118,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.9,
-                0.93,
-                1
+                0.04,
+                0.045,
+                0.062
               ],
               "castShadows": true
             },
@@ -159,9 +159,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.9,
-                0.93,
-                1
+                0.04,
+                0.045,
+                0.062
               ],
               "castShadows": true
             },
@@ -200,9 +200,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.16,
-                0.8040196714395392,
-                1
+                0.055,
+                0.06,
+                0.08
               ],
               "castShadows": true
             },
@@ -241,9 +241,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.16,
-                0.8040196714395392,
-                1
+                0.055,
+                0.06,
+                0.08
               ],
               "castShadows": true
             },
@@ -282,9 +282,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.24,
-                0.26,
-                0.32
+                0.05,
+                0.055,
+                0.075
               ],
               "castShadows": true
             },
@@ -323,9 +323,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.24,
-                0.26,
-                0.32
+                0.05,
+                0.055,
+                0.075
               ],
               "castShadows": true
             },
@@ -364,9 +364,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.125,
-                0.14,
-                0.185
+                0.05,
+                0.055,
+                0.075
               ],
               "castShadows": true
             },
@@ -385,6 +385,47 @@
                 0.5
               ],
               "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_3787f443b4c33a6e",
+        "name": "Entry rooftop surface",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.045,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            15.68,
+            0.09,
+            15.68
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_ec0d39b269da27ff",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.92,
+                0.94,
+                0.965
+              ],
+              "castShadows": true
             },
             "entityRefs": [],
             "assetRefs": []
@@ -421,9 +462,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.2,
-                0.225,
-                0.29
+                0.09,
+                0.1,
+                0.13
               ],
               "castShadows": true
             },
@@ -442,6 +483,47 @@
                 0.5
               ],
               "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_798cc0694f431c5d",
+        "name": "Ferry rooftop surface",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.045,
+            17
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            9.8,
+            0.09,
+            9.8
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_9b12aef3a288a6ba",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.92,
+                0.94,
+                0.965
+              ],
+              "castShadows": true
             },
             "entityRefs": [],
             "assetRefs": []
@@ -478,9 +560,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.125,
-                0.14,
-                0.185
+                0.05,
+                0.055,
+                0.075
               ],
               "castShadows": true
             },
@@ -499,6 +581,47 @@
                 0.5
               ],
               "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_6d0afaae72d5032c",
+        "name": "Switchback rooftop surface",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.645,
+            31
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            8.82,
+            0.09,
+            8.82
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_b78eedc0cf73afbd",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.92,
+                0.94,
+                0.965
+              ],
+              "castShadows": true
             },
             "entityRefs": [],
             "assetRefs": []
@@ -535,9 +658,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.2,
-                0.225,
-                0.29
+                0.09,
+                0.1,
+                0.13
               ],
               "castShadows": true
             },
@@ -556,6 +679,47 @@
                 0.5
               ],
               "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_b28db697f0e6e8df",
+        "name": "Chasm launch surface",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            2.645,
+            45
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            7.84,
+            0.09,
+            8.82
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_369461b182768150",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.92,
+                0.94,
+                0.965
+              ],
+              "castShadows": true
             },
             "entityRefs": [],
             "assetRefs": []
@@ -675,8 +839,8 @@
               "primitive": "box",
               "color": [
                 1,
-                0.63,
-                0.24
+                0.74,
+                0.26
               ],
               "castShadows": true
             },
@@ -715,9 +879,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.125,
-                0.14,
-                0.185
+                0.72,
+                0.78,
+                0.86
               ],
               "castShadows": true
             },
@@ -772,9 +936,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.125,
-                0.14,
-                0.185
+                0.72,
+                0.78,
+                0.86
               ],
               "castShadows": true
             },
@@ -911,9 +1075,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.125,
-                0.14,
-                0.185
+                0.05,
+                0.055,
+                0.075
               ],
               "castShadows": true
             },
@@ -932,6 +1096,47 @@
                 0.5
               ],
               "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_cb65b786cd647e6e",
+        "name": "Chasm landing surface",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            2.645,
+            67
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            7.84,
+            0.09,
+            8.82
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_aaf75e98ad00dedb",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.92,
+                0.94,
+                0.965
+              ],
+              "castShadows": true
             },
             "entityRefs": [],
             "assetRefs": []
@@ -969,8 +1174,8 @@
               "primitive": "box",
               "color": [
                 1,
-                0.63,
-                0.24
+                0.74,
+                0.26
               ],
               "castShadows": true
             },
@@ -1009,9 +1214,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.2,
-                0.225,
-                0.29
+                0.09,
+                0.1,
+                0.13
               ],
               "castShadows": true
             },
@@ -1030,6 +1235,47 @@
                 0.5
               ],
               "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_d0dddb283fb2b488",
+        "name": "Slide run surface",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            4.145,
+            84
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            6.859999999999999,
+            0.09,
+            21.56
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_e652d4caf582d287",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.92,
+                0.94,
+                0.965
+              ],
+              "castShadows": true
             },
             "entityRefs": [],
             "assetRefs": []
@@ -1067,8 +1313,8 @@
               "primitive": "box",
               "color": [
                 1,
-                0.18,
-                0.3
+                0.14,
+                0.2
               ],
               "castShadows": true
             },
@@ -1206,8 +1452,8 @@
               "primitive": "box",
               "color": [
                 1,
-                0.63,
-                0.24
+                0.74,
+                0.26
               ],
               "castShadows": true
             },
@@ -1246,9 +1492,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.2,
-                0.225,
-                0.29
+                0.09,
+                0.1,
+                0.13
               ],
               "castShadows": true
             },
@@ -1267,6 +1513,47 @@
                 0.5
               ],
               "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_e0f58436fc79f8b1",
+        "name": "Uplink terrace surface",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            7.645,
+            106.5
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            9.8,
+            0.09,
+            9.8
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_670c4693fa487554",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.92,
+                0.94,
+                0.965
+              ],
+              "castShadows": true
             },
             "entityRefs": [],
             "assetRefs": []
@@ -1303,9 +1590,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.35,
                 1,
-                0.65
+                0.79,
+                0.32
               ],
               "castShadows": true
             },
@@ -1900,8 +2187,8 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.4,
-                0.95,
+                0.42,
+                0.93,
                 1
               ],
               "castShadows": false
@@ -1953,8 +2240,8 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.4,
-                0.95,
+                0.42,
+                0.93,
                 1
               ],
               "castShadows": false
@@ -2006,8 +2293,8 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.4,
-                0.95,
+                0.42,
+                0.93,
                 1
               ],
               "castShadows": false
@@ -2059,8 +2346,8 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.4,
-                0.95,
+                0.42,
+                0.93,
                 1
               ],
               "castShadows": false
@@ -2112,8 +2399,8 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.4,
-                0.95,
+                0.42,
+                0.93,
                 1
               ],
               "castShadows": false
@@ -2165,8 +2452,8 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.4,
-                0.95,
+                0.42,
+                0.93,
                 1
               ],
               "castShadows": false
@@ -2218,8 +2505,8 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.4,
-                0.95,
+                0.42,
+                0.93,
                 1
               ],
               "castShadows": false
@@ -2271,8 +2558,8 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.4,
-                0.95,
+                0.42,
+                0.93,
                 1
               ],
               "castShadows": false
@@ -2324,9 +2611,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.35,
                 1,
-                0.65
+                0.79,
+                0.32
               ],
               "castShadows": false
             },
@@ -2354,11 +2641,11 @@
         "transform": {
           "position": [
             0,
-            10,
-            -20
+            7.5,
+            -14
           ],
           "rotationEuler": [
-            -24,
+            -17,
             0,
             0
           ],
@@ -2378,16 +2665,16 @@
               "nearClip": 0.1,
               "farClip": 600,
               "clearColor": [
-                0.03,
-                0.045,
-                0.07
+                0.82,
+                0.89,
+                0.95
               ],
               "mode": "follow",
-              "distance": 7.6,
-              "height": 2.3,
+              "distance": 8.2,
+              "height": 2,
               "lag": 6.5,
-              "intro": 3.2,
-              "speedFov": 12,
+              "intro": 3.6,
+              "speedFov": 14,
               "lookAhead": 0.3
             },
             "entityRefs": [],
@@ -2397,7 +2684,7 @@
       },
       {
         "id": "gen_b17be7a5b9a90655",
-        "name": "Cold sky",
+        "name": "Blown-out sun",
         "parentId": null,
         "enabled": true,
         "transform": {
@@ -2425,11 +2712,11 @@
             "properties": {
               "kind": "directional",
               "color": [
-                0.6,
-                0.72,
+                1,
+                1,
                 1
               ],
-              "intensity": 1.1,
+              "intensity": 1.6,
               "castShadows": true,
               "range": 80
             },
@@ -2468,11 +2755,11 @@
             "properties": {
               "kind": "omni",
               "color": [
-                0.4,
-                0.9,
+                0.5,
+                0.85,
                 1
               ],
-              "intensity": 1.5,
+              "intensity": 1.4,
               "castShadows": false,
               "range": 30
             },
@@ -2512,7 +2799,7 @@
               "kind": "omni",
               "color": [
                 1,
-                0.6,
+                0.68,
                 0.3
               ],
               "intensity": 1.3,
@@ -2602,9 +2889,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.2,
-                0.225,
-                0.29
+                0.09,
+                0.1,
+                0.13
               ],
               "castShadows": true
             },
@@ -2806,9 +3093,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.2,
-                0.225,
-                0.29
+                0.09,
+                0.1,
+                0.13
               ],
               "castShadows": true
             },
@@ -2962,9 +3249,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.24,
-                0.26,
-                0.32
+                0.05,
+                0.055,
+                0.075
               ],
               "castShadows": true
             },
@@ -3040,8 +3327,8 @@
               "primitive": "box",
               "color": [
                 1,
-                0.18,
-                0.3
+                0.14,
+                0.2
               ],
               "castShadows": true
             },
@@ -3085,9 +3372,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.24,
-                0.26,
-                0.32
+                0.05,
+                0.055,
+                0.075
               ],
               "castShadows": true
             },
@@ -3163,8 +3450,8 @@
               "primitive": "box",
               "color": [
                 1,
-                0.18,
-                0.3
+                0.14,
+                0.2
               ],
               "castShadows": true
             },
@@ -3208,9 +3495,9 @@
             "properties": {
               "primitive": "box",
               "color": [
-                0.24,
-                0.26,
-                0.32
+                0.05,
+                0.055,
+                0.075
               ],
               "castShadows": true
             },
@@ -3286,8 +3573,8 @@
               "primitive": "box",
               "color": [
                 1,
-                0.18,
-                0.3
+                0.14,
+                0.2
               ],
               "castShadows": true
             },

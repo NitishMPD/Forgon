@@ -87,7 +87,10 @@ interface PendingCall {
 
 export interface RpcSessionOptions {
   readonly transport: WebSocketTransport;
-  /** Send an `Ack` after each streamed chunk. T3's WS protocol reports `supportsAck: false`. */
+  /**
+   * Send an `Ack` after each streamed chunk (default true). Effect's RpcServer, which T3 runs with
+   * client acks enabled, sends the next chunk only after the previous one is acked.
+   */
   readonly expectsAck?: boolean;
   /** Reply to server-originated requests. Defaults to failing them explicitly. */
   readonly onServerRequest?: (frame: {
@@ -167,7 +170,7 @@ export const createRpcSession = (options: RpcSessionOptions): RpcSession => {
         const call = pending.get(frame.requestId);
         if (call === undefined) return;
         for (const value of frame.values) call.onChunk?.(value);
-        if (options.expectsAck === true) send({ _tag: 'Ack', requestId: frame.requestId });
+        if (options.expectsAck !== false) send({ _tag: 'Ack', requestId: frame.requestId });
         return;
       }
       case 'Exit': {
