@@ -990,6 +990,16 @@ Minimum credible start: 2 strong engineers plus part-time game/design/QA support
 
 ## 19. Initial implementation backlog (ordered)
 
+### Next up (owner feedback, 17 October 2026)
+
+- [ ] N01. Grouping and hierarchy: Ctrl+G groups the selection under a new empty parent (identity transform under the shared parent, so world positions stay put; one undo step), ungroup, collapsible groups. Agents must author hierarchically (for example City > Roads > Lane markings) instead of hundreds of root objects; add this to the project agent guidance.
+- [ ] N02. Live agent building: agents apply scene changes through editor commands so objects appear as they are added and stay undoable, instead of one external file write that can conflict with open edits.
+- [ ] N03. Persist chat threads per project (list and transcript) across close and reopen; reuse agent-service thread resume.
+- [ ] N04. Apply the remembered model and permissions as soon as providers load, so the composer never flashes "Default model / Can't send".
+- [ ] N05. Effort/reasoning chips in the model picker: pass T3's per-model reasoning options through agent-bridge.
+- [ ] N06. Sandboxed preview so scripts run in the desktop app; package the script compiler with the desktop bridge.
+- [ ] N07. Investigate `apps/studio/test/io.test.ts:41` failing after out-of-session edits (structural edits to generated scenes now save; likely `packages/procedural-authoring/src/overrides.ts`).
+
 ### Epic A: Architecture and source foundations
 
 - [ ] A01. Pin upstream versions, record licenses, lockfiles, toolchains.
