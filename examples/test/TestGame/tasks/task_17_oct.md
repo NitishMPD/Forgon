@@ -1,0 +1,2 @@
+- Built a 24-building city with roads, crossings, a central park, fountain, 24 trees, ten cars, and an overview camera; preserved original entities and verified runtime validation and exact authoring replay.
+- Added golden afternoon sunlight, cool city-wide fill, and a local turquoise fountain accent; elevated the sun for skyline shadows and verified all 723 entities and exact authoring replay.

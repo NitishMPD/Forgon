@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import type { ConsoleLog, LogSeverity } from '../../model/consoleLog.js';
-import { EmptyState, Segmented, cx } from '../../primitives/primitives.js';
+import { Button, EmptyState, Segmented, cx } from '../../primitives/primitives.js';
 
 export interface ConsolePanelProps {
   log: ConsoleLog;
+  onClear?: (() => void) | undefined;
 }
 
 type SeverityFilter = 'all' | LogSeverity;
@@ -19,7 +21,7 @@ const severityOptions: ReadonlyArray<{ value: SeverityFilter; label: string }> =
 
 const severityWords: Record<LogSeverity, string> = { error: 'Error', warning: 'Warning', info: 'Info' };
 
-export function ConsolePanel({ log }: ConsolePanelProps) {
+export function ConsolePanel({ log, onClear }: ConsolePanelProps) {
   const [severity, setSeverity] = useState<SeverityFilter>('all');
   const [query, setQuery] = useState('');
   const needle = query.trim().toLowerCase();
@@ -41,6 +43,10 @@ export function ConsolePanel({ log }: ConsolePanelProps) {
           value={query}
           onChange={event => setQuery(event.currentTarget.value)}
         />
+        <span className="fg-composer-spacer" />
+        <Button onClick={onClear} disabled={!onClear || (log.entries.length === 0 && log.droppedCount === 0)} title="Clear all console messages">
+          <Trash2 size={14} strokeWidth={1.75} aria-hidden="true" />Clear
+        </Button>
       </div>
       <p className="fg-muted fg-small">Opening a project never runs its scripts. Scripts run only when you press Play.</p>
       {log.droppedCount > 0 ? <p className="fg-muted fg-small">Older lines dropped: {log.droppedCount}.</p> : null}

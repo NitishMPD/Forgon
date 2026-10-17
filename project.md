@@ -1,6 +1,8 @@
 # Forgon Engine
 Author: Nitish
 
+Console Clear resets the project-session log entries and dropped count at the App state owner while preserving the next entry ID. Status-bar error/warning counts reset with it, and subsequent messages continue normally. Clearing messages does not resolve scene validity or conflicts.
+
 Scene-store equality compares JSON object fields independent of key order (including nested component properties), while preserving array order and actual value differences. Native JSON map reordering must not mark a saved revision invalid; different content under the same revision still fails.
 
 Workspace shortcuts operate from the viewport as well as panels: Delete/Backspace deletes selected topmost subtrees in one undo step; Ctrl+C/X/V copy/cut/paste scene objects using an internal clipboard for this workspace session, fresh IDs and remapped internal references. Partial prefab copies are rejected before cutting; absent paste parents fall back to the root. Ctrl+A selects all, Escape deselects after closing expanded cards, F2 focuses Inspector rename, Ctrl+Shift+N creates an empty object under the selection (or at the root), X toggles Local/World when supported, and Ctrl+P toggles Play/Stop alongside F5. Existing Q/W/E/R, F, Ctrl+D, save and history shortcuts remain. Object actions leave text editing alone and mutation guards remain in force. Unity features without Forgon equivalents (Rect/combined tools, pause/step, pivot modes and scene-file creation) do not receive inert shortcuts.

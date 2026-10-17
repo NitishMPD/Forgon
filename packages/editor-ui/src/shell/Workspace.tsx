@@ -27,6 +27,7 @@ import { placementCommand, type PlacementTarget } from '../model/placement.js';
 import { Banner, Button, IconButton, StatusText, cx, type Tone } from '../primitives/primitives.js';
 import type { SurfacePoint, ViewportHandle, ViewportMount, ViewportTool, ViewportView } from '../services.js';
 import { Settings } from './Settings.js';
+import { ConflictCard } from '../conflict/ConflictCard.js';
 import { toolButtons, ViewportTools } from './ViewportTools.js';
 import { ViewportSlot } from './ViewportSlot.js';
 
@@ -67,6 +68,7 @@ export interface WorkspaceProps {
   onImportAsset?: ((license: string) => Promise<void>) | undefined;
   log: ConsoleLog;
   onLog(entry: LogInput): void;
+  onClearLog?: (() => void) | undefined;
   agent: AgentController | null;
   viewport: ViewportMount | null;
   layout: LayoutState;
@@ -510,7 +512,7 @@ export function Workspace(props: WorkspaceProps) {
     agents: <AgentsPanel agent={agent} onOpenThread={openComposer} onOpenSettings={() => setView('settings')} />,
     project: <AssetsPanel assets={props.assets} prefabs={props.viewportContext?.prefabs ?? []} projectOpen={props.source === 'project'}
       canPlace={canEdit && !!handle?.surfaceAt} onAddToScene={addAtCentre} onRefresh={props.onRefreshAssets} onImport={props.onImportAsset} />,
-    console: <ConsolePanel log={log} />,
+    console: <ConsolePanel log={log} onClear={props.onClearLog} />,
     review: <ReviewPanel threadTitle={activeThread?.title ?? null} changedPaths={reviewPaths} />,
     stats: <dl className="fg-stats"><div><dt>Entities</dt><dd>{scene.entities.length}</dd></div><div><dt>Selected</dt><dd>{selection.entityIds.length}</dd></div><div><dt>Diagnostics</dt><dd>{counts.errors + counts.warnings}</dd></div></dl>,
   };
@@ -604,8 +606,10 @@ export function Workspace(props: WorkspaceProps) {
                 onClick={() => setLayout(toggleCard(layout, id))}><Icon {...iconProps} /><span>{label}</span></button>
             ))}
           </nav>
+          {/* Over the viewport, not inside the Inspector: an agent's external write must stay resolvable even with panels hidden. */}
+          {conflict ? <div className="fg-conflict-float fg-floating-card"><ConflictCard conflict={conflict} onResolve={props.onResolveConflict} /></div> : null}
           <AgentDock agent={agent} scene={scene} assets={props.assets} projectOpen={props.source === 'project'} focusToken={focusToken}
-            transcriptOpen={layout.expandedCard === 'composer'} onCloseTranscript={collapse} />
+            transcriptOpen={layout.expandedCard === 'composer'} onCloseTranscript={collapse} onOpenTranscript={() => show('composer')} />
         </div>
       </main>
 

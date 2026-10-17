@@ -7,7 +7,7 @@ import { PermissionPicker } from './PermissionPicker.js';
 import { Markdown } from './Markdown.js';
 import { attachmentReferences, buildContext, chipStatus, clipboardFiles, insertMention, isSendKey, mentionOptions, mentionQuery, recallPrompt, type ContextChip, type HistoryRecall } from './composerModel.js';
 import type { AgentController } from './useAgentSessions.js';
-import { activityDuration, activityGroupLabel, commandLabel, groupActivity, type ActivityGroup, type ActivityRow, type ActivityStep } from './activityModel.js';
+import { activityDuration, activityGroupLabel, commandLabel, groupActivity, lastPrompt, workStatusLabel, type ActivityGroup, type ActivityRow, type ActivityStep } from './activityModel.js';
 import { threadStatus, threadStatusLabels, type AgentThread, type ThreadStatus } from './threadState.js';
 
 export interface AgentDockProps {
@@ -18,6 +18,7 @@ export interface AgentDockProps {
   focusToken: number;
   transcriptOpen?: boolean;
   onCloseTranscript?(): void;
+  onOpenTranscript?(): void;
 }
 
 export const statusTone: Record<ThreadStatus, Tone> = {
@@ -122,7 +123,8 @@ function TranscriptRow({ item, final, onApprove }: {
   }
 }
 
-function Composer({ agent, scene, assets, projectOpen, focusToken }: {
+function Composer({ agent, scene, assets, projectOpen, focusToken, onOpenTranscript }: {
+  onOpenTranscript?: (() => void) | undefined;
   agent: AgentController;
   scene: SceneDocument | null;
   assets: readonly AssetRecord[];
@@ -236,14 +238,25 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
   };
 
   const [showContext, setShowContext] = useState(false);
+  const workLabel = thread ? workStatusLabel(thread) : null;
 
   return (
-    <div className="fg-composer" onDragOver={event => {
+    <div className={cx('fg-composer', workLabel !== null && 'is-working')} onDragOver={event => {
       if (event.dataTransfer.types.includes('Files')) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; }
     }} onDrop={event => {
       if (!event.dataTransfer.files.length) return;
       event.preventDefault(); event.stopPropagation(); addFiles(Array.from(event.dataTransfer.files));
     }}>
+      {thread && workLabel !== null ? (
+        // Work stays visible at the prompt even while the conversation card is collapsed.
+        <button type="button" className="fg-work-status" onClick={onOpenTranscript} disabled={!onOpenTranscript} title={lastPrompt(thread)}>
+          <span className="fg-typing" data-waiting={workLabel === 'Needs your approval' ? 'true' : undefined} aria-hidden="true"><i /><i /><i /></span>
+          <span className="fg-work-status-text">
+            <strong>{lastPrompt(thread) || thread.title}</strong>
+            <span role="status">{provider?.name ?? thread.provider} · {workLabel}</span>
+          </span>
+        </button>
+      ) : null}
       {showContext ? <pre className="fg-code" aria-label="What will be sent">{JSON.stringify(context, null, 2)}</pre> : null}
       {thread && thread.queue.length > 0 ? <p className="fg-small fg-muted" role="status">{thread.queue.length} queued</p> : null}
       {agent.chips.length > 0 ? (
@@ -340,7 +353,7 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
   );
 }
 
-export function AgentDock({ agent, scene, assets, projectOpen, focusToken, transcriptOpen = true, onCloseTranscript }: AgentDockProps) {
+export function AgentDock({ agent, scene, assets, projectOpen, focusToken, transcriptOpen = true, onCloseTranscript, onOpenTranscript }: AgentDockProps) {
   if (!agent) {
     return (
       <section className="fg-dock-panel" aria-label="Agent">
@@ -368,7 +381,7 @@ export function AgentDock({ agent, scene, assets, projectOpen, focusToken, trans
         </header>
         {thread ? <Transcript thread={thread} onApprove={(runId, requestId, allow) => agent.approve(thread.id, runId, requestId, allow)} /> : null}
       </section>
-      <Composer agent={agent} scene={scene} assets={assets} projectOpen={projectOpen} focusToken={focusToken} />
+      <Composer agent={agent} scene={scene} assets={assets} projectOpen={projectOpen} focusToken={focusToken} onOpenTranscript={onOpenTranscript} />
     </section>
   );
 }

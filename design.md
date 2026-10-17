@@ -48,6 +48,8 @@ Forgon keeps its own rules where they differ: the ember accent (Kaigen uses a pu
 
 ## Accessibility and feedback
 
+Console has a labelled Clear button beside its filters/search, disabled when empty. It clears all messages, including filtered-out rows, and the dropped-lines indicator; filter/search choices remain.
+
 The launcher omits the script-execution technical footer; project-opening internals belong in project documentation.
 
 Ctrl+Shift+click opens a compact object/asset search near the cursor, clamped within the viewport. Ctrl+Shift+A from the focused viewport is the keyboard alternative at its centre. The search focuses immediately; ArrowUp/ArrowDown navigate, Enter places at the captured surface, and Escape cancels and restores viewport focus. Clicking elsewhere or tabbing away dismisses it. Results include primitives, prefabs and GLB assets with type/path context, an empty state and a 100-result search limit. Placement selects the new object and is one undo step.

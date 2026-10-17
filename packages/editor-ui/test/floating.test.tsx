@@ -10,6 +10,7 @@ import { Workspace, type WorkspaceProps } from '../src/shell/Workspace.js';
 import { AgentDock, type AgentDockProps } from '../src/agent/AgentDock.js';
 import { PermissionPicker } from '../src/agent/PermissionPicker.js';
 import { ModelPicker } from '../src/agent/ModelPicker.js';
+import { ConsolePanel } from '../src/panels/console/ConsolePanel.js';
 import { newThread, threadStatus } from '../src/agent/threadState.js';
 import type { AgentController } from '../src/agent/useAgentSessions.js';
 import { readEditorSnapshot } from '../src/hooks/useEditorSnapshot.js';
@@ -168,6 +169,19 @@ test('workspace Delete, clipboard, select-all, rename and create shortcuts work 
   store.undo();
   const locked = workspace({ snapshot: readEditorSnapshot(store), selection: { entityIds: [parent.id], primaryId: parent.id }, banner: { kind: 'invalid', diagnostics: [] }, onCommand: () => assert.fail('editing is locked') });
   (locked.tree as Element).props.onKeyDown({ key: 'Delete', ctrlKey: false, shiftKey: false, altKey: false, metaKey: false, target: null, preventDefault() {} });
+});
+
+test('console Clear delegates to its owner and is disabled for an empty log', () => {
+  let cleared = false;
+  const log = { entries: [{ id: 1, time: '12:00', source: 'editor' as const, severity: 'error' as const, message: 'Error', file: null, line: null }], nextId: 2, droppedCount: 3 };
+  const rendered = probe(() => ConsolePanel({ log, onClear: () => { cleared = true; } }));
+  const clear = find(rendered.tree, element => element.props.title === 'Clear all console messages')!;
+  assert.equal(clear.props.disabled, false);
+  clear.props.onClick(); assert.equal(cleared, true);
+  const empty = probe(() => ConsolePanel({ log: emptyLog, onClear() {} }));
+  assert.equal(find(empty.tree, element => element.props.title === 'Clear all console messages')!.props.disabled, true);
+  const dropped = probe(() => ConsolePanel({ log: { ...emptyLog, droppedCount: 1 }, onClear() {} }));
+  assert.equal(find(dropped.tree, element => element.props.title === 'Clear all console messages')!.props.disabled, false);
 });
 
 test('surface alignment is a labelled keyboard button and survives preference storage', () => {

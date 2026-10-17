@@ -77,16 +77,18 @@ export function App({ services }: { services: StudioServices }) {
       services={services}
       log={log}
       addLog={addLog}
+      onClearLog={() => setLog(current => ({ ...emptyLog, nextId: current.nextId }))}
       onClose={close}
     />
   );
 }
 
-function SceneScreen({ target, services, log, addLog, onClose }: {
+function SceneScreen({ target, services, log, addLog, onClearLog, onClose }: {
   target: OpenTarget;
   services: StudioServices;
   log: ConsoleLog;
   addLog(entry: LogInput): void;
+  onClearLog(): void;
   onClose(): void;
 }) {
   const initialPath = target.kind === 'project' ? startScenePath(target.session) : null;
@@ -123,13 +125,14 @@ function SceneScreen({ target, services, log, addLog, onClose }: {
       services={services}
       log={log}
       addLog={addLog}
+      onClearLog={onClearLog}
       onSwitchScene={path => setSceneRequest(current => ({ path, version: current.version + 1 }))}
       onClose={onClose}
     />
   );
 }
 
-function ReadyWorkspace({ target, session, store, notice, onDismissNotice, services, log, addLog, onSwitchScene, onClose }: {
+function ReadyWorkspace({ target, session, store, notice, onDismissNotice, services, log, addLog, onClearLog, onSwitchScene, onClose }: {
   target: OpenTarget;
   session: SceneSession;
   store: EditorStore;
@@ -138,6 +141,7 @@ function ReadyWorkspace({ target, session, store, notice, onDismissNotice, servi
   services: StudioServices;
   log: ConsoleLog;
   addLog(entry: LogInput): void;
+  onClearLog(): void;
   onSwitchScene(path: string): void;
   onClose(): void;
 }) {
@@ -253,6 +257,7 @@ function ReadyWorkspace({ target, session, store, notice, onDismissNotice, servi
       saveError={session.saveError}
       log={log}
       onLog={addLog}
+      onClearLog={onClearLog}
       agent={agent}
       viewport={services.viewport}
       layout={layout}

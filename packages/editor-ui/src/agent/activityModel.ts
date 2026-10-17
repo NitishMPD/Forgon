@@ -1,4 +1,4 @@
-import type { TranscriptItem } from './threadState.js';
+import type { AgentThread, TranscriptItem } from './threadState.js';
 
 export interface ActivityStep {
   id: string;
@@ -117,4 +117,21 @@ export function groupActivity(items: readonly TranscriptItem[], activeRunId: str
     else rows.push({ id: item.id, kind: 'activity', runId: item.runId, steps: [step] });
   }
   return rows;
+}
+
+/** One line for the composer's live status, like Needle's work status: what the agent is doing right now. */
+export function workStatusLabel(thread: Pick<AgentThread, 'starting' | 'activeRunId' | 'transcript'>): string | null {
+  if (!thread.starting && thread.activeRunId === null) return null;
+  if (thread.starting) return 'Starting';
+  const items = thread.transcript.filter(item => 'runId' in item && item.runId === thread.activeRunId);
+  if (items.some(item => item.kind === 'approval' && item.state === 'pending')) return 'Needs your approval';
+  const running = [...items].reverse().find(item => item.kind === 'tool' && item.state === 'started');
+  if (running && running.kind === 'tool') return running.name === 'command' && running.text ? commandLabel(running.text) : `Using ${running.name}`;
+  return items.at(-1)?.kind === 'assistant' ? 'Writing a response' : 'Working';
+}
+
+/** The prompt the active run is answering, for the status strip's title line. */
+export function lastPrompt(thread: Pick<AgentThread, 'transcript'>): string {
+  const user = [...thread.transcript].reverse().find(item => item.kind === 'user');
+  return user && user.kind === 'user' ? user.text.split(/\r?\n/)[0]!.trim() : '';
 }

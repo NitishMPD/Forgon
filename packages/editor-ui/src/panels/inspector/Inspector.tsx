@@ -2,7 +2,6 @@ import { useEffect, useState, type KeyboardEvent } from 'react';
 import { FileCode2, RefreshCw } from 'lucide-react';
 import type { SceneConflict, SceneCommand } from '@forgon/editor-core';
 import { createId, validateScriptValue, type ScriptCatalog, type ScriptProps, type Component, type Entity, type JsonValue, type SceneDocument, type Transform } from '@forgon/project-schema';
-import { ConflictCard } from '../../conflict/ConflictCard.js';
 import { formatNumber, parseFiniteNumber } from '../../model/numbers.js';
 import { parseJsonDraft, propertyKind, withProperty } from '../../model/properties.js';
 import type { Selection } from '../../model/selection.js';
@@ -416,7 +415,6 @@ export function Inspector({ scene, selection, sourcePath, readOnlyReason, confli
       </header>
       <input type="search" className="fg-input fg-panel-search" aria-label="Search inspector" placeholder="Search components" value={search} onChange={event => setSearch(event.currentTarget.value)} />
       <div className="fg-panel-body">
-        {conflict ? <ConflictCard conflict={conflict} onResolve={onResolveConflict} /> : null}
         {lockReason && !conflict ? <Banner tone="warning">{lockReason}</Banner> : null}
         {!entity ? (
           <EmptyState title="Nothing selected">
