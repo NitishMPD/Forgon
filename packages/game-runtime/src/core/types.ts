@@ -16,6 +16,8 @@ export interface SnapSettings {
 export interface SurfacePoint {
   position: [number, number, number];
   normal: [number, number, number];
+  /** Local-space lower bound of an already loaded GLB; null means use its origin. */
+  modelMinY?(assetId: string): number | null;
 }
 
 export interface ViewportView {
@@ -67,7 +69,7 @@ export interface ViewportMountOptions {
   scripts?: import('../scripting/index.js').ScriptModules;
   /** Validation catalogs for reference checking; the host store validates too, so this is optional. */
   context?: ValidationContext;
-  /** Resolve asset bytes for play-mode audio. Absent/null means audio reports unavailable. */
+  /** Resolve asset bytes for GLB models and play-mode audio. Absent/null reports a fault. */
   loadAssetBytes?: AssetBytesResolver;
   /** Stream of play-mode runtime events (arrivals, audio, vfx). */
   onRuntimeEvent?: (event: RuntimeEvent) => void;

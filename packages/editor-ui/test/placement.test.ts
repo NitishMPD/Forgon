@@ -6,7 +6,7 @@ import { parsePlacement, placementCommand, primitives } from '../src/model/place
 
 const surface = { position: [3, 2, -4] as [number, number, number], normal: [0, 1, 0] as [number, number, number] };
 
-test('each supported primitive places a render entity at the surface in one undo step', () => {
+test('each supported primitive places its bottom on the surface in one undo step', () => {
   for (const primitive of primitives) {
     const scene = createScene('Test'); const store = new EditorStore(scene, 'r1');
     const placement = placementCommand({ kind: 'primitive', primitive }, surface, []);
@@ -14,7 +14,8 @@ test('each supported primitive places a render entity at the surface in one undo
     const entity = store.scene.entities[0]!;
     assert.equal(entity.id, placement.selectedId);
     assert.equal(entity.parentId, null);
-    assert.deepEqual(entity.transform.position, surface.position);
+    const halfHeight = primitive === 'plane' ? 0 : primitive === 'capsule' ? 1 : primitive === 'torus' ? 0.2 : 0.5;
+    assert.deepEqual(entity.transform.position, [surface.position[0], surface.position[1] + halfHeight, surface.position[2]]);
     assert.equal(entity.components[0]!.type, 'render');
     assert.equal(entity.components[0]!.properties.primitive, primitive);
     const after = store.scene;
@@ -59,8 +60,34 @@ test('drag payloads and invalid surface/catalog data cannot create scene objects
   }
   assert.deepEqual(parsePlacement('{"kind":"primitive","primitive":"box"}'), { kind: 'primitive', primitive: 'box' });
   assert.deepEqual(parsePlacement('{"kind":"prefab","prefabId":"prefab_1"}'), { kind: 'prefab', prefabId: 'prefab_1' });
+  assert.deepEqual(parsePlacement('{"kind":"model","assetId":"model_1"}'), { kind: 'model', assetId: 'model_1' });
+  assert.equal(parsePlacement('{"kind":"model","assetId":"../bad.glb"}'), null);
   assert.throws(() => placementCommand({ kind: 'prefab', prefabId: 'missing' }, surface, []), /no longer/);
   assert.throws(() => placementCommand({ kind: 'primitive', primitive: 'box' }, { ...surface, position: [NaN, 0, 0] }, []), /finite/);
+});
+
+test('GLB placement uses asset references and loaded bounds, falling back to the origin without them', () => {
+  const target = { kind: 'model' as const, assetId: 'model_1' };
+  const assets = [{ id: target.assetId, name: 'Model', kind: 'model' as const, path: 'assets/model.glb' }];
+  for (const minY of [null, -2, 0.75]) {
+    const scene = createScene('Test'); const store = new EditorStore(scene, 'r1', { assets });
+    const placement = placementCommand(target, { ...surface, modelMinY: id => { assert.equal(id, target.assetId); return minY; } }, []);
+    store.execute(placement.command); const entity = store.scene.entities[0]!;
+    assert.deepEqual(entity.transform.position, [3, 2 - (minY ?? 0), -4]);
+    assert.equal(entity.components[0]!.type, 'model'); assert.deepEqual(entity.components[0]!.assetRefs, [target.assetId]);
+    assert.deepEqual(entity.components[0]!.properties, {});
+    assert.equal(store.undo(), true); assert.deepEqual(store.scene, scene); assert.equal(store.undo(), false);
+  }
+  const fallback = placementCommand(target, surface, []);
+  assert.equal(fallback.command.type, 'create');
+  if (fallback.command.type === 'create') assert.deepEqual(fallback.command.entity.transform.position, surface.position);
+  const aligned = placementCommand(target, { ...surface, normal: [0, 0, 1], modelMinY: () => -2 }, [], true);
+  if (aligned.command.type === 'create') assert.deepEqual(aligned.command.entity.transform.position, [3, 2, -2]);
+  const box = placementCommand({ kind: 'primitive', primitive: 'box' }, { ...surface, normal: [0, 0, 1] }, [], true);
+  if (box.command.type === 'create') assert.deepEqual(box.command.entity.transform.position, [3, 2, -3.5]);
+  assert.throws(() => placementCommand(target, { ...surface, modelMinY: () => NaN }, []), /finite model bounds/);
+  const invalid = placementCommand({ kind: 'model', assetId: 'unknown' }, surface, []);
+  assert.throws(() => new EditorStore(createScene('Test'), 'r1', { assets }).execute(invalid.command), /Missing asset/);
 });
 
 test('optional alignment puts +Y on the surface normal and remains part of the same undo step', () => {

@@ -88,3 +88,32 @@ test('the token file defines every colour used by these checks', () => {
     assert.match(token(name), /^oklch\(/, name);
   }
 });
+
+function overrides(selector: string): Record<string, string> {
+  const start = css.indexOf(`${selector} {`);
+  if (start < 0) return {};
+  const block = css.slice(start, css.indexOf('}', start));
+  return Object.fromEntries([...block.matchAll(/--([\w-]+):\s*([^;]+);/g)].map(match => [match[1]!, match[2]!.trim()]));
+}
+
+test('Light theme text meets AA and all theme/accent pairs keep readable buttons and visible focus', () => {
+  for (const theme of ['dark', 'oled', 'light']) {
+    for (const accent of ['ember', 'blue', 'violet', 'green', 'rose', 'amber']) {
+      const tokens = { ...overrides(':root'), ...overrides(`:root[data-accent="${accent}"]`),
+        ...overrides(`:root[data-theme="${theme}"]`), ...overrides(`:root[data-theme="${theme}"][data-accent="${accent}"]`) };
+      const ratio = (foreground: string, background: string): number => contrast(tokens[foreground]!, tokens[background]!);
+      for (const surface of surfaces) {
+        for (const text of ['text-primary', 'text-secondary', 'text-muted']) {
+          assert.ok(ratio(text, surface) >= 4.5, `${theme}/${accent}: ${text} on ${surface}: ${ratio(text, surface)}`);
+        }
+        assert.ok(ratio('accent', surface) >= 3, `${theme}/${accent}: focus on ${surface}`);
+      }
+      for (const state of ['state-info', 'state-success', 'state-warning', 'state-danger', 'accent']) {
+        for (const surface of ['surface-canvas', 'surface-panel']) assert.ok(ratio(state, surface) >= 4.5, `${theme}/${accent}: ${state} on ${surface}`);
+      }
+      assert.ok(ratio('accent-fg', 'accent') >= 4.5, `${theme}/${accent}: button label`);
+      assert.ok(ratio('accent-fg', 'accent-hover') >= 4.5, `${theme}/${accent}: hovered button label`);
+      assert.ok(ratio('danger-fg', 'state-danger') >= 4.5, `${theme}/${accent}: danger button label`);
+    }
+  }
+});

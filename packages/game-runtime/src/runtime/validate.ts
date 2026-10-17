@@ -4,6 +4,7 @@ import type { SceneDocument, ValidationContext } from '@forgon/project-schema';
 const properties: Record<string, readonly string[]> = {
   script: ['src', 'params'],
   render: ['primitive', 'color', 'castShadows'],
+  model: ['castShadows', 'receiveShadows', 'animation', 'loop'],
   camera: ['fov', 'nearClip', 'farClip', 'clearColor', 'mode', 'distance', 'height', 'lag', 'intro', 'speedFov', 'lookAhead'],
   light: ['kind', 'color', 'intensity', 'castShadows', 'range'],
   collision: ['shape', 'halfExtents', 'isTrigger', 'surface'],
@@ -61,8 +62,12 @@ export function validatePlayableScene(input: unknown, context: ValidationContext
         const value = p[key];
         if (value !== undefined && (!Array.isArray(value) || value.length === 0 || value.some(id => typeof id !== 'string' || !entities.has(id) || !component.entityRefs.includes(id)))) fail('waypoints must be declared entity references');
       };
-      for (const key of ['castShadows', 'isTrigger', 'autoplay', 'loop', 'wallRun', 'slide', 'spawn']) choice(key, [true, false]);
+      for (const key of ['castShadows', 'receiveShadows', 'isTrigger', 'autoplay', 'loop', 'wallRun', 'slide', 'spawn']) choice(key, [true, false]);
       switch (component.type) {
+        case 'model':
+          if (component.assetRefs.length !== 1 || !context.assets?.some(asset => asset.id === component.assetRefs[0] && asset.kind === 'model' && /\.glb$/i.test(asset.path))) fail('assetRefs must contain exactly one catalogued GLB model asset');
+          if (p.animation !== undefined && (typeof p.animation !== 'string' || !p.animation.trim())) fail('animation must name a clip');
+          break;
         case 'render':
           choice('primitive', ['box', 'sphere', 'cylinder', 'plane', 'cone', 'capsule', 'torus']); vector('color', 0, 1); break;
         case 'camera':
@@ -128,7 +133,7 @@ export function validatePlayableScene(input: unknown, context: ValidationContext
         case 'hazard':
           choice('kind', ['plasma', 'void']); vector('halfExtents', 0.000001); break;
       }
-      if (component.type !== 'audio' && component.assetRefs.length) fail('asset-backed rendering is not implemented');
+      if (component.type !== 'audio' && component.type !== 'model' && component.assetRefs.length) fail('asset references are unsupported on this component');
     }
   }
   if (cameras !== 1) throw new Error(`Playable scene requires exactly one enabled camera; received ${cameras}`);

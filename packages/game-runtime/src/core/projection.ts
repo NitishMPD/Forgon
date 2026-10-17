@@ -1,10 +1,11 @@
 import { BoxGeometry, CapsuleGeometry, Color, ConeGeometry, CylinderGeometry, Group, Mesh, MeshStandardMaterial, Object3D, PerspectiveCamera, PlaneGeometry, PointLight, DirectionalLight, SpotLight, SphereGeometry, TorusGeometry, Vector3, MathUtils, Quaternion, Euler } from 'three';
 import type { BufferGeometry, Light } from 'three';
 import type { Component, Entity as SceneEntity } from '@forgon/project-schema';
+import { createModelCache, type ModelCache, type ModelInstance } from './models.js';
 
 // Behavior components remain session-owned; only visual components become Three objects.
 export const SUPPORTED_COMPONENT_TYPES = [
-  'render', 'camera', 'light', 'collision', 'guestQueue', 'audio', 'vfx', 'script',
+  'render', 'model', 'camera', 'light', 'collision', 'guestQueue', 'audio', 'vfx', 'script',
   // Parkour gameplay vocabulary: simulated by the play session, no engine component.
   'player', 'movingPlatform', 'checkpoint', 'collectible', 'goal', 'hazard',
 ] as const;
@@ -13,15 +14,19 @@ export type SupportedComponentType = (typeof SUPPORTED_COMPONENT_TYPES)[number];
 export interface ProjectionDiagnostics {
   /** Deduplicated "type/entityName" keys for component types the runtime does not render. */
   unsupported: string[];
+  faults: string[];
+  onFault?: ((message: string) => void) | undefined;
 }
 
-export function createDiagnostics(): ProjectionDiagnostics {
-  return { unsupported: [] };
+export function createDiagnostics(onFault?: (message: string) => void): ProjectionDiagnostics {
+  return { unsupported: [], faults: [], onFault };
 }
 
 
 export class SceneNode extends Group {
   render?: Mesh<BufferGeometry, MeshStandardMaterial>;
+  model?: Group;
+  modelInstance?: ModelInstance;
   camera?: PerspectiveCamera;
   light?: Light;
   collision?: { halfExtents: Vector3; enabled: boolean; isTrigger: boolean; kinematic: boolean };
@@ -90,10 +95,10 @@ function geometry(primitive: unknown): BufferGeometry {
     default: return new BoxGeometry(1, 1, 1);
   }
 }
-export function createEntityFromDefinition(definition: SceneEntity, registry: SceneRegistry, materials: MaterialCache, diagnostics: ProjectionDiagnostics, play: boolean): SceneNode {
+export function createEntityFromDefinition(definition: SceneEntity, registry: SceneRegistry, materials: MaterialCache, diagnostics: ProjectionDiagnostics, play: boolean, models?: ModelCache): SceneNode {
   const entity = new SceneNode();
   applyNameAndTransform(entity, definition);
-  for (const component of definition.components) applyComponent(entity, component, materials, play, diagnostics);
+  for (const component of definition.components) applyComponent(entity, component, materials, play, diagnostics, models);
   if (entity.collision) entity.collision.kinematic = definition.components.some(c => (c.type === 'guestQueue' || c.type === 'movingPlatform') && c.enabled);
   registerEntity(registry, definition.id, entity);
   return entity;
@@ -123,6 +128,7 @@ export function setWorldRotationDegrees(entity: Object3D, x: number, y: number, 
   entity.quaternion.copy(rotation);
 }
 export function removeEngineComponent(entity: SceneNode, type: string): void {
+  if (type === 'model') { entity.modelInstance?.dispose(); delete entity.modelInstance; delete entity.model; return; }
   if (type === 'collision') { delete entity.collision; return; }
   if (type !== 'render' && type !== 'camera' && type !== 'light') return;
   const object = entity[type];
@@ -133,12 +139,21 @@ export function removeEngineComponent(entity: SceneNode, type: string): void {
 export function disposeGraph(root: Object3D): void {
   const nodes: SceneNode[] = [];
   root.traverse(node => { if (node instanceof SceneNode) nodes.push(node); });
-  for (const node of nodes) for (const type of ['render', 'camera', 'light']) removeEngineComponent(node, type);
+  for (const node of nodes) for (const type of ['render', 'model', 'camera', 'light']) removeEngineComponent(node, type);
   root.removeFromParent(); root.clear();
 }
-export function applyComponent(entity: SceneNode, component: Component, materials: MaterialCache, play: boolean, diagnostics: ProjectionDiagnostics): void {
+export function applyComponent(entity: SceneNode, component: Component, materials: MaterialCache, play: boolean, diagnostics: ProjectionDiagnostics, models?: ModelCache): void {
   const p = component.properties;
   switch (component.type) {
+    case 'model': {
+      const cache = models ?? createModelCache();
+      const instance = cache.instantiate(component.assetRefs[0] ?? '', p, component.enabled, message => {
+        diagnostics.faults.push(`${entity.name}: ${message}`);
+        diagnostics.onFault?.(`${entity.name}: ${message}`);
+      }, play);
+      removeEngineComponent(entity, 'model');
+      entity.modelInstance = instance; entity.model = instance.root; entity.add(instance.root); return;
+    }
     case 'render': {
       removeEngineComponent(entity, 'render');
       const mesh = new Mesh(materials.geometry(p.primitive), materials.forColor(p.color));

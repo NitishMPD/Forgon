@@ -4,7 +4,9 @@ import type { SurfacePoint } from '../services.js';
 
 export const primitives = ['box', 'sphere', 'cylinder', 'plane', 'cone', 'capsule', 'torus'] as const;
 export type Primitive = (typeof primitives)[number];
-export type PlacementTarget = { kind: 'primitive'; primitive: Primitive } | { kind: 'prefab'; prefabId: string };
+export type PlacementTarget = { kind: 'primitive'; primitive: Primitive } | { kind: 'prefab'; prefabId: string } | { kind: 'model'; assetId: string };
+/** Runtime surface queries optionally carry bounds from their loaded GLB cache. */
+export interface PlacementSurface extends SurfacePoint { modelMinY?(assetId: string): number | null }
 export const placementMime = 'application/x-forgon-placement';
 
 export function parsePlacement(text: string): PlacementTarget | null {
@@ -18,11 +20,14 @@ export function parsePlacement(text: string): PlacementTarget | null {
     if (target['kind'] === 'prefab' && typeof target['prefabId'] === 'string' && idSchema.safeParse(target['prefabId']).success) {
       return { kind: 'prefab', prefabId: target['prefabId'] };
     }
+    if (target['kind'] === 'model' && typeof target['assetId'] === 'string' && idSchema.safeParse(target['assetId']).success) {
+      return { kind: 'model', assetId: target['assetId'] };
+    }
     return null;
   } catch { return null; }
 }
 
-export function placementCommand(target: PlacementTarget, surface: SurfacePoint, prefabs: readonly PrefabDocument[], alignToSurface = false): { command: SceneCommand; selectedId: string } {
+export function placementCommand(target: PlacementTarget, surface: PlacementSurface, prefabs: readonly PrefabDocument[], alignToSurface = false): { command: SceneCommand; selectedId: string } {
   if (surface.position.length !== 3 || !surface.position.every(Number.isFinite)) throw new Error('Placement needs a finite surface point.');
   let rotation: [number, number, number] | undefined;
   if (alignToSurface) {
@@ -34,9 +39,18 @@ export function placementCommand(target: PlacementTarget, surface: SurfacePoint,
   if (target.kind === 'primitive') {
     if (!(primitives as readonly string[]).includes(target.primitive)) throw new Error('Unknown primitive.');
     const entity = createEntity(target.primitive[0]!.toUpperCase() + target.primitive.slice(1));
-    entity.transform.position = [...surface.position];
+    const minY = target.primitive === 'plane' ? 0 : target.primitive === 'capsule' ? -1 : target.primitive === 'torus' ? -0.2 : -0.5;
+    entity.transform.position = bottomAtSurface(surface, minY, alignToSurface);
     if (rotation) entity.transform.rotationEuler = rotation;
     entity.components.push({ id: createId('component'), type: 'render', enabled: true, properties: { primitive: target.primitive }, entityRefs: [], assetRefs: [] });
+    return { command: { type: 'create', entity }, selectedId: entity.id };
+  }
+  if (target.kind === 'model') {
+    idSchema.parse(target.assetId);
+    const entity = createEntity('Model');
+    entity.transform.position = bottomAtSurface(surface, surface.modelMinY?.(target.assetId) ?? 0, alignToSurface);
+    if (rotation) entity.transform.rotationEuler = rotation;
+    entity.components.push({ id: createId('component'), type: 'model', enabled: true, properties: {}, entityRefs: [], assetRefs: [target.assetId] });
     return { command: { type: 'create', entity }, selectedId: entity.id };
   }
   const input = prefabs.find(prefab => prefab.prefabId === target.prefabId);
@@ -58,4 +72,11 @@ export function placementCommand(target: PlacementTarget, surface: SurfacePoint,
     }
   });
   return { command: { type: 'batch', commands: plan.value.commands }, selectedId };
+}
+
+function bottomAtSurface(surface: SurfacePoint, minY: number, aligned: boolean): [number, number, number] {
+  if (!Number.isFinite(minY)) throw new Error('Placement needs finite model bounds.');
+  const direction = aligned ? surface.normal : [0, 1, 0];
+  const length = Math.hypot(...direction);
+  return surface.position.map((value, index) => value - minY * direction[index]! / length) as [number, number, number];
 }

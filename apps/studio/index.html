@@ -3,7 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="dark light" />
+    <script>
+      // Restore before CSS or modules load; unrecognized values use the default CSS tokens.
+      try {
+        const preferences = JSON.parse(localStorage.getItem('forgon.preferences.v1') || 'null');
+        if (preferences?.version === 1 && preferences.appearance) {
+          for (const [key, attribute] of Object.entries({ theme: 'data-theme', accent: 'data-accent', density: 'data-density', fontSize: 'data-font-size' })) {
+            const value = preferences.appearance[key];
+            if (typeof value === 'string') document.documentElement.setAttribute(attribute, value);
+          }
+        }
+      } catch { /* Storage can be unavailable; the dark defaults remain usable. */ }
+    </script>
     <meta name="theme-color" content="#19191d" />
     <meta name="description" content="Forgon Engine, a local-first game studio for visual scene editing and AI-assisted development." />
     <link rel="icon" type="image/svg+xml" href="../../packages/editor-ui/src/brand/forgon.svg" />

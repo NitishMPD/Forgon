@@ -110,3 +110,16 @@ test('unsupported required components and scripts fail before creating an output
     assert.deepEqual(await readdir(parent), ['project']);
   }
 });
+
+test('model export fails explicitly before bundling or creating output', async t => {
+  const fixture = createEmpty3dFixture();
+  fixture.assets.assets.push({ id: 'model_asset', name: 'Model', kind: 'model', path: 'assets/model.glb' });
+  fixture.files['assets/registry.json'] = JSON.stringify(fixture.assets);
+  fixture.files['assets/model.glb'] = new Uint8Array([0x67, 0x6c, 0x54, 0x46]);
+  fixture.scenes[0]!.entities[0]!.components.push({ id: 'model_component', type: 'model', enabled: true, properties: {}, entityRefs: [], assetRefs: ['model_asset'] });
+  fixture.files['scenes/main.scene.json'] = JSON.stringify(fixture.scenes[0]);
+  const { root, parent } = await setup(t, fixture);
+  const result = await run(['build', root, '--target', 'web', '--out', join(parent, 'game')]);
+  assert.equal(result.code, 1); assert.match(result.stderr, /Unsupported model component model_component in web export/);
+  assert.equal(result.stdout, ''); assert.deepEqual(await readdir(parent), ['project']);
+});

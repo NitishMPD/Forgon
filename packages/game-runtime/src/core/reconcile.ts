@@ -1,5 +1,6 @@
 import type { Object3D } from 'three';
 import type { SceneDocument } from '@forgon/project-schema';
+import { createModelCache, type ModelCache } from './models.js';
 import {
   SceneNode,
   disposeGraph,
@@ -27,6 +28,7 @@ export interface ReconcileTarget {
   registry: SceneRegistry;
   materials: MaterialCache;
   diagnostics: ProjectionDiagnostics;
+  models?: ModelCache;
   /** Scene ids whose engine transforms must not be patched (active gizmo gesture). */
   draggingIds?: ReadonlySet<string>;
 }
@@ -40,7 +42,7 @@ export function reconcileScene(target: ReconcileTarget, scene: SceneDocument): R
   const ids = new Set(scene.entities.map(entity => entity.id));
   for (const definition of scene.entities) {
     if (!registry.byId.has(definition.id)) {
-      const entity = createEntityFromDefinition(definition, registry, target.materials, target.diagnostics, false);
+      const entity = createEntityFromDefinition(definition, registry, target.materials, target.diagnostics, false, target.models);
       root.add(entity);
       previousComponents.set(entity, structuredClone(definition.components));
       stats.added.push(definition.id);
@@ -74,7 +76,10 @@ export function reconcileScene(target: ReconcileTarget, scene: SceneDocument): R
       for (const component of before) {
         if (!next.some(candidate => candidate.type === component.type)) removeEngineComponent(entity, component.type);
       }
-      for (const component of next) applyComponent(entity, component, target.materials, false, target.diagnostics);
+      for (const component of next) {
+        if (component.type === 'model' && before.some(old => JSON.stringify(old) === JSON.stringify(component))) continue;
+        applyComponent(entity, component, target.materials, false, target.diagnostics, target.models);
+      }
       previousComponents.set(entity, structuredClone(next));
       stats.patched.push(definition.id);
     }
@@ -87,10 +92,12 @@ export function projectScene(
   root: Object3D,
   scene: SceneDocument,
   play: boolean,
-): { registry: SceneRegistry; materials: MaterialCache; diagnostics: ProjectionDiagnostics } {
+  options: { models?: ModelCache; onFault?: (message: string) => void } = {},
+): { registry: SceneRegistry; materials: MaterialCache; diagnostics: ProjectionDiagnostics; models: ModelCache } {
   const registry = createSceneRegistry();
   const materials = createMaterialCache();
-  const diagnostics = createDiagnostics();
+  const diagnostics = createDiagnostics(options.onFault);
+  const models = options.models ?? createModelCache();
 
   // Create flat first (validation guarantees unique ids), then parent, then transforms.
   const created = new Map<string, SceneNode>();
@@ -110,8 +117,8 @@ export function projectScene(
   // Physics dimensions and body poses depend on the complete world hierarchy.
   for (const definition of scene.entities) {
     const entity = created.get(definition.id)!;
-    for (const component of definition.components) applyComponent(entity, component, materials, play, diagnostics);
+    for (const component of definition.components) applyComponent(entity, component, materials, play, diagnostics, models);
     if (entity.collision) entity.collision.kinematic = definition.components.some(c => (c.type === 'guestQueue' || c.type === 'movingPlatform') && c.enabled);
   }
-  return { registry, materials, diagnostics };
+  return { registry, materials, diagnostics, models };
 }

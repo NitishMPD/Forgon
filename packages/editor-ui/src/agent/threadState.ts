@@ -82,6 +82,11 @@ export function newThread(id: string, provider: ProviderId, permissionMode: Perm
   };
 }
 
+export function canChangeProvider(thread: AgentThread): boolean {
+  return !thread.starting && thread.activeRunId === null && thread.transcript.length === 0
+    && thread.queue.length === 0 && Object.keys(thread.sequences).length === 0 && thread.outcome === 'none';
+}
+
 export function threadStatus(thread: AgentThread): ThreadStatus {
   if (thread.activeRunId !== null) {
     const waiting = thread.transcript.some(item => item.kind === 'approval' && item.runId === thread.activeRunId && item.state === 'pending');
@@ -184,12 +189,16 @@ export function agentReducer(state: AgentState, action: AgentAction): AgentState
     case 'thread/select':
       return state.threads.some(thread => thread.id === action.threadId) ? { ...state, activeThreadId: action.threadId } : state;
     case 'thread/settings':
-      return updateThread(state, action.threadId, thread => ({
-        ...thread,
-        provider: action.provider ?? thread.provider,
-        model: action.model !== undefined ? action.model : thread.model,
-        permissionMode: action.permissionMode !== undefined ? action.permissionMode : thread.permissionMode,
-      }));
+      return updateThread(state, action.threadId, thread => {
+        if (thread.starting || thread.activeRunId !== null) return thread;
+        if (action.provider !== undefined && action.provider !== thread.provider && !canChangeProvider(thread)) return thread;
+        return {
+          ...thread,
+          provider: action.provider ?? thread.provider,
+          model: action.model !== undefined ? action.model : thread.model,
+          permissionMode: action.permissionMode !== undefined ? action.permissionMode : thread.permissionMode,
+        };
+      });
     case 'queue/add':
       return updateThread(state, action.threadId, thread => ({ ...thread, queue: [...thread.queue, action.request] }));
     case 'run/requested':

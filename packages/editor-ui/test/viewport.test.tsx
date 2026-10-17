@@ -129,7 +129,7 @@ test('viewport placement selects the new object and respects the shared edit gua
   const slot = render({ onSelect: next => { selected = next; } });
   slot.onPlace!({ kind: 'primitive', primitive: 'box' }, surface);
   const entity = store.scene.entities.at(-1)!;
-  assert.deepEqual(entity.transform.position, surface.position);
+  assert.deepEqual(entity.transform.position, [4, 1.5, 2]);
   assert.deepEqual(selected, { entityIds: [entity.id], primaryId: entity.id });
   assert.equal(commands.length, 1);
   assert.equal(store.undo(), true); assert.deepEqual(store.scene, scene); assert.equal(store.undo(), false);
@@ -145,4 +145,17 @@ test('Assets exposes keyboard-reachable primitive and prefab groups even for an 
   assert.match(html, /<span>Prefabs<\/span>/);
   assert.match(html, new RegExp(`<span class="fg-muted">${primitives.length}</span>`));
   assert.equal(placementMime, 'application/x-forgon-placement');
+});
+
+test('Assets makes GLB models draggable while retaining ordinary asset details and keyboard selection', () => {
+  const assets = [
+    { id: 'model', name: 'Triangle', kind: 'model' as const, path: 'triangle.glb' },
+    { id: 'texture', name: 'Texture', kind: 'texture' as const, path: 'texture.png' },
+    { id: 'other_model', name: 'External model', kind: 'model' as const, path: 'external.gltf' },
+  ];
+  const html = renderToStaticMarkup(<AssetsPanel assets={assets} projectOpen canPlace onAddToScene={() => {}} />);
+  assert.match(html, /<button[^>]*draggable="true"[^>]*title="Triangle[^>]*Select, then Add to scene/);
+  assert.equal((html.match(/draggable="true"/g) ?? []).length, 1);
+  const locked = renderToStaticMarkup(<AssetsPanel assets={assets} projectOpen canPlace={false} />);
+  assert.doesNotMatch(locked, /draggable="true"/);
 });

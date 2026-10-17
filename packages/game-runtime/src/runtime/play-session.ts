@@ -17,6 +17,7 @@ import type { InputSample } from './input.js';
 import type { HudSnapshot } from './hud.js';
 import { createScriptHost, type ScriptHost } from '../scripting/host.js';
 import type { ScriptModules } from '../scripting/index.js';
+import { createModelCache, type ModelCache } from '../core/models.js';
 
 interface AudioChannel {
   entityId: string; buffer: AudioBuffer | null; volume: number; loop: boolean; autoplay: boolean; playing: boolean;
@@ -80,12 +81,14 @@ const MAX_STEPS = 12;
 export function createPlaySession(deps: {
   world: Object3D; editRoot: Object3D; context?: ValidationContext | undefined;
   loadAssetBytes?: AssetBytesResolver | undefined;
+  models?: ModelCache;
   audioContext?: AudioContext | null;
   scripts?: ScriptModules | undefined;
   input?: { sample(dt: number): InputSample } | undefined;
   onRuntimeEvent(event: RuntimeEvent): void;
 }): PlaySession {
   const { world, editRoot, loadAssetBytes, onRuntimeEvent: emit } = deps;
+  const models = deps.models ?? createModelCache(loadAssetBytes);
   let root: Group | null = null;
   let physics: PhysicsWorld | null = null;
   let materials: MaterialCache | undefined;
@@ -260,7 +263,7 @@ export function createPlaySession(deps: {
       nextRoot.name = 'Forgon Play Snapshot';
       world.add(nextRoot);
       try {
-        const projection = projectScene(nextRoot, snapshot, true);
+        const projection = projectScene(nextRoot, snapshot, true, { models, onFault: message => emit({ type: 'fault', message }) });
         materials = projection.materials;
         root = nextRoot;
         const registry = projection.registry;
@@ -355,6 +358,7 @@ export function createPlaySession(deps: {
     },
     update(dt): void {
       if (!root || paused || !Number.isFinite(dt) || dt <= 0) return;
+      models.update(dt);
       inputFrame = deps.input?.sample(dt) ?? null;
       const actions = new Set(['jump', 'sprint', 'left', 'right', 'forward', 'backward'].filter(actionDown));
       pressedActions = new Set([...actions].filter(name => !previousActions.has(name)));
@@ -420,7 +424,7 @@ export function createPlaySession(deps: {
       editRoot.visible = true;
       if (wasPlaying) emit({ type: 'play-stopped' });
     },
-    dispose(): void { session.stop(); },
+    dispose(): void { session.stop(); if (!deps.models) models.dispose(); },
   };
   return session;
 }

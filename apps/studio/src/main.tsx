@@ -3,6 +3,10 @@ import { createRoot } from 'react-dom/client';
 import '@forgon/editor-ui/styles.css';
 import { App } from './App.js';
 import { loadStudioServices } from './services.js';
+import { applyAppearance, readPreferences } from '../../../packages/editor-ui/src/model/preferences.js';
+
+// Apply before the connection status or React tree paints, including on desktop startup.
+applyAppearance(readPreferences().appearance, document.documentElement);
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing #root element');

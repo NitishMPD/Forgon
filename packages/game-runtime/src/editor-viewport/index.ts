@@ -4,7 +4,8 @@ import type { SceneDocument } from '@forgon/project-schema';
 import { boundsOfEntities, createEditorCamera, type EditorCameraController } from '../core/editor-camera.js';
 import { createGizmoController, type GizmoController } from '../core/gizmos.js';
 import { createGridEntity, setGridStep } from '../core/grid.js';
-import { createMaterialCache, createSceneRegistry, SceneNode, disposeGraph, type MaterialCache, type ProjectionDiagnostics, type SceneRegistry } from '../core/projection.js';
+import { createDiagnostics, createMaterialCache, createSceneRegistry, SceneNode, disposeGraph, type MaterialCache, type SceneRegistry } from '../core/projection.js';
+import { createModelCache } from '../core/models.js';
 import { createPickingSession, type PickingSession } from '../core/picking.js';
 import { reconcileScene } from '../core/reconcile.js';
 import { faultMessage, validateScene } from '../core/validate.js';
@@ -48,7 +49,9 @@ export const mountEditorViewport = (
 
   const registry: SceneRegistry = createSceneRegistry();
   const materials: MaterialCache = createMaterialCache();
-  const diagnostics: ProjectionDiagnostics = { unsupported: [] };
+  const diagnostics = createDiagnostics(message => callbacks.onFault(message));
+  let modelSelectionDirty = false;
+  const models = createModelCache(options.loadAssetBytes, () => { modelSelectionDirty = true; });
 
   const gestureChanges: { entityId: string; transform: import('@forgon/project-schema').Transform }[] = [];
   let draggingIds: Set<string> = new Set();
@@ -85,6 +88,7 @@ export const mountEditorViewport = (
     editRoot,
     context: options.context,
     loadAssetBytes: options.loadAssetBytes,
+    models,
     scripts: options.scripts,
     onRuntimeEvent: (event: import('../core/types.js').RuntimeEvent) => {
       options.onRuntimeEvent?.(event);
@@ -156,7 +160,7 @@ export const mountEditorViewport = (
     if (!view) return;
     try {
       const scene = validateScene(view.scene, options.context);
-      reconcileScene({ root: worldRoot, registry, materials, diagnostics, draggingIds }, scene);
+      reconcileScene({ root: worldRoot, registry, materials, diagnostics, models, draggingIds }, scene);
       applySelection();
     } catch (error) {
       callbacks.onFault(faultMessage(error));
@@ -167,7 +171,11 @@ export const mountEditorViewport = (
   try {
     surface = createRenderSurface(canvas, container, world,
       () => playSession.isPlaying ? playSession.getCamera() : editorCamera.camera,
-      dt => { playSession.update(dt); const numbers = playSession.getHud(); if (numbers) playHud?.update(numbers); gizmoController.update(); },
+      dt => {
+        playSession.update(dt); const numbers = playSession.getHud(); if (numbers) playHud?.update(numbers);
+        if (modelSelectionDirty && !playSession.isPlaying && !gizmoController.isGestureActive) { applySelection(); modelSelectionDirty = false; }
+        gizmoController.update();
+      },
       error => callbacks.onFault(faultMessage(error)));
   } catch (error) {
     gizmoController.destroy(); editorCamera.detach(); grid.geometry.dispose(); grid.material.dispose(); canvas.remove(); throw error;
@@ -217,9 +225,13 @@ export const mountEditorViewport = (
       if (disposed || playSession.isPlaying) return null;
       const rect = canvas.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return null;
-      return picker.surfaceAt(editorCamera.camera,
+      const point = picker.surfaceAt(editorCamera.camera,
         (clientX - rect.left) * canvas.clientWidth / rect.width,
         (clientY - rect.top) * canvas.clientHeight / rect.height);
+      return point ? { ...point, modelMinY: assetId => {
+        const minY = models.bounds(assetId)?.min.y;
+        return minY !== undefined && Number.isFinite(minY) ? minY : null;
+      } } : null;
     },
     frameSelection(): void {
       if (disposed) return;
@@ -281,6 +293,7 @@ export const mountEditorViewport = (
       canvas.removeEventListener('pointerup', onPointerUp);
       materials.dispose();
       disposeGraph(worldRoot);
+      models.dispose();
       registry.byId.clear(); registry.idByNode.clear();
       grid.geometry.dispose(); grid.material.dispose();
       world.clear();

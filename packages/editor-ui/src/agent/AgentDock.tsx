@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { ArrowUp, Braces, ChevronDown, Plus, Square, TriangleAlert, X } from 'lucide-react';
+import { ArrowUp, Braces, Plus, Square, TriangleAlert, X } from 'lucide-react';
 import type { AssetRecord, PermissionMode, SceneDocument } from '@forgon/project-schema';
 import { Banner, Button, IconButton, StatusText, cx, type Tone } from '../primitives/primitives.js';
+import { ModelPicker } from './ModelPicker.js';
 import { buildContext, chipStatus, isSendKey } from './composerModel.js';
 import type { AgentController } from './useAgentSessions.js';
 import { enforcementNote, permissionLabels, providerLimitsNote } from './permissions.js';
@@ -166,35 +167,7 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
       />
       <p id="agent-composer-help" className="fg-sr-only">Press Control and Enter to send. Enter inserts a new line.</p>
       <div className="fg-composer-footer">
-        <details className="fg-agent-options" onKeyDown={event => {
-          if (event.key === 'Escape') {
-            event.preventDefault(); event.stopPropagation(); event.currentTarget.open = false;
-            event.currentTarget.querySelector('summary')?.focus();
-          }
-        }}>
-          <summary aria-label="Agent settings" title="Provider, model and permissions">{provider?.name ?? 'Provider'}<ChevronDown size={12} aria-hidden="true" /></summary>
-          <div className="fg-agent-options-popover">
-            <select
-              className="fg-select fg-select-quiet"
-              aria-label="Provider"
-              value={thread?.provider ?? ''}
-              disabled={running || thread === null}
-              onChange={event => agent.setProvider(event.currentTarget.value as AgentThread['provider'])}
-            >
-              {agent.connection.providers.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-            {provider && provider.models.length > 0 ? (
-              <select
-                className="fg-select fg-select-quiet"
-                aria-label="Model"
-                value={thread?.model ?? ''}
-                disabled={running || thread === null}
-                onChange={event => agent.setModel(event.currentTarget.value === '' ? null : event.currentTarget.value)}
-              >
-                <option value="">Default model</option>
-                {provider.models.map(model => <option key={model} value={model}>{model}</option>)}
-              </select>
-            ) : null}
+        {thread ? <ModelPicker key={thread.id} providers={agent.connection.providers} thread={thread} onSelect={agent.setModel}>
             <select
               className="fg-select fg-select-quiet"
               aria-label="Permission mode"
@@ -207,8 +180,7 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
               {provider?.permissionModes.map(mode => <option key={mode} value={mode}>{permissionLabels[mode]}</option>)}
             </select>
             <p className="fg-small fg-muted">{modeNote}</p>
-          </div>
-        </details>
+        </ModelPicker> : null}
         <IconButton label="What will be sent" aria-expanded={showContext} onClick={() => setShowContext(open => !open)}>
           <Braces size={14} strokeWidth={1.75} aria-hidden="true" />
         </IconButton>

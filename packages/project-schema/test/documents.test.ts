@@ -16,6 +16,20 @@ const component = (id = 'component_test'): Component => ({
   id, type: 'render', enabled: true, properties: { color: [1, 0, 0], note: null }, entityRefs: [], assetRefs: [],
 });
 
+test('model components use exactly one GLB model asset reference with boolean shadow options', () => {
+  const { scene, parent } = fixture();
+  const model = { ...component(), type: 'model', properties: { castShadows: true, receiveShadows: false }, assetRefs: ['model_asset'] };
+  parent.components.push(model);
+  const asset = { id: 'model_asset', name: 'Model', kind: 'model' as const, path: 'assets/model.glb' };
+  assert.deepEqual(parseScene(scene, { assets: [asset] }), scene);
+  for (const assetRefs of [[], ['model_asset', 'model_asset'], ['missing']]) {
+    assert.throws(() => parseScene({ ...scene, entities: [{ ...parent, components: [{ ...model, assetRefs }] }] }, { assets: [asset] }));
+  }
+  assert.throws(() => parseScene(scene, { assets: [{ ...asset, kind: 'texture' }] }), /GLB model asset/);
+  assert.throws(() => parseScene(scene, { assets: [{ ...asset, path: 'assets/model.gltf' }] }), /GLB model asset/);
+  assert.throws(() => parseScene({ ...scene, entities: [{ ...parent, components: [{ ...model, properties: { castShadows: 'true' } }] }] }), /boolean/);
+});
+
 test('scene canonical serialization round-trips stable IDs and ordering', () => {
   const { scene } = fixture();
   const text = serializeScene(scene);

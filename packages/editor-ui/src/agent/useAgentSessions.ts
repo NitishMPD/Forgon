@@ -4,7 +4,7 @@ import type { AgentConnection, AgentProviderInfo } from '../services.js';
 import type { LogInput } from '../model/consoleLog.js';
 import { buildContext, sendBlockers, type ContextChip } from './composerModel.js';
 import { defaultPermissionMode } from './permissions.js';
-import { agentReducer, newThread, type AgentState, type AgentThread, type PendingRequest } from './threadState.js';
+import { agentReducer, canChangeProvider, newThread, type AgentAction, type AgentState, type AgentThread, type PendingRequest } from './threadState.js';
 
 export interface AgentController {
   connection: AgentConnection;
@@ -24,7 +24,7 @@ export interface AgentController {
   newThread(): void;
   selectThread(threadId: string): void;
   setProvider(provider: ProviderId): void;
-  setModel(model: string | null): void;
+  setModel(model: string | null, provider?: ProviderId): void;
   setPermissionMode(mode: PermissionMode): void;
   refreshProviders?: (() => Promise<void>) | undefined;
 }
@@ -49,6 +49,15 @@ function errorMessage(error: unknown): string {
 
 function defaultProvider(providers: readonly AgentProviderInfo[]): AgentProviderInfo | null {
   return providers.find(provider => provider.readiness !== 'not-ready') ?? providers[0] ?? null;
+}
+
+export function modelSelectionAction(thread: AgentThread, providers: readonly AgentProviderInfo[], model: string | null, provider: ProviderId = thread.provider): AgentAction | null {
+  if (thread.starting || thread.activeRunId !== null || (provider !== thread.provider && !canChangeProvider(thread))) return null;
+  const info = providers.find(item => item.id === provider);
+  if (!info || (model !== null && !info.models.includes(model))) return null;
+  const current = thread.permissionMode;
+  return { type: 'thread/settings', threadId: thread.id, provider, model,
+    permissionMode: current !== null && info.permissionModes.includes(current) ? current : defaultPermissionMode(info.permissionModes) };
 }
 
 // Owns thread state for the agent dock. Events from the service are folded into transcripts;
@@ -187,23 +196,13 @@ export function useAgentSessions(input: AgentSessionInput): AgentController | nu
     dispatch({ type: 'thread/add', thread: newThread(localId('thread'), provider.id, defaultPermissionMode(provider.permissionModes), null) });
   }, [connection, activeThread]);
 
-  const setProvider = useCallback((provider: ProviderId) => {
+  const setModel = useCallback((model: string | null, provider?: ProviderId) => {
     if (!activeThread || !connection) return;
-    const info = connection.providers.find(item => item.id === provider);
-    const current = activeThread.permissionMode;
-    const keepMode = current !== null && (info?.permissionModes.includes(current) ?? false);
-    dispatch({
-      type: 'thread/settings',
-      threadId: activeThread.id,
-      provider,
-      model: null,
-      permissionMode: keepMode ? current : defaultPermissionMode(info?.permissionModes ?? []),
-    });
+    const action = modelSelectionAction(activeThread, connection.providers, model, provider);
+    if (action) dispatch(action);
   }, [activeThread, connection]);
 
-  const setModel = useCallback((model: string | null) => {
-    if (activeThread) dispatch({ type: 'thread/settings', threadId: activeThread.id, model });
-  }, [activeThread]);
+  const setProvider = useCallback((provider: ProviderId) => setModel(null, provider), [setModel]);
 
   const setPermissionMode = useCallback((permissionMode: PermissionMode) => {
     if (activeThread) dispatch({ type: 'thread/settings', threadId: activeThread.id, permissionMode });

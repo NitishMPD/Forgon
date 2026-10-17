@@ -14,6 +14,7 @@ export async function buildWeb(root: string, output: string): Promise<{ status: 
   for (const scene of project.scenes) {
     for (const entity of scene.entities) for (const component of entity.components) {
       if (component.type === 'script') throw new Error(`Unsupported script component ${component.id}; safe script builds are unavailable`);
+      if (component.type === 'model') throw new Error(`Unsupported model component ${component.id} in web export; GLB rendering is currently available in the editor and runtime mounts only`);
     }
   }
   const { validatePlayableScene } = await import('@forgon/game-runtime/runtime');

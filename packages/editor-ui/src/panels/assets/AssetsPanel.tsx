@@ -68,7 +68,7 @@ export function AssetsPanel({ assets, prefabs = [], projectOpen, canPlace = fals
   const subfolders = needle ? [] : folders.filter(item => item !== '' && dirOf(item) === folder);
   const selected = assets.find(asset => asset.id === selectedId) ?? null;
   const depth = (path: string): number => (path === '' ? 0 : path.split('/').length);
-  const placementName = placement?.kind === 'primitive' ? placement.primitive : placement?.kind === 'prefab' ? prefabs.find(prefab => prefab.prefabId === placement.prefabId)?.name : null;
+  const placementName = placement?.kind === 'primitive' ? placement.primitive : placement?.kind === 'prefab' ? prefabs.find(prefab => prefab.prefabId === placement.prefabId)?.name : placement?.kind === 'model' ? assets.find(asset => asset.id === placement.assetId)?.name : null;
   const dragPlacement = (event: DragEvent, target: PlacementTarget): void => {
     if (!canPlace) { event.preventDefault(); return; }
     event.dataTransfer.effectAllowed = 'copy';
@@ -126,7 +126,7 @@ export function AssetsPanel({ assets, prefabs = [], projectOpen, canPlace = fals
           <div className="fg-assets-main">
             {collection !== 'assets' ? <ul className="fg-asset-grid" aria-label={collection === 'primitives' ? 'Primitives' : 'Prefabs'}>
               {placeables.map(item => {
-                const selected = placement?.kind === item.target.kind && (placement.kind === 'primitive' ? placement.primitive === item.key : placement.prefabId === item.key);
+                const selected = placement?.kind === item.target.kind && (placement.kind === 'primitive' ? placement.primitive === item.key : placement.kind === 'prefab' && placement.prefabId === item.key);
                 return <li key={item.key}>
                 <button type="button" className={cx('fg-asset-tile', selected && 'is-selected')} draggable={canPlace}
                   aria-pressed={selected}
@@ -149,9 +149,14 @@ export function AssetsPanel({ assets, prefabs = [], projectOpen, canPlace = fals
               ))}
               {files.map(asset => {
                 const Icon = kindIcons[asset.kind];
+                const target: PlacementTarget | null = asset.kind === 'model' && /\.glb$/i.test(asset.path) ? { kind: 'model', assetId: asset.id } : null;
                 return (
                   <li key={asset.id}>
-                    <button type="button" className={cx('fg-asset-tile', asset.id === selectedId && 'is-selected')} aria-pressed={asset.id === selectedId} title={`${asset.name} · ${asset.path}`} onClick={() => { setSelectedId(asset.id); setPlacement(null); }}>
+                    <button type="button" className={cx('fg-asset-tile', asset.id === selectedId && 'is-selected')} aria-pressed={asset.id === selectedId}
+                      draggable={canPlace && !!target}
+                      title={`${asset.name} · ${asset.path}${target ? '. Select, then Add to scene, or drag into the viewport.' : ''}`}
+                      onDragStart={event => { if (target) dragPlacement(event, target); else event.preventDefault(); }}
+                      onClick={() => { setSelectedId(asset.id); setPlacement(target); }}>
                       <span className="fg-asset-thumb"><Icon size={22} strokeWidth={1.5} aria-hidden="true" /></span>
                       <span className="fg-asset-name">{baseName(asset.path)}</span>
                     </button>

@@ -17,6 +17,13 @@ export const componentSchema = z.object({
   id: idSchema, type: name, enabled: z.boolean(), properties: z.record(jsonValueSchema),
   entityRefs: z.array(idSchema), assetRefs: z.array(idSchema),
 }).strict().superRefine((component, ctx) => {
+  if (component.type === 'model') {
+    if (component.assetRefs.length !== 1) ctx.addIssue({ code: 'custom', path: ['assetRefs'], message: 'Model requires exactly one GLB asset reference' });
+    for (const key of ['castShadows', 'receiveShadows', 'loop']) {
+      if (component.properties[key] !== undefined && typeof component.properties[key] !== 'boolean') ctx.addIssue({ code: 'custom', path: ['properties', key], message: 'Expected a boolean' });
+    }
+    if (component.properties.animation !== undefined && (typeof component.properties.animation !== 'string' || !component.properties.animation.trim())) ctx.addIssue({ code: 'custom', path: ['properties', 'animation'], message: 'Expected an animation clip name' });
+  }
   if (component.type !== 'script') return;
   const result = scriptPropertiesSchema.safeParse(component.properties);
   if (!result.success) for (const issue of result.error.issues) ctx.addIssue({ ...issue, path: ['properties', ...issue.path] });
@@ -110,6 +117,10 @@ function validateEntities(entities: Entity[], context: ValidationContext): void 
     for (const component of entity.components) {
       for (const ref of component.entityRefs) requireValid(byId.has(ref), `${component.id}.entityRefs`, `Missing entity ${ref}`);
       if (assetIds) for (const ref of component.assetRefs) requireValid(assetIds.has(ref), `${component.id}.assetRefs`, `Missing asset ${ref}`);
+      if (component.type === 'model' && context.assets) {
+        const asset = context.assets.find(asset => asset.id === component.assetRefs[0]);
+        requireValid(asset?.kind === 'model' && /\.glb$/i.test(asset.path), `${component.id}.assetRefs`, 'Model must reference a catalogued GLB model asset');
+      }
     }
     if (entity.prefab) {
       const { prefabId, instanceId, sourceEntityId } = entity.prefab;

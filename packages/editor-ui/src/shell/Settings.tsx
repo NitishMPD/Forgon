@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Bot, ChevronDown, ChevronRight, Copy, Keyboard, LayoutDashboard, RefreshCw, RotateCcw } from 'lucide-react';
+import { Bot, ChevronDown, ChevronRight, Copy, Keyboard, LayoutDashboard, Palette, RefreshCw, RotateCcw } from 'lucide-react';
 import type { ProviderId } from '@forgon/project-schema';
 import type { AgentProviderInfo } from '../services.js';
 import { permissionDescriptions, permissionLabels } from '../agent/permissions.js';
 import { Button, IconButton, StatusText, cx, type Tone } from '../primitives/primitives.js';
+import { ProviderModels } from '../agent/ProviderModels.js';
+import { AppearanceSettings } from '../theme/AppearanceSettings.js';
 
 // Sign-in runs in the provider's own CLI; Forgon only shows the command (design.md provider setup).
 const signInCommands: Record<ProviderId, string> = {
@@ -37,10 +39,11 @@ export const shortcuts: ReadonlyArray<[string, string]> = [
   ['Ctrl+Enter', 'Send message'],
 ];
 
-type Section = 'providers' | 'layout' | 'shortcuts';
+type Section = 'providers' | 'appearance' | 'layout' | 'shortcuts';
 
 const sections: ReadonlyArray<{ id: Section; label: string; icon: typeof Bot }> = [
   { id: 'providers', label: 'Providers', icon: Bot },
+  { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'layout', label: 'Layout', icon: LayoutDashboard },
   { id: 'shortcuts', label: 'Shortcuts', icon: Keyboard },
 ];
@@ -59,6 +62,7 @@ function ProviderCard({ provider, onRefresh, busy }: { provider: AgentProviderIn
         <span className="fg-thread-avatar" aria-hidden="true">{provider.name.slice(0, 1)}</span>
         <h3 id={`provider-${provider.id}`} className="fg-provider-name">{provider.name}</h3>
         <StatusText tone={state.tone}>{state.label}</StatusText>
+        <span className="fg-muted fg-small">{provider.models.length} models</span>
         <span className="fg-composer-spacer" />
         <IconButton label={`Check ${provider.name} again`} disabled={!onRefresh || busy} onClick={onRefresh}>
           <RefreshCw size={14} strokeWidth={1.75} aria-hidden="true" className={cx(busy && 'fg-spin')} />
@@ -76,7 +80,7 @@ function ProviderCard({ provider, onRefresh, busy }: { provider: AgentProviderIn
             <IconButton label={copied ? 'Copied' : 'Copy command'} onClick={copy}><Copy size={12} strokeWidth={1.75} aria-hidden="true" /></IconButton>
           </dd>
           <dt>Models</dt>
-          <dd>{provider.models.length === 0 ? <span className="fg-muted">Not reported</span> : provider.models.map(model => <span key={model} className="fg-chip">{model}</span>)}</dd>
+          <dd><ProviderModels provider={provider} /></dd>
           <dt>Modes</dt>
           <dd>{provider.permissionModes.length === 0 ? <span className="fg-muted">Not reported</span> : provider.permissionModes.map(mode => <span key={mode} className="fg-chip" title={permissionDescriptions[mode]}>{permissionLabels[mode]}</span>)}</dd>
         </dl>
@@ -128,6 +132,7 @@ export function Settings({ providers, onRefreshProviders, onResetLayout }: Setti
             </div>
           </>
         ) : null}
+        {section === 'appearance' ? <AppearanceSettings /> : null}
         {section === 'shortcuts' ? (
           <>
             <header className="fg-settings-head"><h3>Shortcuts</h3></header>

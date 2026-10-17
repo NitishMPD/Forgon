@@ -17,6 +17,25 @@ Primitives keep the authored unit convention: box 1?1?1; sphere radius 0.5; cyli
 
 Each projected graph owns its primitive geometry and MeshStandardMaterial caches. Meshes share these resources and never dispose them individually. Pulse effects clone and own their materials. Removing/replacing components detaches their child objects and releases light shadow targets. Disposing the graph and cache releases retained geometry and materials once.
 
+GLB models use the existing component asset-reference mechanism, with exactly one registered model asset whose path ends in `.glb`:
+
+```json
+{
+  "id": "component_model",
+  "type": "model",
+  "enabled": true,
+  "properties": { "castShadows": true, "receiveShadows": true, "animation": "Idle", "loop": true },
+  "entityRefs": [],
+  "assetRefs": ["asset_character"]
+}
+```
+
+All four properties are optional. Shadow casting and receiving default to true. An omitted animation leaves the authored pose; an omitted/false loop plays a named clip once and holds its final frame. Animation runs only in Play and pauses with the session. A missing named clip reports a fault while retaining the rendered model. Models supply visuals; collision still requires an authored collision component.
+
+`src/core/models.ts` parses copied ArrayBuffers with Three.js's GLTFLoader and resolves only through `loadAssetBytes(assetId)`. It never loads a model by URL. Runtime preflight limits GLBs to 32 MiB, the first JSON chunk to 2 MiB and metadata nesting to 64; resource URIs are refused, including those in extensions. Embedded image bufferViews may use loader-created local blob URLs. Draco, KTX2/Basis and Meshopt compression report explicit decoder/transcoder diagnostics. The asset importer's existing container/bounds-only validation remains unchanged; registration alone does not certify loader or GPU readiness.
+
+Each viewport owns one model cache shared by its Edit graph and detached Play snapshot. Concurrent users of an asset share one parsed template, geometry, materials and textures; SkeletonUtils creates independent scene/skeleton instances. Instances own their mixers, skeleton allocations, embedded-light shadow targets and instanced-mesh allocations. Removing the last user evicts the template and disposes unique geometries, materials, textures and decoded ImageBitmaps. Graph removal, replacement, Stop and viewport disposal release references; late loads never attach to removed objects or emit stale faults and their parsed resources are released. Standalone Play sessions own their own cache. A wireframe box remains visible while loading and turns red on failure; faults reach projection diagnostics and the host's existing Edit fault callback or Play fault events.
+
 Reconciliation creates missing nodes before parenting. Changed parents detach to the world root before the second parenting pass, permitting reversed ancestor relationships without temporary cycles. Surviving descendants move before removed ancestors are disposed. Existing node identity survives reordering, parenting, component changes and enabled edits. Active gesture IDs skip document transform patches. Initial projection also records previous components, so subsequent component removals reconcile correctly.
 
 ## Editor viewport
@@ -29,13 +48,15 @@ The navigation camera retains mouse orbit, Shift-left/middle pan, wheel zoom, ar
 
 Raycaster picking intersects only the authored world root, filters hidden hierarchies and resolves stable IDs through mesh parents. Grid, selection edges and gizmo helpers live outside this root. Clicks exceeding five pixels or 350 ms are ignored; gizmo gestures suppress clicks for 80 ms after completion.
 
+Loaded model meshes use the same owner walk, framing and selection-edge traversal as primitives. Model completion marks selection outlines for refresh on the next Edit frame, after any active gizmo gesture. GLB assets in Assets support drag placement and keyboard selection followed by Add to scene. Primitive placement offsets by the local lower bound (including the capsule's 1 m half-height and torus's 0.2 m half-height). Runtime `surfaceAt` results optionally expose `modelMinY(assetId)` from the loaded template's bind-pose bounds; placement uses that lower bound for loaded models and the origin when unavailable. Alignment applies the offset along the normalized surface normal; otherwise it offsets world Y. The position and alignment remain one undoable create command. Prefabs retain their existing authored-origin placement.
+
 TransformControls owns translate/rotate/scale axis interaction and local/world space. A world-space pivot applies its gesture delta to each selected object's captured world matrix, then converts each result back into the entity's parent space. Parent-and-child selections receive the delta once. One gesture end emits changed schema transforms in degrees; `onTransforms` commits them as one host batch. The legacy singular callback retains primary-selection-only editing. No-op gestures emit nothing. Warm EdgesGeometry outlines follow the selected mesh world transforms without replacing its material. These are geometry edges rather than a screen-space silhouette pass. Transform schema stores position/rotation/scale, so matrix decomposition cannot retain shear produced by nonuniform scaling across rotated parent spaces; TransformControls also uses local axes for scale.
 
 Play locks editor navigation and gizmos, hides the authoring root, attaches browser input and the parkour HUD, and focuses the canvas. Stop destroys detached play state, restores authoring visibility and releases gameplay listeners/HUD. Mount disposal additionally releases editor listeners, controls, outline geometry/material, grid resources, scene caches and registries.
 
 ## Play semantics and Ammo
 
-The supported component vocabulary remains render, camera, light, collision, guestQueue, audio, vfx, player, movingPlatform, checkpoint, collectible, goal and hazard. Play validates a detached snapshot, requires exactly one camera in an enabled hierarchy, validates references and known properties, and rejects unsupported required behavior. Authored dynamic rigidbodies, asset-backed rendering and script execution are outside this runtime lane. The reserved `src/scripting/` folder belongs to another implementation lane.
+The supported component vocabulary includes render, model, camera, light, collision, guestQueue, audio, vfx, player, movingPlatform, checkpoint, collectible, goal and hazard. Play validates a detached snapshot, requires exactly one camera in an enabled hierarchy, validates references and known properties, and rejects unsupported required behavior. Authored dynamic rigidbodies and script execution are outside this runtime lane. The reserved `src/scripting/` folder belongs to another implementation lane.
 
 The parkour controller remains the engine-free swept-AABB simulation, with a fixed 1/120-second step and capped catch-up. Its movement, jumps, wall runs, slides, moving platforms, checkpoints, collection, hazards, respawns, finish state and deterministic schedules are unchanged. The session writes world transforms onto the Three.js rig and chase camera. Guest paths still resolve world-space waypoints at start and directly consume distance budgets, with bounded handling of overlapping looping points. Neither path following nor parkour movement delegates movement to Bullet.
 
@@ -49,6 +70,8 @@ Audio retains asset-byte resolution, Web Audio decoding, volume/loop/autoplay, a
 
 CLI web export bundles Three.js through the standalone runtime, records `three: '0.186.1'` in its toolchain manifest and copies Three.js's MIT license to `licenses/three.txt`. Ammo's original provenance and license and Zod's license remain included. Existing export tests now expect the Three.js license/version. The real artifact test invokes Vite's build API and was excluded from this task's verification under the explicit no-build rule.
 
+Web export currently rejects every `model` component, including disabled components, with an explicit unsupported-model diagnostic before bundling or creating output. Editor Play and standalone `mountGame`/campaign mounts can resolve GLB bytes; that runtime capability does not claim a verified distributable model export.
+
 ## Verification: 17 October 2026
 
 - Runtime typecheck passes. All 31 Node tests pass: 11 parkour simulation, five Sector course and 15 runtime tests. These cover primitive dimensions, compound rotations, hierarchy reconciliation and cycle reversal, dragging IDs, shared-resource disposal, camera keyboard controls, ray picking, real Ammo raycasts and kinematic synchronization, atomic TransformControls gestures and space/lock state, hotel/Sector play-stop, late-attached input, and checked-in example/fixture equality.
@@ -58,3 +81,11 @@ CLI web export bundles Three.js through the standalone runtime, records `three: 
 - CLI tests excluding the real web artifact build pass 20/21. The remaining rejection test constructs a script with empty properties and now fails at schema validation before its expected unsupported-component message. That script-fixture change is outside the export/license migration scope. One artifact-build test was excluded.
 
 No builds, browser automation, app launches, commits, branches, pushes or deployments were performed. Node tests prove scene and control math/event behavior, not WebGL pixels, shadow coverage, outline appearance, pointer hit accuracy, gizmo feel, audible playback, native CSP loading or packaged export execution. Those checks remain for the owning integration lane. Full CLI export proof, when builds are permitted: `pnpm --filter @forgon/cli test`.
+
+## GLB and placement verification: 17 October 2026
+
+The model suite constructs a tiny embedded GLB in memory and parses it with the real GLTFLoader. It covers shared model projection, owner ancestry and ray picking, selection edges, resource reference counts and exact geometry/material/texture disposal, component replacement, missing bytes, resolver throws, malformed containers and loader parse failures, blocked resource URLs/compression, late completion after removal/disposal, GLB-reference validation, Play loading/fault/Stop behavior, named clip looping and one-shot playback, independent instances, Edit bind pose and Play pause. Placement tests cover primitive bottoms, loaded model lower bounds, origin fallback, alignment, asset references and one-step undo. CLI tests prove explicit model rejection without reaching the bundler. Assets markup checks prove GLBs alone become draggable and placement respects edit guards.
+
+At completion, runtime tests pass 62/62, schema tests 13/13, editor UI tests 109/109 (including concurrent UX work), and CLI checks 22/22. Each touched package's typecheck and `pnpm -r typecheck` pass. CLI tests ran with `pnpm --filter @forgon/cli exec tsx --test --test-skip-pattern 'real web artifact|a campaign build' test/*.test.ts`; the two artifact-building tests were excluded to obey the no-build rule. The full CLI test command remains `pnpm --filter @forgon/cli test` when builds are permitted. No builds, app/browser launches, dependencies, commits, branches, pushes, task-file edits or `.research/` edits were made by this implementation lane.
+
+No checked-in GLB exists under `packages/test-fixtures` or `examples` (including ignored files); all three example provenance files describe original primitive geometry. No model example or asset download was added. Real-app checks still needed: embedded texture decoding and CSP/blob compatibility, material/light/shadow appearance, skinned animation appearance, selection-edge appearance and pointer/keyboard drag/Add placement in the native viewport.
