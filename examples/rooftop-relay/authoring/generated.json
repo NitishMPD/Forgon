@@ -1,0 +1,2237 @@
+{
+  "formatVersion": 1,
+  "generator": {
+    "id": "rooftop-relay",
+    "version": "1.0.0",
+    "seed": "forgon"
+  },
+  "base": {
+    "schemaVersion": 1,
+    "sceneId": "gen_855855a5f982de90",
+    "name": "First Drop",
+    "entities": [
+      {
+        "id": "gen_693de019c8e473ae",
+        "name": "First Drop",
+        "parentId": null,
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": []
+      },
+      {
+        "id": "gen_5eb63f74f141a697",
+        "name": "Runner",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.06,
+            -4
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_b475b4f1c529f472",
+            "type": "player",
+            "enabled": true,
+            "properties": {
+              "runSpeed": 7.6,
+              "sprintSpeed": 12.4,
+              "gravity": 27,
+              "jumpVelocity": 10.5,
+              "doubleJumpVelocity": 9.2,
+              "maxJumps": 2,
+              "coyoteTime": 0.13,
+              "jumpBuffer": 0.16,
+              "wallRun": true,
+              "wallRunTime": 1.5,
+              "wallRunSpeed": 13,
+              "wallJumpUp": 10,
+              "wallJumpOut": 8,
+              "slide": true,
+              "slideTime": 0.75,
+              "slideHeight": 0.85,
+              "radius": 0.42,
+              "height": 1.85,
+              "fallLimit": -34,
+              "invulnerable": 0.6
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_d08770f569cf643b",
+        "name": "Torso",
+        "parentId": "gen_5eb63f74f141a697",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.02,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.62,
+            0.72,
+            0.36
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_9dcdfb31af71061c",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.05,
+                0.055,
+                0.075
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_86e3c1b44fc44c64",
+        "name": "Head",
+        "parentId": "gen_5eb63f74f141a697",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.6,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.34,
+            0.32,
+            0.34
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_2b337bbec506061b",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.05,
+                0.055,
+                0.075
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_3d5b3ea15c4bb877",
+        "name": "Left arm",
+        "parentId": "gen_5eb63f74f141a697",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -0.44,
+            1.18,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.16,
+            0.62,
+            0.16
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_c9f71687ec18771a",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.05,
+                0.055,
+                0.075
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_c62296c72601c12e",
+        "name": "Right arm",
+        "parentId": "gen_5eb63f74f141a697",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0.44,
+            1.18,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.16,
+            0.62,
+            0.16
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_3c6376c8b4657037",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.05,
+                0.055,
+                0.075
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_29017fe30a573541",
+        "name": "Left leg",
+        "parentId": "gen_5eb63f74f141a697",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -0.18,
+            0.48,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.22,
+            0.9,
+            0.22
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_9486a0e1acf6a2e8",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.05,
+                0.055,
+                0.075
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_e1d65ec3e81d77d8",
+        "name": "Right leg",
+        "parentId": "gen_5eb63f74f141a697",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0.18,
+            0.48,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.22,
+            0.9,
+            0.22
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_e528792b4e15ac65",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.05,
+                0.055,
+                0.075
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_c7bda56a01d83e7d",
+        "name": "First Drop camera",
+        "parentId": null,
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            7.5,
+            -14
+          ],
+          "rotationEuler": [
+            -17,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_cfd7502f0197b64c",
+            "type": "camera",
+            "enabled": true,
+            "properties": {
+              "fov": 62,
+              "nearClip": 0.1,
+              "farClip": 600,
+              "clearColor": [
+                0.86,
+                0.9,
+                0.95
+              ],
+              "mode": "follow",
+              "distance": 8.2,
+              "height": 2,
+              "lag": 6.5,
+              "intro": 2.6,
+              "speedFov": 14,
+              "lookAhead": 0.3
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_123387698604226a",
+        "name": "High sun",
+        "parentId": null,
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotationEuler": [
+            -54,
+            34,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_7494433be1f38a1d",
+            "type": "light",
+            "enabled": true,
+            "properties": {
+              "kind": "directional",
+              "color": [
+                1,
+                0.97,
+                0.92
+              ],
+              "intensity": 3.6,
+              "castShadows": true,
+              "range": 120
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_275207fc93b8aa64",
+        "name": "Sky fill",
+        "parentId": null,
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotationEuler": [
+            58,
+            -140,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_540af6902e090847",
+            "type": "light",
+            "enabled": true,
+            "properties": {
+              "kind": "directional",
+              "color": [
+                0.68,
+                0.8,
+                1
+              ],
+              "intensity": 1.35,
+              "castShadows": false,
+              "range": 120
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_699192e26f0025d7",
+        "name": "Route fill",
+        "parentId": null,
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            8,
+            30
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_99510dd641a5f6ee",
+            "type": "light",
+            "enabled": true,
+            "properties": {
+              "kind": "omni",
+              "color": [
+                0.9600000000000001,
+                0.5574871148827248,
+                0.2
+              ],
+              "intensity": 8,
+              "castShadows": false,
+              "range": 42
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_44f8973198f8e7de",
+        "name": "Entry rooftop",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0,
+            2
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            12,
+            2,
+            16
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_29ee7b2d0c70c67d",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.09,
+                0.1,
+                0.13
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_23255839960fe505",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_c933bc68ae6e625f",
+        "name": "Entry rooftop surface",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.045,
+            2
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            11.76,
+            0.09,
+            15.68
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_70c4827e7c8ebc1a",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                1,
+                1
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_5f5dc4d8dc6edf61",
+        "name": "Entry rooftop entry lip",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.06,
+            -5.76
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            11.52,
+            0.08,
+            0.3
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_065c8367ea4018fc",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.9600000000000001,
+                0.5574871148827248,
+                0.2
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_c2dec0798a3c93f3",
+        "name": "Entry rooftop exit lip",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.06,
+            9.76
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            11.52,
+            0.08,
+            0.3
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_e9e0869dea10f37c",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.74,
+                0.26
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_bd6c6277017edabb",
+        "name": "Relay gate",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1,
+            -4
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.7,
+            0.14,
+            0.7
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_7f229a5a6e29f4aa",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.72,
+                0.3
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_9d5929af9f667290",
+            "type": "checkpoint",
+            "enabled": true,
+            "properties": {
+              "index": 0,
+              "radius": 1.9,
+              "offsetY": 1.3,
+              "spawn": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_6cd0fc9432f89e8b",
+            "type": "audio",
+            "enabled": true,
+            "properties": {
+              "assetId": "gen_ae1bdc824e4ac2ea",
+              "autoplay": true,
+              "loop": true,
+              "volume": 0.16,
+              "on": "any"
+            },
+            "entityRefs": [],
+            "assetRefs": [
+              "gen_ae1bdc824e4ac2ea"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "gen_092ce3059c5fbdbb",
+        "name": "Relay gate post",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -1.6,
+            2.45,
+            -4
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.26,
+            2.9,
+            0.26
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_4e39e4ef5256732a",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.72,
+                0.3
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_a2418bf63c16333e",
+        "name": "Relay gate post",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            1.6,
+            2.45,
+            -4
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.26,
+            2.9,
+            0.26
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_4af68ff49c338477",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.72,
+                0.3
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_4da2bc319de20767",
+        "name": "Ferry rooftop",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0,
+            19.5
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            9,
+            2,
+            10
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_42b84815a5d6d8de",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.09,
+                0.1,
+                0.13
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_887b218ffef56cd0",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_f01575bc0ea7a12a",
+        "name": "Ferry rooftop surface",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.045,
+            19.5
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            8.82,
+            0.09,
+            9.8
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_bf6e1000fff3a71d",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                1,
+                1
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_3c0c410455467fb0",
+        "name": "Ferry rooftop entry lip",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.06,
+            14.74
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            8.64,
+            0.08,
+            0.3
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_652965b49846fae3",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.9600000000000001,
+                0.5574871148827248,
+                0.2
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_6556d46ca8b4f588",
+        "name": "Ferry rooftop exit lip",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.06,
+            24.26
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            8.64,
+            0.08,
+            0.3
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_958358d1bf441d71",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.74,
+                0.26
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_557fa531a21ba798",
+        "name": "Switchback",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0.8,
+            34
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            9,
+            2,
+            10
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_2624735384e23757",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.09,
+                0.1,
+                0.13
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_6fe58cd9d0228e6b",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_9032c63a0cca95dd",
+        "name": "Switchback surface",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.845,
+            34
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            8.82,
+            0.09,
+            9.8
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_d3ca5cfec280cd30",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                1,
+                1
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_95feb2b75fc4615f",
+        "name": "Switchback entry lip",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.86,
+            29.24
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            8.64,
+            0.08,
+            0.3
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_cc27fe0538ab1be2",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.9600000000000001,
+                0.5574871148827248,
+                0.2
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_1d04dd5a196138c1",
+        "name": "Switchback exit lip",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.86,
+            38.76
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            8.64,
+            0.08,
+            0.3
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_a5e2e10351810a02",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.74,
+                0.26
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_c622cb770671452c",
+        "name": "Relay gate 1",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.8,
+            30.5
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.7,
+            0.14,
+            0.7
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_06d7e37226ba4f53",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.72,
+                0.3
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_039479b01d81287d",
+            "type": "checkpoint",
+            "enabled": true,
+            "properties": {
+              "index": 1,
+              "radius": 1.9,
+              "offsetY": 1.3
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_d64532c022d97774",
+        "name": "Relay gate post",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -1.6,
+            3.25,
+            30.5
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.26,
+            2.9,
+            0.26
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_8ba383d2c23c4ad3",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.72,
+                0.3
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_26db71a6c8c11abb",
+        "name": "Relay gate post",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            1.6,
+            3.25,
+            30.5
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.26,
+            2.9,
+            0.26
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_3f36fc9833490914",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.72,
+                0.3
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_26f701f21725bf15",
+        "name": "Data shard",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            3.3,
+            33.8
+          ],
+          "rotationEuler": [
+            45,
+            0,
+            45
+          ],
+          "scale": [
+            0.55,
+            0.55,
+            0.55
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_2ab6662a00a13a5a",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.42,
+                0.93,
+                1
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_66599cb8ae0f6dce",
+            "type": "collectible",
+            "enabled": true,
+            "properties": {
+              "value": 1,
+              "radius": 1.25,
+              "offsetY": 0
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_19b6ca31807c7e91",
+        "name": "Drop deck",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0.20000000000000018,
+            47
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            8,
+            2,
+            8
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_6a9184afb7dba978",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.09,
+                0.1,
+                0.13
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_0354cad0682129a6",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_a39884ce0ad44a20",
+        "name": "Drop deck surface",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.245,
+            47
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            7.84,
+            0.09,
+            7.84
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_23f2af61d0aa7b3b",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                1,
+                1
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_826c3df17a1d87e6",
+        "name": "Drop deck entry lip",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.2600000000000002,
+            43.24
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            7.68,
+            0.08,
+            0.3
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_127d02efc37549a1",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.9600000000000001,
+                0.5574871148827248,
+                0.2
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_dea3a71bf4379e86",
+        "name": "Drop deck exit lip",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.2600000000000002,
+            50.76
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            7.68,
+            0.08,
+            0.3
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_04379cbfe8bc85c7",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.74,
+                0.26
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_2252b3318558faca",
+        "name": "Uplink terrace",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1,
+            63
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            10,
+            2,
+            14
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_4c98b29294fdeab9",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.09,
+                0.1,
+                0.13
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_8f98571b0e07b921",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_4941f461f351bbf3",
+        "name": "Uplink terrace surface",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            2.045,
+            63
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            9.8,
+            0.09,
+            13.719999999999999
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_8a036423f37530be",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                1,
+                1
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_a2212bb8fb59e695",
+        "name": "Uplink terrace entry lip",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            2.06,
+            56.24
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            9.6,
+            0.08,
+            0.3
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_444e5b0708353b00",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.9600000000000001,
+                0.5574871148827248,
+                0.2
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_2d9daafe0c385e2f",
+        "name": "Uplink terrace exit lip",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            2.06,
+            69.76
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            9.6,
+            0.08,
+            0.3
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_1a0491838b821ea8",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.74,
+                0.26
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_ab4d5476f7014e39",
+        "name": "Relay gate 2",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            2,
+            57.5
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.7,
+            0.14,
+            0.7
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_7ea3d26f0e044958",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.72,
+                0.3
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_9c51e8cec59b7fc6",
+            "type": "checkpoint",
+            "enabled": true,
+            "properties": {
+              "index": 2,
+              "radius": 1.9,
+              "offsetY": 1.3
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_abfd3bc618f42741",
+        "name": "Relay gate post",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -1.6,
+            3.45,
+            57.5
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.26,
+            2.9,
+            0.26
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_f7b2cae0db956438",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.72,
+                0.3
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_5e8db43e79fc3cd8",
+        "name": "Relay gate post",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            1.6,
+            3.45,
+            57.5
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.26,
+            2.9,
+            0.26
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_9d7e10dfa7e16dd1",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.72,
+                0.3
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_41cd78f226976908",
+        "name": "Data shard",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            3.5,
+            12.25
+          ],
+          "rotationEuler": [
+            45,
+            0,
+            45
+          ],
+          "scale": [
+            0.55,
+            0.55,
+            0.55
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_d33a616a8380eb89",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.42,
+                0.93,
+                1
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_fc777eedfbf344e3",
+            "type": "collectible",
+            "enabled": true,
+            "properties": {
+              "value": 1,
+              "radius": 1.25,
+              "offsetY": 0
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_39164ff221a3b857",
+        "name": "Data shard",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            3.6,
+            26.75
+          ],
+          "rotationEuler": [
+            45,
+            0,
+            45
+          ],
+          "scale": [
+            0.55,
+            0.55,
+            0.55
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_d8816e92db8ee348",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.42,
+                0.93,
+                1
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_59a2172963659f3c",
+            "type": "collectible",
+            "enabled": true,
+            "properties": {
+              "value": 1,
+              "radius": 1.25,
+              "offsetY": 0
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_0dc686f2091b187a",
+        "name": "Data shard",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            3.5,
+            41
+          ],
+          "rotationEuler": [
+            45,
+            0,
+            45
+          ],
+          "scale": [
+            0.55,
+            0.55,
+            0.55
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_89cc6ebe2bda36a7",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.42,
+                0.93,
+                1
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_65da622465c1a7e1",
+            "type": "collectible",
+            "enabled": true,
+            "properties": {
+              "value": 1,
+              "radius": 1.25,
+              "offsetY": 0
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_04519df20386ab81",
+        "name": "Data shard",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            3.5,
+            53.5
+          ],
+          "rotationEuler": [
+            45,
+            0,
+            45
+          ],
+          "scale": [
+            0.55,
+            0.55,
+            0.55
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_78aedf514349bf2e",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.42,
+                0.93,
+                1
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_5a6b219214b4b032",
+            "type": "collectible",
+            "enabled": true,
+            "properties": {
+              "value": 1,
+              "radius": 1.25,
+              "offsetY": 0
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_982ce4e273806915",
+        "name": "Uplink",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            3.5,
+            67
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            4,
+            3.2,
+            0.6
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_9f8282c2ffd05280",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.79,
+                0.32
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_c7ba5458a4174093",
+            "type": "goal",
+            "enabled": true,
+            "properties": {
+              "radius": 2.6,
+              "offsetY": -0.7
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_5c1f3880ac7391aa",
+            "type": "audio",
+            "enabled": true,
+            "properties": {
+              "assetId": "gen_68b538b6051fc5be",
+              "autoplay": false,
+              "loop": false,
+              "volume": 0.55,
+              "on": "goal"
+            },
+            "entityRefs": [],
+            "assetRefs": [
+              "gen_68b538b6051fc5be"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "gen_69b5e4e0f8153beb",
+        "name": "Relay checkpoint cue",
+        "parentId": "gen_693de019c8e473ae",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_19413e2b71c98c0a",
+            "type": "audio",
+            "enabled": true,
+            "properties": {
+              "assetId": "gen_68b538b6051fc5be",
+              "autoplay": false,
+              "loop": false,
+              "volume": 0.18,
+              "on": "checkpoint"
+            },
+            "entityRefs": [],
+            "assetRefs": [
+              "gen_68b538b6051fc5be"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [],
+  "detached": [],
+  "prefabBindings": [
+    {
+      "prefabId": "gen_969c34785fc08c47",
+      "path": "authoring/relay-ferry-01.bindings.json"
+    },
+    {
+      "prefabId": "gen_675f0a1675fd7bc8",
+      "path": "authoring/relay-ferry-02.bindings.json"
+    },
+    {
+      "prefabId": "gen_e1b6d080e2bb0641",
+      "path": "authoring/relay-ferry-03.bindings.json"
+    },
+    {
+      "prefabId": "gen_aa1adcd94d4875e2",
+      "path": "authoring/relay-ferry-04.bindings.json"
+    },
+    {
+      "prefabId": "gen_4b8ec62442fe3753",
+      "path": "authoring/relay-ferry-05.bindings.json"
+    }
+  ]
+}

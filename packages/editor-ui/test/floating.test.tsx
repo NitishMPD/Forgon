@@ -10,7 +10,7 @@ import { AgentDock } from '../src/agent/AgentDock.js';
 import { newThread, threadStatus } from '../src/agent/threadState.js';
 import type { AgentController } from '../src/agent/useAgentSessions.js';
 import { readEditorSnapshot } from '../src/hooks/useEditorSnapshot.js';
-import { defaultLayout, toggleCard, cardIds, type LayoutState } from '../src/model/layout.js';
+import { defaultLayout, defaultSnap, toggleCard, cardIds, readLayout, writeLayout, parseLayout, type LayoutState } from '../src/model/layout.js';
 import { emptyLog } from '../src/model/consoleLog.js';
 import type { ViewportHandle } from '../src/services.js';
 
@@ -66,6 +66,71 @@ test('tool pill calls the runtime and controlled state, exposes pressed tools, a
   control(locked, 'Move').props.onClick();
   control(locked, 'Transform space').props.onChange({ currentTarget: { value: 'local' } });
   assert.equal(calls.length, 5);
+});
+
+test('snap controls use labelled native keyboard controls and persist through the layout storage', () => {
+  let settings = defaultSnap;
+  const calls: unknown[] = [];
+  const handle: ViewportHandle = { update() {}, dispose() {}, setSnap: value => calls.push(value) };
+  const render = () => ViewportTools({ tool: 'translate', space: 'world', handle, canEdit: true, canFrame: false,
+    onTool() {}, onSpace() {}, snap: settings, onSnap: next => { settings = next; } });
+  assert.equal(control(render(), 'Snap').props['aria-pressed'], false);
+  control(render(), 'Snap').props.onClick();
+  assert.equal(settings.enabled, true);
+  for (const [label, key, value] of [
+    ['Translation snap step', 'translate', '2'], ['Rotation snap step', 'rotateDeg', '90'], ['Scale snap step', 'scale', '0.25'],
+  ] as const) {
+    const select = control(render(), label);
+    assert.equal(select.type, 'select', 'native select supports Tab, arrows and keyboard selection');
+    assert.equal(select.props.disabled, false);
+    select.props.onChange({ currentTarget: { value } });
+    assert.equal(settings[key], Number(value));
+  }
+  assert.equal(calls.length, 4);
+  const data = new Map<string, string>();
+  const storage = { getItem: (key: string) => data.get(key) ?? null, setItem: (key: string, value: string) => { data.set(key, value); } };
+  writeLayout(storage, 'project', { ...defaultLayout, snap: settings });
+  assert.deepEqual(readLayout(storage, 'project').layout.snap, settings);
+  assert.deepEqual(parseLayout(defaultLayout), { layout: defaultLayout, recovered: false }, 'existing v3 layouts remain valid');
+  assert.deepEqual(parseLayout({ ...defaultLayout, snap: { ...settings, translate: -1 } }), { layout: defaultLayout, recovered: true });
+  const locked = ViewportTools({ tool: 'translate', space: 'world', handle, canEdit: false, canFrame: false, onTool() {}, onSpace() {}, onSnap() {} });
+  control(locked, 'Snap').props.onClick();
+  assert.equal(control(locked, 'Snap').props.disabled, true);
+  assert.equal(calls.length, 4);
+});
+
+test('workspace Ctrl+D selects the copies, uses the saved step and commits one undo entry', () => {
+  const parent = createEntity('Parent'); const rock = createEntity('Rock', parent.id); const child = createEntity('Child', rock.id);
+  const scene = { ...createScene('Test'), entities: [parent, rock, child] };
+  const store = new EditorStore(scene, 'r1');
+  let selected: unknown;
+  const { tree } = workspace({ snapshot: readEditorSnapshot(store), selection: { entityIds: [rock.id, child.id], primaryId: rock.id },
+    layout: { ...defaultLayout, snap: { ...defaultSnap, translate: 2 } },
+    onCommand: command => { store.execute(command); return true; }, onSelect: next => { selected = next; } });
+  (tree as Element).props.onKeyDown({ key: 'd', ctrlKey: true, altKey: false, metaKey: false, shiftKey: false, target: null, preventDefault() {} });
+  const copy = store.scene.entities[3]!;
+  assert.deepEqual(selected, { entityIds: [copy.id], primaryId: copy.id });
+  assert.equal(copy.transform.position[0], 2);
+  assert.equal(copy.parentId, parent.id);
+  assert.equal(store.scene.entities[4]!.parentId, copy.id);
+  assert.equal(store.undo(), true); assert.deepEqual(store.scene, scene); assert.equal(store.undo(), false);
+  const locked = workspace({ snapshot: readEditorSnapshot(store), selection: { entityIds: [rock.id], primaryId: rock.id },
+    banner: { kind: 'invalid', diagnostics: [] }, onCommand() { assert.fail('must not edit'); } });
+  (locked.tree as Element).props.onKeyDown({ key: 'd', ctrlKey: true, target: null, preventDefault() {} });
+});
+
+test('surface alignment is a labelled keyboard button and survives preference storage', () => {
+  let enabled = false;
+  const tree = ViewportTools({ tool: 'select', space: 'world', handle: { update() {}, dispose() {}, surfaceAt: () => null }, canEdit: true,
+    canFrame: false, onTool() {}, onSpace() {}, alignToSurface: false, onAlignToSurface: value => { enabled = value; } });
+  const button = control(tree, 'Align to surface');
+  assert.equal(button.props['aria-pressed'], false);
+  button.props.onClick(); assert.equal(enabled, true);
+  const html = renderToStaticMarkup(tree);
+  assert.match(html, /<button[^>]*aria-label="Align to surface"/);
+  const layout = { ...defaultLayout, alignToSurface: enabled };
+  assert.deepEqual(parseLayout(JSON.parse(JSON.stringify(layout))), { layout, recovered: false });
+  assert.deepEqual(parseLayout({ ...defaultLayout, alignToSurface: 'yes' }), { layout: defaultLayout, recovered: true });
 });
 
 test('command cards toggle exclusively, collapse on Escape from inputs, and keep viewport mounted', () => {

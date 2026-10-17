@@ -4,8 +4,8 @@ import {
   GitCompareArrows, LayoutDashboard, ListTree, LogOut, Play, Redo2, Save, Settings as SettingsIcon,
   ShieldCheck, SlidersHorizontal, Sparkles, Square, Terminal, TriangleAlert, Undo2, X, type LucideIcon,
 } from 'lucide-react';
-import type { SceneCommand } from '@forgon/editor-core';
-import { createEntity, type AssetRecord, type Transform } from '@forgon/project-schema';
+import { duplicatePlan, type SceneCommand } from '@forgon/editor-core';
+import { createEntity, type AssetRecord, type ScriptCatalog, type ScriptModules, type Transform } from '@forgon/project-schema';
 import { AgentDock } from '../agent/AgentDock.js';
 import { AgentsPanel } from '../agent/AgentsPanel.js';
 import { threadStatus, threadStatusLabels } from '../agent/threadState.js';
@@ -18,12 +18,13 @@ import { Inspector } from '../panels/inspector/Inspector.js';
 import { ReviewPanel } from '../review/ReviewPanel.js';
 import { countBySeverity, type ConsoleLog, type LogInput } from '../model/consoleLog.js';
 import type { FileBanner, SaveStatus } from '../model/fileState.js';
-import { defaultLayout, toggleCard, type CardId, type LayoutState } from '../model/layout.js';
+import { defaultLayout, defaultSnap, toggleCard, type CardId, type LayoutState } from '../model/layout.js';
 import { noSelection, selectOne, type Selection } from '../model/selection.js';
 import { planSceneSwitch } from '../model/sceneSwitch.js';
 import { topmostIds } from '../model/tree.js';
+import { placementCommand, type PlacementTarget } from '../model/placement.js';
 import { Banner, Button, IconButton, StatusText, cx, type Tone } from '../primitives/primitives.js';
-import type { ViewportHandle, ViewportMount, ViewportTool, ViewportView } from '../services.js';
+import type { SurfacePoint, ViewportHandle, ViewportMount, ViewportTool, ViewportView } from '../services.js';
 import { Settings } from './Settings.js';
 import { toolButtons, ViewportTools } from './ViewportTools.js';
 import { ViewportSlot } from './ViewportSlot.js';
@@ -34,6 +35,9 @@ export interface SceneEntry {
 }
 
 export interface WorkspaceProps {
+  scripts?: ScriptCatalog['scripts'];
+  onRefreshScripts?: (() => Promise<void>) | undefined;
+  preparePlay?: ((signal: AbortSignal) => Promise<ScriptModules>) | undefined;
   projectName: string;
   source: 'project' | 'sample';
   sourcePath: string | null;
@@ -80,14 +84,19 @@ const secondaryCards: ReadonlyArray<{ id: CardId; label: string; icon: LucideIco
 ];
 
 function isEditableTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
+  if (typeof HTMLElement === 'undefined' || !(target instanceof HTMLElement)) return false;
   return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
 }
 
 export function Workspace(props: WorkspaceProps) {
   const { snapshot, selection, layout, log, agent } = props;
   const scene = snapshot.scene;
+  const snap = layout.snap ?? defaultSnap;
   const [playing, setPlaying] = useState(false);
+  const [preparingPlay, setPreparingPlay] = useState(false);
+  const playGeneration = useRef(0);
+  const playPreparation = useRef<AbortController | null>(null);
+  useEffect(() => () => { playGeneration.current++; playPreparation.current?.abort(); }, []);
   const [handle, setHandle] = useState<ViewportHandle | null>(null);
   const [closeArmed, setCloseArmed] = useState(false);
   const [focusToken, setFocusToken] = useState(0);
@@ -97,10 +106,11 @@ export function Workspace(props: WorkspaceProps) {
   const [space, setSpace] = useState<'local' | 'world'>('world');
   const [view_, setView] = useState<'editor' | 'settings'>('editor');
   const pendingFocus = useRef<string | null>(null);
+  const workspaceRef = useRef<HTMLDivElement>(null);
   const primary = scene.entities.find(entity => entity.id === selection.primaryId) ?? null;
   const conflict = snapshot.conflict;
   const invalid = props.banner?.kind === 'invalid';
-  const readOnlyReason = playing
+  const readOnlyReason = preparingPlay ? 'Preparing scripts for Play…' : playing
     ? 'Stop to edit. Scene edits are disabled during Play.'
     : invalid ? 'Editing is paused until the scene file is valid again.' : null;
   const canEdit = readOnlyReason === null && conflict === null;
@@ -115,6 +125,7 @@ export function Workspace(props: WorkspaceProps) {
   }, [handle, canEdit]);
 
   useEffect(() => { handle?.setSpace?.(space); }, [handle]);
+  useEffect(() => { handle?.setSnap?.(snap); }, [handle, snap]);
   const addChip = agent?.addChip;
   const removeChip = agent?.removeChip;
   const selectionChip = useRef<string | null>(null);
@@ -171,6 +182,34 @@ export function Workspace(props: WorkspaceProps) {
     }
   };
 
+  const duplicateObjects = (ids: readonly string[]): void => {
+    if (!canEdit) return;
+    const plan = duplicatePlan(scene.entities, ids, undefined, snap.translate);
+    if (!plan.ok) { props.onLog({ source: 'editor', severity: 'info', message: plan.reason }); return; }
+    if (execute({ type: 'batch', commands: plan.value.commands })) {
+      props.onSelect({ entityIds: plan.value.topLevelIds, primaryId: plan.value.topLevelIds[0] ?? null });
+    }
+  };
+
+  const placeObject = (target: PlacementTarget, surface: SurfacePoint): void => {
+    if (!canEdit) return;
+    try {
+      const placement = placementCommand(target, surface, props.viewportContext?.prefabs ?? [], layout.alignToSurface ?? false);
+      if (execute(placement.command)) props.onSelect(selectOne(placement.selectedId));
+    } catch (error) { props.onLog({ source: 'editor', severity: 'error', message: `Could not place object: ${String(error)}` }); }
+  };
+
+  const addAtCentre = (target: PlacementTarget): void => {
+    if (!canEdit || !handle?.surfaceAt) return;
+    const rect = workspaceRef.current?.querySelector('[data-slot="scene-viewport"]')?.getBoundingClientRect();
+    if (!rect) return;
+    try {
+      const point = handle.surfaceAt(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      if (point) placeObject(target, point);
+      else props.onLog({ source: 'editor', severity: 'info', message: 'No surface at the viewport centre. Aim the camera at the scene or ground plane and try again.' });
+    } catch (error) { props.onLog({ source: 'editor', severity: 'error', message: `Could not find a placement surface: ${String(error)}` }); }
+  };
+
   const transformObject = (entityId: string, transform: Transform): void => {
     execute({ type: 'transform', entityId, transform });
   };
@@ -192,13 +231,26 @@ export function Workspace(props: WorkspaceProps) {
     openComposer();
   };
 
-  const play = (): void => {
-    if (!handle?.play) return;
-    try { handle.play(scene); setPlaying(true); }
-    catch (error) { props.onLog({ source: 'editor', severity: 'error', message: `Could not play: ${String(error)}` }); }
+  const play = async (): Promise<void> => {
+    if (!handle?.play || preparingPlay || playing) return;
+    const generation = ++playGeneration.current;
+    const preparation = new AbortController(); playPreparation.current = preparation;
+    setPreparingPlay(true);
+    try {
+      const scripts = await props.preparePlay?.(preparation.signal);
+      if (generation !== playGeneration.current) return;
+      handle.play(scene, scripts); setPlaying(true);
+    } catch (error) {
+      if (generation === playGeneration.current) {
+        props.onLog({ source: 'editor', severity: 'error', message: `Could not play: ${String(error)}` });
+        show('console');
+      }
+    } finally { if (generation === playGeneration.current) { setPreparingPlay(false); playPreparation.current = null; } }
   };
 
   const stop = (): void => {
+    playGeneration.current++; setPreparingPlay(false);
+    playPreparation.current?.abort(); playPreparation.current = null;
     try { handle?.stop?.(); }
     catch (error) { props.onLog({ source: 'editor', severity: 'error', message: `Could not stop: ${String(error)}` }); }
     finally { setPlaying(false); }
@@ -216,7 +268,7 @@ export function Workspace(props: WorkspaceProps) {
   // A switch with unsaved edits asks first. A conflict or a failed save blocks it.
   const requestScene = (path: string): void => {
     setSwitchError(null);
-    if (props.saveStatus === 'saving' || playing) { setSwitchError('Stop Play and wait for saving to finish before switching scenes.'); return; }
+    if (props.saveStatus === 'saving' || playing || preparingPlay) { setSwitchError('Stop Play and wait for saving to finish before switching scenes.'); return; }
     const plan = planSceneSwitch({ current: props.sourcePath, target: path, dirty: snapshot.dirty, conflict: conflict !== null });
     switch (plan.action) {
       case 'none':
@@ -252,6 +304,7 @@ export function Workspace(props: WorkspaceProps) {
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
+    if (event.defaultPrevented) return;
     const mod = event.ctrlKey && !event.altKey && !event.metaKey;
     const key = event.key.toLowerCase();
     if (mod && key === 's') {
@@ -273,7 +326,10 @@ export function Workspace(props: WorkspaceProps) {
     if (key === 'f5') { event.preventDefault(); (playing ? stop : play)(); return; }
     if (isEditableTarget(event.target)) return;
     if (key === '/' && !event.ctrlKey && !event.altKey && !event.metaKey) { event.preventDefault(); openComposer(); return; }
-    if (mod && key === 'z' && !event.shiftKey) {
+    if (mod && key === 'd' && !event.shiftKey) {
+      event.preventDefault();
+      duplicateObjects(selection.entityIds);
+    } else if (mod && key === 'z' && !event.shiftKey) {
       event.preventDefault();
       if (canEdit && snapshot.canUndo) props.onUndo();
     } else if (mod && (key === 'y' || (key === 'z' && event.shiftKey))) {
@@ -327,8 +383,12 @@ export function Workspace(props: WorkspaceProps) {
         onTransform={transformObject}
         onTransforms={transformObjects}
         onHandle={setHandle}
+        placementEnabled={canEdit && !!handle?.surfaceAt}
+        onPlace={placeObject}
       >
-        <ViewportTools tool={tool} space={space} handle={handle} canEdit={canEdit} canFrame={canFrame} onTool={setTool} onSpace={setSpace} />
+        <ViewportTools tool={tool} space={space} snap={snap} onSnap={next => setLayout({ ...layout, snap: next })}
+          alignToSurface={layout.alignToSurface ?? false} onAlignToSurface={enabled => setLayout({ ...layout, alignToSurface: enabled })}
+          handle={handle} canEdit={canEdit} canFrame={canFrame} onTool={setTool} onSpace={setSpace} />
         <div className="fg-viewport-banners">
           {props.saveError ? <Banner tone="danger">{props.saveError}</Banner> : null}
           {pendingScene !== null ? (
@@ -385,6 +445,7 @@ export function Workspace(props: WorkspaceProps) {
         onSelect={props.onSelect}
         onCreate={createObject}
         onDelete={deleteObjects}
+        duplicateOffset={snap.translate}
         onRename={(entityId, name) => { execute({ type: 'rename', entityId, name }); }}
         onCommand={execute}
         onNotice={message => props.onLog({ source: 'editor', severity: 'info', message })}
@@ -392,6 +453,8 @@ export function Workspace(props: WorkspaceProps) {
     ),
     inspector: (
       <Inspector
+        scripts={props.scripts}
+        onRefreshScripts={props.onRefreshScripts}
         scene={scene}
         selection={selection}
         sourcePath={props.sourcePath}
@@ -403,14 +466,15 @@ export function Workspace(props: WorkspaceProps) {
       />
     ),
     agents: <AgentsPanel agent={agent} onOpenThread={openComposer} onOpenSettings={() => setView('settings')} />,
-    project: <AssetsPanel assets={props.assets} projectOpen={props.source === 'project'} onRefresh={props.onRefreshAssets} onImport={props.onImportAsset} />,
+    project: <AssetsPanel assets={props.assets} prefabs={props.viewportContext?.prefabs ?? []} projectOpen={props.source === 'project'}
+      canPlace={canEdit && !!handle?.surfaceAt} onAddToScene={addAtCentre} onRefresh={props.onRefreshAssets} onImport={props.onImportAsset} />,
     console: <ConsolePanel log={log} />,
     review: <ReviewPanel threadTitle={activeThread?.title ?? null} changedPaths={reviewPaths} />,
     stats: <dl className="fg-stats"><div><dt>Entities</dt><dd>{scene.entities.length}</dd></div><div><dt>Selected</dt><dd>{selection.entityIds.length}</dd></div><div><dt>Diagnostics</dt><dd>{counts.errors + counts.warnings}</dd></div></dl>,
   };
 
   return (
-    <div className="fg-workspace" data-layout="floating" onKeyDown={onKeyDown}>
+    <div ref={workspaceRef} className="fg-workspace" data-layout="floating" onKeyDown={onKeyDown}>
       <nav className="fg-rail" aria-label="Main">
         <span className="fg-logo" aria-hidden="true"><Diamond size={16} strokeWidth={2} /></span>
         <IconButton className={cx('fg-rail-item', view_ === 'editor' && 'is-active')} label="Editor" aria-current={view_ === 'editor' ? 'page' : undefined} onClick={() => setView('editor')}><LayoutDashboard {...iconProps} size={18} /></IconButton>
@@ -443,17 +507,17 @@ export function Workspace(props: WorkspaceProps) {
         <IconButton id="toggle-hierarchy" label="Toggle Hierarchy" title="Hierarchy (Ctrl+1)" aria-pressed={layout.hierarchy} onClick={() => setLayout({ ...layout, hierarchy: !layout.hierarchy })}><ListTree {...iconProps} /></IconButton>
         <IconButton id="toggle-inspector" label="Toggle Inspector" title="Inspector (Ctrl+2)" aria-pressed={layout.inspector} onClick={() => setLayout({ ...layout, inspector: !layout.inspector })}><SlidersHorizontal {...iconProps} /></IconButton>
         <div className="fg-pill fg-play-pill" role="group" aria-label="Mode">
-          <span className={cx('fg-mode', playing && 'is-playing')}>{playing ? 'Playing' : 'Edit'}</span>
+          <span className={cx('fg-mode', playing && 'is-playing')}>{preparingPlay ? 'Preparing' : playing ? 'Playing' : 'Edit'}</span>
           <button
             type="button"
             className="fg-play"
             aria-pressed={playing}
-            disabled={!playing && !handle?.play}
+            disabled={preparingPlay || (!playing && !handle?.play)}
             title={handle?.play ? 'Play a snapshot of the scene (F5)' : 'Play needs the viewport runtime, which is not connected in this build.'}
             onClick={playing ? stop : play}
           >
             <span className="fg-play-icon">{playing ? <Square {...iconProps} /> : <Play {...iconProps} />}</span>
-            {playing ? 'Stop' : 'Play'}
+            {preparingPlay ? 'Preparing…' : playing ? 'Stop' : 'Play'}
           </button>
         </div>
         <div className="fg-pill fg-icon-group" role="group" aria-label="History">

@@ -15,6 +15,7 @@ export interface HierarchyProps {
   onSelect(selection: Selection): void;
   onCreate(): void;
   onDelete(entityIds: readonly string[]): void;
+  duplicateOffset?: number;
   onRename(entityId: string, name: string): void;
   // Every structural change is a SceneCommand, validated by the store like any other edit.
   onCommand(command: SceneCommand): boolean;
@@ -62,7 +63,7 @@ function entityIcon(entity: Entity | undefined, hasChildren: boolean): LucideIco
   return hasChildren ? Folder : Circle;
 }
 
-export function Hierarchy({ sceneName, entities, selection, locked, onSelect, onCreate, onDelete, onRename, onCommand, onNotice }: HierarchyProps) {
+export function Hierarchy({ sceneName, entities, selection, locked, onSelect, onCreate, onDelete, onRename, onCommand, onNotice, duplicateOffset = 0.5 }: HierarchyProps) {
   const [search, setSearch] = useState('');
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -127,7 +128,7 @@ export function Hierarchy({ sceneName, entities, selection, locked, onSelect, on
   };
 
   const duplicate = (ids: readonly string[]): void => {
-    const plan = duplicatePlan(entities, ids, createId);
+    const plan = duplicatePlan(entities, ids, createId, duplicateOffset);
     if (!plan.ok) {
       onNotice(plan.reason);
       return;
@@ -209,8 +210,9 @@ export function Hierarchy({ sceneName, entities, selection, locked, onSelect, on
         }
         break;
       case 'd':
-        if (event.ctrlKey && !locked && selection.entityIds.length > 0) {
+        if (event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey && !locked && selection.entityIds.length > 0) {
           event.preventDefault();
+          event.stopPropagation();
           duplicate(selection.entityIds);
         }
         break;

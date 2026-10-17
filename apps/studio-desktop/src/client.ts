@@ -1,4 +1,4 @@
-import type { AgentEvent, AgentRunRequest, AssetRecord, PrefabDocument, ProjectManifest, SceneRead, SceneWatchEvent, SaveSceneRequest, SaveSceneResult } from '@forgon/project-schema';
+import type { ScriptCatalog, AgentEvent, AgentRunRequest, AssetRecord, PrefabDocument, ProjectManifest, SceneRead, SceneWatchEvent, SaveSceneRequest, SaveSceneResult } from '@forgon/project-schema';
 import type { BridgeEvent, Transport } from './protocol.js';
 import type { RunningAgentService } from '@forgon/agent-service';
 type AgentProviderInfo = RunningAgentService['agentConnection']['providers'][number];
@@ -57,6 +57,7 @@ export async function createDesktopServices(transport: Transport) {
           };
         },
       },
+      compileScripts: () => request<ScriptCatalog>('scripts:compile'),
       readCatalog: () => request<{ manifest: ProjectManifest; assets: { assets: AssetRecord[] }; prefabs: PrefabDocument[] }>('catalog:read'),
       async readAsset(assetId: string) {
         const value = await request<{ asset: AssetRecord; bytes: string; revision: string }>('asset:read', { assetId });

@@ -24,6 +24,7 @@ export * from './isolatedHome.js';
 export * from './sidecar.js';
 export * from './persistence.js';
 export * from './service.js';
+export { redactSecrets } from '@forgon/agent-bridge';
 
 export interface StartAgentServiceOptions {
   readonly artifact: T3Artifact;
@@ -118,6 +119,16 @@ export const startAgentService = async (
       : { forgonEnforcesInspect: options.forgonEnforcesInspect }),
     ...(options.onWarning === undefined ? {} : { onWarning: options.onWarning }),
   });
+
+  // T3 ships OpenCode disabled, but Forgon offers it as one of its three providers. This only touches
+  // the isolated home's settings; a failure leaves OpenCode reported as disabled, not a dead service.
+  try {
+    await connection.orchestration.enableProvider({ instanceId: 'opencode', driver: 'opencode' });
+  } catch (cause) {
+    options.onWarning?.(
+      `Could not enable OpenCode in the isolated T3 settings: ${cause instanceof Error ? cause.message : String(cause)}`,
+    );
+  }
 
   // Discovery is best-effort at startup: a provider CLI that is missing is an unavailable
   // provider, not a failed service, so a refresh error is reported and the service still runs.

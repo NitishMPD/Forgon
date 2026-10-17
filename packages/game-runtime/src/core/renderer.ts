@@ -1,4 +1,4 @@
-import { Color, PCFSoftShadowMap, SRGBColorSpace, WebGLRenderer } from 'three';
+import { Color, PCFShadowMap, SRGBColorSpace, WebGLRenderer } from 'three';
 import type { PerspectiveCamera, Scene } from 'three';
 
 /** GPU creation stays at the DOM mount boundary; scene/session modules remain headless. */
@@ -11,7 +11,7 @@ export function createRenderSurface(
   const renderer = new WebGLRenderer({ canvas, antialias: true });
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = PCFSoftShadowMap;
+  renderer.shadowMap.type = PCFShadowMap;
   const background = new Color(0.075, 0.09, 0.13);
   let disposed = false;
   const render = (): void => {

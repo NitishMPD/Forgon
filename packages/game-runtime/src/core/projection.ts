@@ -4,7 +4,7 @@ import type { Component, Entity as SceneEntity } from '@forgon/project-schema';
 
 // Behavior components remain session-owned; only visual components become Three objects.
 export const SUPPORTED_COMPONENT_TYPES = [
-  'render', 'camera', 'light', 'collision', 'guestQueue', 'audio', 'vfx',
+  'render', 'camera', 'light', 'collision', 'guestQueue', 'audio', 'vfx', 'script',
   // Parkour gameplay vocabulary: simulated by the play session, no engine component.
   'player', 'movingPlatform', 'checkpoint', 'collectible', 'goal', 'hazard',
 ] as const;

@@ -2207,6 +2207,33 @@
             },
             "entityRefs": [],
             "assetRefs": []
+          },
+          {
+            "id": "gen_5a101fe27b83eecb",
+            "type": "script",
+            "enabled": true,
+            "properties": {
+              "src": "scripts/spinner.ts",
+              "params": {
+                "speed": 90
+              }
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_0e792335c596aed0",
+            "type": "script",
+            "enabled": true,
+            "properties": {
+              "src": "scripts/bobber.ts",
+              "params": {
+                "amplitude": 0.25,
+                "frequency": 0.8
+              }
+            },
+            "entityRefs": [],
+            "assetRefs": []
           }
         ]
       },

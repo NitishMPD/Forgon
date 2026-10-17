@@ -222,3 +222,5 @@ export class EditorStore {
     this.#emit();
   }
 }
+
+export { descendantIds, topmostIds, duplicatePlan, type DuplicateResult, type HierarchyPlan } from './hierarchy.js';

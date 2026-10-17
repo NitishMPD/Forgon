@@ -5,17 +5,18 @@
 <title>Forgon — standalone player</title>
 <style>
 html,body,#game{margin:0;width:100%;height:100%;background:#0a0d14;color:#fff;font:16px system-ui}
-body{overflow:hidden}#controls{position:absolute;z-index:1;left:1rem;top:1rem;max-width:32rem;background:#0a0d14e0;padding:1rem;border-radius:.5rem;border:1px solid #29cdff33}
+body{overflow:hidden}#controls{position:absolute;z-index:6;left:1rem;top:1rem;max-width:32rem;background:#0a0d14e0;padding:1rem;border-radius:.5rem;border:1px solid #29cdff33}
 button{font:inherit;padding:.6rem 1rem;margin:0 .4rem .4rem 0}button:focus-visible{outline:3px solid #29cdff;outline-offset:3px}#status{margin:.4rem 0 0;color:#b7c4d4}
 h1{font:600 1.05rem system-ui;letter-spacing:.16em;margin:0 0 .6rem;color:#8fd8ff}
 </style>
 <div id="game" aria-label="Standalone game viewport"></div>
 <div id="controls">
   <h1>FORGON PLAYER</h1>
+  <button data-play="rooftop-relay">Play Rooftop Relay</button>
   <button data-play="sector">Play Sector 07</button>
   <button data-play="hotel">Play hotel</button>
   <button id="stop" disabled>Stop</button>
-  <p id="status" role="status">Pick a checked-in project. Starting enables audio and the pointer-lock controls.</p>
+  <p id="status" role="status">Pick a checked-in project. Rooftop Relay is a five-course campaign with menus and saved progress.</p>
 </div>
 <script type="module" src="/src/main.ts"></script>
 </html>

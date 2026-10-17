@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { validateProject } from '@forgon/project-schema';
-import { createEmpty3dFixture, createFixture, createHotelFixture, createSectorFixture, receptionWav, sectorWav } from '../src/index.js';
+import { createEmpty3dFixture, createFixture, createHotelFixture, createRooftopRelayFixture, createSectorFixture, receptionWav, sectorWav } from '../src/index.js';
 
 test('hotel is a valid original catalog with at least 30 entities and 5 prefab instances', () => {
   const fixture = createHotelFixture(); validateProject(fixture);
@@ -38,6 +38,12 @@ test('sector is a complete parkour course with the gameplay vocabulary and prove
   assert.equal(count('camera'), 1);
   assert.equal(count('light'), 3);
   assert.equal(count('audio'), 1);
+  const scripted = entities.filter(entity => entity.components.some(component => component.type === 'script'));
+  assert.equal(scripted.length, 1);
+  assert.equal(scripted[0]!.components.filter(component => component.type === 'script').length, 2);
+  assert.ok(scripted[0]!.components.some(component => component.type === 'render'), 'scripts demonstrate two attachments on a visible shard');
+  assert.match(String(fixture.files['scripts/spinner.ts']), /defineScript/);
+  assert.match(String(fixture.files['scripts/bobber.ts']), /frequency: prop.number/);
   // Two prefabs: the relay lift instantiated twice and the sentinel hazard three times.
   assert.equal(fixture.prefabs.length, 2);
   assert.equal(new Set(entities.filter(entity => entity.prefab).map(entity => entity.prefab!.instanceId)).size, 5);
@@ -80,8 +86,41 @@ test('original audio has valid PCM16 WAV headers and non-silent bounded samples'
   assert.ok(bytes.subarray(44).some(byte => byte !== 0));
 });
 
+test('rooftop relay is a five-course campaign with a real gameplay vocabulary', () => {
+  const fixture = createRooftopRelayFixture();
+  validateProject(fixture);
+  assert.equal(fixture.scenes.length, 5);
+  assert.equal(fixture.campaign?.courses.length, 5);
+  assert.equal(fixture.campaign?.unlock, 'sequential');
+  assert.equal(fixture.manifest.campaign, 'progression/campaign.json');
+  assert.equal(fixture.prefabs.length, 5, 'one ferry prefab per course, so each keeps its palette');
+  const count = (type: string): number => fixture.scenes.reduce((total, scene) => total + scene.entities.filter(entity => entity.components.some(component => component.type === type && component.enabled)).length, 0);
+  assert.equal(count('player'), 5, 'one runner per course');
+  assert.equal(count('goal'), 5, 'one uplink per course');
+  assert.equal(count('checkpoint'), 17, 'a spawn gate and two or three relay gates per course');
+  assert.equal(count('collectible'), 25, 'the routes carry shards');
+  assert.equal(count('hazard'), 6, 'sentinels guard the later courses');
+  assert.ok(count('collision') >= 40, 'every course is solid run surface');
+  assert.equal(count('movingPlatform'), 3, 'two ferries and one lift');
+  assert.equal(count('audio'), 15, 'ambient, checkpoint and goal cues per course');
+  for (const scene of fixture.scenes) assert.equal(scene.entities.filter(entity => entity.components.some(component => component.type === 'camera')).length, 1);
+  for (const asset of fixture.assets.assets) {
+    assert.ok(fixture.files[asset.path]); assert.equal(asset.provenance!.license, 'CC0-1.0');
+  }
+});
+
+test('rooftop relay is deterministic, seed-sensitive and keeps stable identities', () => {
+  const first = createRooftopRelayFixture('one');
+  assert.deepEqual(first, createRooftopRelayFixture('one'));
+  const other = createRooftopRelayFixture('two');
+  assert.deepEqual(first.scenes.map(scene => scene.entities.map(entity => entity.id)), other.scenes.map(scene => scene.entities.map(entity => entity.id)));
+  assert.notEqual(first.files['scenes/course-01.scene.json'], other.files['scenes/course-01.scene.json']);
+  assert.notEqual(first.files['assets/palette.json'], other.files['assets/palette.json']);
+  assert.deepEqual(first.campaign?.courses.map(course => course.sceneId), other.campaign?.courses.map(course => course.sceneId));
+});
+
 test('checked-in fixtures exactly match their built-in generators', async () => {
-  for (const [directory, fixture] of [['examples/hotel-vertical-slice', createHotelFixture()], ['examples/sector', createSectorFixture()], ['templates/empty-3d', createEmpty3dFixture()]] as const) {
+  for (const [directory, fixture] of [['examples/hotel-vertical-slice', createHotelFixture()], ['examples/sector', createSectorFixture()], ['examples/rooftop-relay', createRooftopRelayFixture()], ['templates/empty-3d', createEmpty3dFixture()]] as const) {
     for (const [path, expected] of Object.entries(fixture.files)) {
       const actual = await readFile(fileURLToPath(new URL(`../../../${directory}/${path}`, import.meta.url)));
       assert.deepEqual(actual, Buffer.from(expected), `${directory}/${path}`);

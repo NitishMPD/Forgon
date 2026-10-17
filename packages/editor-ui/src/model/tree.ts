@@ -56,19 +56,7 @@ export function stepId(ids: readonly string[], current: string | null, delta: nu
   return ids[Math.min(ids.length - 1, Math.max(0, index + delta))] ?? null;
 }
 
-// Deleting a subtree removes its descendants, so only the topmost selected objects are deleted.
-export function topmostIds(entities: readonly Entity[], ids: readonly string[]): string[] {
-  const parents = new Map(entities.map(entity => [entity.id, entity.parentId] as const));
-  const selected = new Set(ids);
-  return ids.filter(id => {
-    let parent = parents.get(id) ?? null;
-    while (parent !== null) {
-      if (selected.has(parent)) return false;
-      parent = parents.get(parent) ?? null;
-    }
-    return true;
-  });
-}
+export { topmostIds } from '@forgon/editor-core';
 
 export function parentRowId(rows: readonly TreeRow[], index: number): string | null {
   const row = rows[index];

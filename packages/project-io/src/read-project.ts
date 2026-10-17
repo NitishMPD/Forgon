@@ -1,8 +1,8 @@
 import { stat } from 'node:fs/promises';
 import { canonicalRoot, targetPath, readBytes, parseJson, encodeJson, ProjectIOError, missing, boundaryError } from './files.js';
 
-import { parseAssetRegistry, parsePrefab, parseProjectManifest, parseScene, validateProject } from '@forgon/project-schema';
-import type { AssetRegistry, PrefabDocument, SceneDocument } from '@forgon/project-schema';
+import { parseAssetRegistry, parseCampaign, parsePrefab, parseProjectManifest, parseScene, validateProject } from '@forgon/project-schema';
+import type { AssetRegistry, CampaignDocument, PrefabDocument, SceneDocument } from '@forgon/project-schema';
 import { instantiatePrefab, parseAuthoringArtifact, prefabBindingsSchema, replayOverrides, stableId } from '@forgon/procedural-authoring';
 import type { AuthoringArtifact } from '@forgon/procedural-authoring';
 
@@ -46,7 +46,7 @@ export async function readCatalog(root: string, replacement?: { path: string; do
     if (physical.has(key)) throw new ProjectIOError('INVALID_PATH', `Catalog files alias each other: ${path}`);
     physical.add(key);
   };
-  for (const path of ['game.project.json', manifest.assetRegistry, ...manifest.scenes.map(ref => ref.path), ...manifest.prefabs.map(ref => ref.path)]) await claim(path);
+  for (const path of ['game.project.json', manifest.assetRegistry, ...(manifest.campaign ? [manifest.campaign] : []), ...manifest.scenes.map(ref => ref.path), ...manifest.prefabs.map(ref => ref.path)]) await claim(path);
   const prefabs: PrefabDocument[] = [];
   for (const ref of manifest.prefabs) {
     const prefab = parsePrefab(await reader.json(ref.path));
@@ -59,7 +59,9 @@ export async function readCatalog(root: string, replacement?: { path: string; do
     if (scene.sceneId !== ref.id) throw new Error(`Scene identity does not match manifest path ${ref.path}`);
     scenes.push(scene);
   }
-  validateProject({ manifest, scenes, prefabs, assets });
+  let campaign: CampaignDocument | undefined;
+  if (manifest.campaign) campaign = parseCampaign(await reader.json(manifest.campaign), { sceneIds: scenes.map(scene => scene.sceneId) });
+  validateProject({ manifest, scenes, prefabs, assets, ...(campaign ? { campaign } : {}) });
   for (const asset of assets.assets) { await reader.asset(asset.path); }
   let authoring: AuthoringArtifact | undefined;
   try { authoring = parseAuthoringArtifact(await reader.json('authoring/generated.json')); }
@@ -79,6 +81,6 @@ export async function readCatalog(root: string, replacement?: { path: string; do
     if (replay.conflicts.length || !replay.scene) throw new Error(`Invalid authoring overrides: ${JSON.stringify(replay.conflicts)}`);
     parseScene(replay.scene, { assets: assets.assets, prefabs });
   }
-  return { manifest, scenes, prefabs, assets, ...(authoring ? { authoring } : {}) };
+  return { manifest, scenes, prefabs, assets, ...(authoring ? { authoring } : {}), ...(campaign ? { campaign } : {}) };
 }
 

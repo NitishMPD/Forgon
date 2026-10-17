@@ -1,0 +1,52 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createEntity, createScene } from '@forgon/project-schema';
+import { duplicatePlan, EditorStore } from '../src/index.js';
+
+test('duplicate command copies selected subtrees once, retains parents, remaps IDs and offsets only roots', () => {
+  const parent = createEntity('Parent');
+  const rock = createEntity('Rock', parent.id);
+  const child = createEntity('Child', rock.id);
+  const sibling = createEntity('Rock (1)', parent.id);
+  rock.transform.position = [2, 3, 4]; child.transform.position = [1, 2, 3];
+  rock.components.push({ id: 'render_original', type: 'render', enabled: true, properties: { primitive: 'box' }, entityRefs: [child.id], assetRefs: [] });
+  const scene = { ...createScene('Test'), entities: [parent, rock, child, sibling] };
+  const before = structuredClone(scene);
+  const store = new EditorStore(scene, 'r1');
+  let index = 0;
+  const plan = duplicatePlan(scene.entities, [rock.id, child.id, rock.id], prefix => `${prefix}_${++index}`, 0.25);
+  assert.ok(plan.ok);
+  assert.equal(plan.value.commands.length, 2);
+  assert.equal(plan.value.topLevelIds.length, 1);
+  store.execute({ type: 'batch', commands: plan.value.commands });
+  const copies = store.scene.entities.slice(4);
+  assert.equal(copies[0]!.id, plan.value.topLevelIds[0]);
+  assert.equal(copies[0]!.name, 'Rock (2)');
+  assert.equal(copies[0]!.parentId, parent.id);
+  assert.deepEqual(copies[0]!.transform.position, [2.25, 3, 4]);
+  assert.deepEqual(copies[1]!.transform.position, child.transform.position);
+  assert.equal(copies[1]!.parentId, copies[0]!.id);
+  assert.notEqual(copies[0]!.components[0]!.id, 'render_original');
+  assert.deepEqual(copies[0]!.components[0]!.entityRefs, [copies[1]!.id]);
+  assert.deepEqual(scene, before);
+  const after = store.scene;
+  assert.equal(store.undo(), true); assert.deepEqual(store.scene, before); assert.equal(store.undo(), false);
+  assert.equal(store.redo(), true); assert.deepEqual(store.scene, after);
+});
+
+test('whole prefab instances receive fresh IDs; partial instances are refused', () => {
+  const root = createEntity('Prefab'); const child = createEntity('Child', root.id);
+  root.prefab = { prefabId: 'prefab', instanceId: 'original_instance', sourceEntityId: 'source_root' };
+  child.prefab = { prefabId: 'prefab', instanceId: 'original_instance', sourceEntityId: 'source_child' };
+  const entities = [root, child];
+  assert.equal(duplicatePlan(entities, [child.id]).ok, false);
+  const plan = duplicatePlan(entities, [root.id]);
+  assert.ok(plan.ok);
+  const store = new EditorStore({ ...createScene('Test'), entities }, 'r1');
+  store.execute({ type: 'batch', commands: plan.value.commands });
+  const copies = store.scene.entities.slice(2);
+  assert.notEqual(copies[0]!.prefab!.instanceId, root.prefab.instanceId);
+  assert.equal(copies[0]!.prefab!.instanceId, copies[1]!.prefab!.instanceId);
+  assert.equal(copies[1]!.prefab!.sourceEntityId, 'source_child');
+  assert.equal(store.undo(), true); assert.equal(store.scene.entities.length, 2);
+});

@@ -20,14 +20,24 @@ export interface Hud {
   showOpening(title: string, subtitle: string): void;
   dispose(): void;
 }
+export interface HudOptions {
+  /** Small label above the clock, e.g. the course name. */
+  label?: string;
+  /** Control legend shown at the bottom for the first seconds. */
+  controls?: string;
+  /** The built-in results card; campaign games disable it and show the shell instead. */
+  finishOverlay?: boolean;
+}
 
 const STYLE_ID = 'forgon-hud-style';
 const STYLES = `
 .forgon-hud{position:absolute;inset:0;pointer-events:none;font-family:'Cascadia Code',ui-monospace,SFMono-Regular,Menlo,monospace;color:#e8e6e1;text-transform:uppercase;letter-spacing:.14em}
 .forgon-hud *{box-sizing:border-box}
-.forgon-hud .row{position:absolute;display:flex;gap:1.25rem;align-items:flex-start;font-size:.72rem;text-shadow:0 1px 3px #000a}
-.forgon-hud .time{left:50%;top:1.1rem;transform:translateX(-50%);font-size:1.5rem;letter-spacing:.08em}
-.forgon-hud .time small{display:block;font-size:.6rem;opacity:.55;letter-spacing:.2em;text-align:center}
+.forgon-hud .row{position:absolute;display:flex;gap:1.25rem;align-items:flex-start;font-size:.72rem;text-shadow:0 1px 3px #000a;
+  background:#05070ab8;border:1px solid #ffffff1a;border-radius:.45rem;padding:.32rem .6rem;backdrop-filter:blur(6px)}
+.forgon-hud .time{position:absolute;left:50%;top:1.1rem;transform:translateX(-50%);font-size:1.5rem;letter-spacing:.08em;
+  background:#05070ab8;border:1px solid #ffffff1a;border-radius:.55rem;padding:.32rem .95rem;backdrop-filter:blur(6px);text-align:center}
+.forgon-hud .time small{display:block;font-size:.6rem;opacity:.6;letter-spacing:.2em;text-align:center}
 .forgon-hud .shards{left:1.4rem;top:1.2rem;color:#e7ba71}
 .forgon-hud .deaths{left:1.4rem;top:2.7rem;opacity:.7}
 .forgon-hud .pips{right:1.4rem;top:1.2rem;gap:.4rem}
@@ -38,7 +48,8 @@ const STYLES = `
 .forgon-hud .opening h1{margin:0;font-size:2.4rem;letter-spacing:.5em;font-weight:600}
 .forgon-hud .opening p{margin:0;font-size:.68rem;opacity:.6}
 .forgon-hud .opening.gone{opacity:0}
-.forgon-hud .controls{position:absolute;left:50%;bottom:1.4rem;transform:translateX(-50%);font-size:.62rem;opacity:.55;transition:opacity .6s ease;text-align:center;line-height:1.9}
+.forgon-hud .controls{position:absolute;left:50%;bottom:1.4rem;transform:translateX(-50%);font-size:.62rem;opacity:.72;transition:opacity .6s ease;text-align:center;line-height:1.9;
+  background:#05070aaa;border:1px solid #ffffff14;border-radius:.45rem;padding:.3rem .85rem;backdrop-filter:blur(6px)}
 .forgon-hud .controls.gone{opacity:0}
 .forgon-hud .finish{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:.5rem;background:#05070ab8;opacity:0;transition:opacity .5s ease}
 .forgon-hud .finish.show{opacity:1}
@@ -55,7 +66,7 @@ function formatTime(seconds: number): string {
   return `${minutes}:${rest.toFixed(2).padStart(5, '0')}`;
 }
 
-export function createHud(container: HTMLElement): Hud {
+export function createHud(container: HTMLElement, options: HudOptions = {}): Hud {
   if (!document.getElementById(STYLE_ID)) {
     const style = document.createElement('style');
     style.id = STYLE_ID; style.textContent = STYLES;
@@ -68,11 +79,14 @@ export function createHud(container: HTMLElement): Hud {
   root.innerHTML = `
     <div class="row shards">◇ <span data-shards>0 / 0</span> shards</div>
     <div class="row deaths" data-deaths></div>
-    <div class="time"><small>sector 07</small><span data-time>0:00.00</span></div>
+    <div class="time"><small data-label></small><span data-time>0:00.00</span></div>
     <div class="row pips" data-pips></div>
     <div class="row speed" data-speed></div>
-    <div class="controls" data-controls>WASD move · SPACE jump / double jump · SHIFT sprint · C slide · mouse look · R retry</div>
-    <div class="finish" data-finish><h1>sector clear</h1><div class="big" data-finish-time>0:00.00</div><p data-finish-detail></p></div>`;
+    <div class="controls" data-controls></div>
+    <div class="finish" data-finish><h1>course clear</h1><div class="big" data-finish-time>0:00.00</div><p data-finish-detail></p></div>`;
+  root.querySelector<HTMLElement>('[data-label]')!.textContent = options.label ?? 'forgon';
+  root.querySelector<HTMLElement>('[data-controls]')!.textContent = options.controls
+    ?? 'WASD move · SPACE jump / double jump · SHIFT sprint · C slide · mouse look · R retry · ESC pause';
   container.appendChild(root);
   const shards = root.querySelector<HTMLElement>('[data-shards]')!;
   const deaths = root.querySelector<HTMLElement>('[data-deaths]')!;
@@ -83,6 +97,7 @@ export function createHud(container: HTMLElement): Hud {
   const finish = root.querySelector<HTMLElement>('[data-finish]')!;
   const finishTime = root.querySelector<HTMLElement>('[data-finish-time]')!;
   const finishDetail = root.querySelector<HTMLElement>('[data-finish-detail]')!;
+  if (options.finishOverlay === false) finish.remove();
   let controlTimer = 12;
   let finished = false;
   let disposed = false;
@@ -104,9 +119,11 @@ export function createHud(container: HTMLElement): Hud {
       if (controlTimer <= 0) controls.classList.add('gone');
       if (snapshot.finished && !finished) {
         finished = true;
-        finishTime.textContent = formatTime(snapshot.finishTime ?? snapshot.time);
-        finishDetail.textContent = `${snapshot.collected} / ${snapshot.total} shards · ${snapshot.deaths} falls`;
-        finish.classList.add('show');
+        if (options.finishOverlay !== false) {
+          finishTime.textContent = formatTime(snapshot.finishTime ?? snapshot.time);
+          finishDetail.textContent = `${snapshot.collected} / ${snapshot.total} shards · ${snapshot.deaths} falls`;
+          finish.classList.add('show');
+        }
       }
     },
     showOpening(title, subtitle): void {

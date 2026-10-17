@@ -1,6 +1,7 @@
 import { useEffect, useState, type KeyboardEvent } from 'react';
+import { FileCode2, RefreshCw } from 'lucide-react';
 import type { SceneConflict, SceneCommand } from '@forgon/editor-core';
-import { createId, type Component, type Entity, type JsonValue, type SceneDocument, type Transform } from '@forgon/project-schema';
+import { createId, validateScriptValue, type ScriptCatalog, type ScriptProps, type Component, type Entity, type JsonValue, type SceneDocument, type Transform } from '@forgon/project-schema';
 import { ConflictCard } from '../../conflict/ConflictCard.js';
 import { formatNumber, parseFiniteNumber } from '../../model/numbers.js';
 import { parseJsonDraft, propertyKind, withProperty } from '../../model/properties.js';
@@ -8,6 +9,8 @@ import type { Selection } from '../../model/selection.js';
 import { Banner, Button, EmptyState, Field, cx } from '../../primitives/primitives.js';
 
 export interface InspectorProps {
+  scripts?: ScriptCatalog['scripts'] | undefined;
+  onRefreshScripts?: (() => Promise<void>) | undefined;
   scene: SceneDocument;
   selection: Selection;
   sourcePath: string | null;
@@ -20,11 +23,14 @@ export interface InspectorProps {
 
 type Vector = Transform['position'];
 
-function NumberInput({ id, label, value, disabled, onCommit }: {
+function NumberInput({ id, label, value, disabled, onCommit, min, max, step }: {
   id: string;
   label: string;
   value: number;
   disabled: boolean;
+  min?: number | undefined;
+  max?: number | undefined;
+  step?: number | undefined;
   onCommit(next: number): boolean;
 }) {
   const [draft, setDraft] = useState(formatNumber(value));
@@ -37,6 +43,10 @@ function NumberInput({ id, label, value, disabled, onCommit }: {
     const next = parseFiniteNumber(draft);
     if (next === null) {
       setError('Enter a finite number.');
+      return;
+    }
+    if (next < (min ?? -Infinity) || next > (max ?? Infinity)) {
+      setError(`Enter a value between ${min ?? '−∞'} and ${max ?? '∞'}.`);
       return;
     }
     if (next === value) {
@@ -58,6 +68,10 @@ function NumberInput({ id, label, value, disabled, onCommit }: {
         id={id}
         className={cx('fg-input fg-input-number', error && 'is-invalid')}
         inputMode="decimal"
+        type="number"
+        min={min}
+        max={max}
+        step={step ?? 'any'}
         value={draft}
         disabled={disabled}
         onChange={event => setDraft(event.currentTarget.value)}
@@ -133,11 +147,13 @@ function NameField({ entity, disabled, onCommit }: { entity: Entity; disabled: b
   );
 }
 
-function ComponentRow({ component, entityId, disabled, onCommand }: {
+function ComponentRow({ component, entityId, disabled, onCommand, scene, scripts }: {
   component: Component;
   entityId: string;
   disabled: boolean;
   onCommand(command: SceneCommand): boolean;
+  scene: SceneDocument;
+  scripts: ScriptCatalog['scripts'];
 }) {
   return (
     <li className="fg-component"><details open><summary className="fg-component-summary">{component.type}</summary>
@@ -168,6 +184,7 @@ function ComponentRow({ component, entityId, disabled, onCommand }: {
       {component.assetRefs.length > 0 ? (
         <p className="fg-component-meta">Asset refs: <span className="fg-mono">{component.assetRefs.join(', ')}</span></p>
       ) : null}
+      {component.type === 'script' ? <ScriptFields component={component} entityId={entityId} scene={scene} props={scripts.find(script => script.src === component.properties.src)?.props} disabled={disabled} onCommand={onCommand} /> : <>
       <details>
         <summary className="fg-small">Add or remove properties (JSON)</summary>
         <JsonProperty id={`${component.id}-properties`} name="Properties object" value={component.properties} disabled={disabled} onCommit={value => {
@@ -191,8 +208,63 @@ function ComponentRow({ component, entityId, disabled, onCommand }: {
       ) : (
         <p className="fg-muted fg-small">No properties.</p>
       )}
+      </>}
     </details></li>
   );
+}
+
+/** One property commit replaces the component once, through the existing undo command. */
+function scriptParamCommand(component: Component, entityId: string, props: ScriptProps, name: string, value: JsonValue): SceneCommand {
+  const declaration = props[name];
+  if (!declaration) throw new Error(`Unknown script property: ${name}`);
+  const next = validateScriptValue(declaration, value);
+  const params = component.properties.params;
+  if (params === null || Array.isArray(params) || typeof params !== 'object') throw new Error('Invalid script params');
+  return { type: 'component', entityId, component: { ...component, properties: { ...component.properties, params: { ...params, [name]: next } } } };
+}
+
+export function ScriptFields({ component, entityId, scene, props, disabled, onCommand }: {
+  component: Component; entityId: string; scene: SceneDocument; props: ScriptProps | undefined;
+  disabled: boolean; onCommand(command: SceneCommand): boolean;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const params = component.properties.params as Record<string, JsonValue>;
+  return <div className="fg-property-list">
+    <p className="fg-component-meta fg-mono"><FileCode2 size={14} strokeWidth={1.75} aria-hidden="true" /> {String(component.properties.src)}</p>
+    {!props ? <p role="status" className="fg-muted fg-small">Script properties unavailable. Refresh scripts and check Console.</p> : Object.entries(props).map(([name, declaration], index) => {
+      const id = `${component.id}-script-${index}`;
+      const value = Object.hasOwn(params, name) ? params[name]! : declaration.default;
+      const commit = (next: JsonValue): boolean => {
+        try { const accepted = onCommand(scriptParamCommand(component, entityId, props, name, next)); setError(accepted ? null : 'Change rejected. See Console.'); return accepted; }
+        catch (failure) { setError(String(failure)); return false; }
+      };
+      try { validateScriptValue(declaration, value); }
+      catch { return <div key={name} role="group" aria-label={name}><p role="alert">{name}: saved value does not match the script declaration.</p><Button disabled={disabled} onClick={() => commit(declaration.default)}>Reset {name} to default</Button></div>; }
+      if (declaration.type === 'number') return <NumberInput key={name} id={id} label={name} value={typeof value === 'number' ? value : declaration.default} min={declaration.min} max={declaration.max} step={declaration.step} disabled={disabled} onCommit={commit} />;
+      if (declaration.type === 'boolean') return <PropertyEditor key={name} id={id} name={name} value={typeof value === 'boolean' ? value : declaration.default} disabled={disabled} onCommit={commit} />;
+      if (declaration.type === 'enum' || declaration.type === 'entity') return <Field key={name} label={name} htmlFor={id}>
+        <select id={id} className="fg-input" disabled={disabled} value={typeof value === 'string' ? value : ''} onChange={event => commit(declaration.type === 'entity' && !event.currentTarget.value ? null : event.currentTarget.value)}>
+          {declaration.type === 'entity' ? <><option value="">None</option>{typeof value === 'string' && !scene.entities.some(entity => entity.id === value) ? <option value={value}>Missing entity ({value})</option> : null}{scene.entities.map(entity => <option key={entity.id} value={entity.id}>{entity.name} ({entity.id})</option>)}</> : declaration.options.map(option => <option key={option} value={option}>{option}</option>)}
+        </select>
+      </Field>;
+      if (declaration.type === 'color') {
+        return <ColorProperty key={name} id={id} name={name} value={value as Vector} disabled={disabled} onCommit={commit} />;
+      }
+      if (declaration.type === 'vec3') return <VectorRow key={name} title={name} idPrefix={id} vector={Array.isArray(value) && value.length === 3 && value.every(item => typeof item === 'number') ? value as Vector : declaration.default} disabled={disabled} onCommit={commit} />;
+      return <TextProperty key={name} id={id} name={name} value={typeof value === 'string' ? value : declaration.default} disabled={disabled} onCommit={commit} />;
+    })}
+    {error ? <p role="alert">{error}</p> : null}
+  </div>;
+}
+
+function ColorProperty({ id, name, value, disabled, onCommit }: {
+  id: string; name: string; value: Vector; disabled: boolean; onCommit(next: JsonValue): boolean;
+}) {
+  const current = `#${value.map(channel => Math.round(channel * 255).toString(16).padStart(2, '0')).join('')}`;
+  const [draft, setDraft] = useState(current);
+  useEffect(() => { setDraft(current); }, [current]);
+  const commit = (): void => { if (draft !== current) onCommit([1, 3, 5].map(offset => parseInt(draft.slice(offset, offset + 2), 16) / 255)); };
+  return <Field label={name} htmlFor={id}><input id={id} type="color" className="fg-input" disabled={disabled} value={draft} onChange={event => setDraft(event.currentTarget.value)} onBlur={commit} onKeyDown={event => { if (event.key === 'Enter') commit(); if (event.key === 'Escape') setDraft(current); }} /></Field>;
 }
 
 function PropertyEditor({ id, name, value, disabled, onCommit }: {
@@ -316,7 +388,7 @@ function JsonProperty({ id, name, value, disabled, onCommit }: {
   );
 }
 
-export function Inspector({ scene, selection, sourcePath, readOnlyReason, conflict, onCommand, onResolveConflict, onAddToAgent }: InspectorProps) {
+export function Inspector({ scene, selection, sourcePath, readOnlyReason, conflict, onCommand, onResolveConflict, onAddToAgent, scripts = [], onRefreshScripts }: InspectorProps) {
   const entity = selection.primaryId === null ? undefined : scene.entities.find(item => item.id === selection.primaryId);
   const locked = readOnlyReason !== null || conflict !== null;
   const lockReason = conflict !== null ? 'Resolve the file conflict first. Edits are paused.' : readOnlyReason;
@@ -324,6 +396,8 @@ export function Inspector({ scene, selection, sourcePath, readOnlyReason, confli
   const [search, setSearch] = useState('');
   const [componentType, setComponentType] = useState('');
   const [componentError, setComponentError] = useState<string | null>(null);
+  const [scriptPath, setScriptPath] = useState('');
+  const [refreshingScripts, setRefreshingScripts] = useState(false);
 
   const copyId = (id: string): void => {
     globalThis.navigator?.clipboard?.writeText(id).then(
@@ -408,11 +482,23 @@ export function Inspector({ scene, selection, sourcePath, readOnlyReason, confli
               ) : (
                 <ul className="fg-list-plain">
                   {entity.components.filter(component => !search || component.type.toLowerCase().includes(search.toLowerCase()) || Object.keys(component.properties).some(name => name.toLowerCase().includes(search.toLowerCase()))).map(component => (
-                    <ComponentRow key={component.id} component={component} entityId={entity.id} disabled={locked} onCommand={onCommand} />
+                    <ComponentRow key={component.id} component={component} entityId={entity.id} scene={scene} scripts={scripts} disabled={locked} onCommand={onCommand} />
                   ))}
                 </ul>
               )}
               <details className="fg-add-component"><summary>+ component</summary>
+                <form onSubmit={event => {
+                  event.preventDefault();
+                  if (!scriptPath) return;
+                  const ok = onCommand({ type: 'component', entityId: entity.id, component: { id: createId('component'), type: 'script', enabled: true, properties: { src: scriptPath, params: {} }, entityRefs: [], assetRefs: [] } });
+                  setComponentError(ok ? null : 'Script attachment rejected. See Console.');
+                  if (ok) setScriptPath('');
+                }}>
+                  <Field label="Script" htmlFor="inspector-add-script"><select id="inspector-add-script" className="fg-input" value={scriptPath} disabled={locked} onChange={event => setScriptPath(event.currentTarget.value)}><option value="">Choose a script…</option>{scripts.map(script => <option key={script.src} value={script.src}>{script.src}</option>)}</select></Field>
+                  <Button type="submit" disabled={locked || !scriptPath}><FileCode2 size={14} strokeWidth={1.75} aria-hidden="true" /> Add script</Button>
+                  {onRefreshScripts ? <Button type="button" variant="ghost" disabled={refreshingScripts || locked} onClick={async () => { setRefreshingScripts(true); try { await onRefreshScripts(); setComponentError(null); } catch (error) { setComponentError(String(error)); } finally { setRefreshingScripts(false); } }}><RefreshCw size={14} strokeWidth={1.75} aria-hidden="true" /> {refreshingScripts ? 'Refreshing…' : 'Refresh scripts'}</Button> : null}
+                  {!scripts.length ? <p className="fg-muted fg-small">Add TypeScript files with a default defineScript export in scripts/.</p> : null}
+                </form>
                 <form onSubmit={event => {
                   event.preventDefault();
                   const type = componentType.trim();

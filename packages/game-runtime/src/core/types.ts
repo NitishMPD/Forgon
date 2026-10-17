@@ -6,6 +6,18 @@ import type { AssetRecord, PrefabDocument, SceneDocument, Transform, ValidationC
 
 export type ViewportTool = 'select' | 'translate' | 'rotate' | 'scale';
 
+export interface SnapSettings {
+  enabled: boolean;
+  translate: number;
+  rotateDeg: number;
+  scale: number;
+}
+
+export interface SurfacePoint {
+  position: [number, number, number];
+  normal: [number, number, number];
+}
+
 export interface ViewportView {
   scene: SceneDocument;
   selectedIds: readonly string[];
@@ -52,6 +64,7 @@ export interface PlaySnapshot {
 export type AssetBytesResolver = (assetId: string) => Promise<Uint8Array | null> | Uint8Array | null;
 
 export interface ViewportMountOptions {
+  scripts?: import('../scripting/index.js').ScriptModules;
   /** Validation catalogs for reference checking; the host store validates too, so this is optional. */
   context?: ValidationContext;
   /** Resolve asset bytes for play-mode audio. Absent/null means audio reports unavailable. */
@@ -64,8 +77,10 @@ export interface ViewportHandle {
   update(view: ViewportView): void;
   setTool?(tool: ViewportTool): void;
   setSpace?(space: 'local' | 'world'): void;
+  setSnap?(snap: SnapSettings): void;
+  surfaceAt?(clientX: number, clientY: number): SurfacePoint | null;
   frameSelection?(): void;
-  play?(scene: SceneDocument): void;
+  play?(scene: SceneDocument, scripts?: import('../scripting/index.js').ScriptModules): void;
   stop?(): void;
   dispose(): void;
 }

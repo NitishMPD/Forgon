@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "gen_f0a4acb246051d88",
+  "title": "Rooftop Relay",
+  "tagline": "Five rooftop routes. One relay. Beat the clock, bank a medal, unlock the next drop.",
+  "unlock": "sequential",
+  "credits": "A Forgon Engine sample production. Original primitive level design and synthesized audio created for this repository.",
+  "courses": [
+    {
+      "sceneId": "gen_855855a5f982de90",
+      "name": "First Drop",
+      "subtitle": "Five easy gaps to learn the jump",
+      "goldSeconds": 26,
+      "silverSeconds": 36,
+      "bronzeSeconds": 50
+    },
+    {
+      "sceneId": "gen_6b5bdea5eacad85d",
+      "name": "Ferry Line",
+      "subtitle": "Ride the relay ferry over open air",
+      "goldSeconds": 34,
+      "silverSeconds": 46,
+      "bronzeSeconds": 62
+    },
+    {
+      "sceneId": "gen_74d1c7a5f060f856",
+      "name": "Wall Run",
+      "subtitle": "Thirteen metres of chasm, no floor",
+      "goldSeconds": 38,
+      "silverSeconds": 52,
+      "bronzeSeconds": 70
+    },
+    {
+      "sceneId": "gen_59fb48a5e0ef40cb",
+      "name": "Low Clearance",
+      "subtitle": "Two slide gates on one long catwalk",
+      "goldSeconds": 36,
+      "silverSeconds": 50,
+      "bronzeSeconds": 68
+    },
+    {
+      "sceneId": "gen_62b271a5e5e2f17c",
+      "name": "Uplink",
+      "subtitle": "Ferry, chasm, slide and lift in one run",
+      "goldSeconds": 54,
+      "silverSeconds": 72,
+      "bronzeSeconds": 95
+    }
+  ]
+}

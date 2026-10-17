@@ -1,4 +1,4 @@
-﻿# Forgon Engine
+# Forgon Engine
 Author: Nitish
 
 **Project plan / technical PRD / implementation roadmap**  
@@ -1186,3 +1186,8 @@ Agents require a trusted isolated T3 artifact configuration; absent configuratio
 
 ### Agent startup isolation (17 October 2026)
 The desktop bridge accepts project requests while its configured T3 agent service starts in the background. Provider rows report startup status until the service attaches; Check again discovers its resulting readiness. Closing the bridge stops an attached service and stops any service that finishes startup after closure. The renderer shows an accessible desktop connection status before rendering. A read-only request confirmed the user-started T3 server responds with protocol 2 and server version 0.1.0; authenticated handshake and provider execution remain unverified.
+
+### First full game: Rooftop Relay (17 October 2026)
+The engine now has a shipping shape for complete games, not only single-scene demos. `progression/campaign.json` (strict schema v1, referenced by `game.project.json`) sequences scenes into courses with medal targets and sequential unlocks. The runtime adds `mountCampaign`, a DOM game shell (title, course select, results, pause, settings, credits), a versioned local save with tolerant migration, per-run HUD labelling, play-session pause/master-volume, and audio cues routed to `arrival`/`checkpoint`/`goal`/`death`. `forge build --target web` ships the campaign document with all scenes, and the standalone player mounts the shell; `forge create --template rooftop-relay` creates a working game project.
+
+Rooftop Relay ships five courses (303 entities, 5 scenes, 5 ferry/lift prefabs, 25 shards, 17 gates, 6 sentinels, 3 moving platforms, synthesized ambient and finish audio) in `examples/rooftop-relay`, with verified title/course/results/pause/settings screens in a real headless-Chrome run. Headless tests prove every gap, chasm, ferry, lift and slide gate, plus medals, unlocks, best times and save recovery. Limits: Studio Play still mounts one scene, `forge bake` tracks the generated base scene only, exported campaigns cannot use scripts, art is primitive-only, saves are device-local, and Windows game export is still unfinished.

@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "prefabId": "gen_675f0a1675fd7bc8",
+  "name": "Original relay ferry",
+  "rootId": "gen_3f2efe60f5fcc3fb",
+  "entities": [
+    {
+      "id": "gen_3f2efe60f5fcc3fb",
+      "name": "Relay ferry deck",
+      "parentId": null,
+      "enabled": true,
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          5,
+          1,
+          5
+        ]
+      },
+      "components": [
+        {
+          "id": "gen_41ddcf6391cc8d00",
+          "type": "render",
+          "enabled": true,
+          "properties": {
+            "primitive": "box",
+            "color": [
+              0.09,
+              0.1,
+              0.13
+            ],
+            "castShadows": true
+          },
+          "entityRefs": [],
+          "assetRefs": []
+        },
+        {
+          "id": "gen_91d9cfefcb83c03e",
+          "type": "collision",
+          "enabled": true,
+          "properties": {
+            "shape": "box",
+            "halfExtents": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "isTrigger": true
+          },
+          "entityRefs": [],
+          "assetRefs": []
+        },
+        {
+          "id": "gen_6d69af19a458a266",
+          "type": "movingPlatform",
+          "enabled": true,
+          "properties": {
+            "waypoints": [
+              "gen_e40a15039d22ac77"
+            ],
+            "speed": 2.8,
+            "mode": "pingpong",
+            "wait": 1.2
+          },
+          "entityRefs": [
+            "gen_e40a15039d22ac77"
+          ],
+          "assetRefs": []
+        }
+      ]
+    },
+    {
+      "id": "gen_e40a15039d22ac77",
+      "name": "Relay ferry station",
+      "parentId": "gen_3f2efe60f5fcc3fb",
+      "enabled": true,
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": []
+    },
+    {
+      "id": "gen_7e508572ddbdac42",
+      "name": "Relay ferry rim",
+      "parentId": "gen_3f2efe60f5fcc3fb",
+      "enabled": true,
+      "transform": {
+        "position": [
+          0,
+          -0.62,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          4.6,
+          0.14,
+          4.6
+        ]
+      },
+      "components": [
+        {
+          "id": "gen_96165127e259a31b",
+          "type": "render",
+          "enabled": true,
+          "properties": {
+            "primitive": "box",
+            "color": [
+              0.16,
+              0.2597405080546571,
+              1
+            ],
+            "castShadows": true
+          },
+          "entityRefs": [],
+          "assetRefs": []
+        }
+      ]
+    }
+  ]
+}

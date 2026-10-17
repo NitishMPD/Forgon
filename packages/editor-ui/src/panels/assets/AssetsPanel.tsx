@@ -1,11 +1,15 @@
-import { useMemo, useState } from 'react';
-import { Box, FileCode, FileQuestion, Folder, FolderOpen, Image, Import, Palette, RefreshCw, Search, Volume2, type LucideIcon } from 'lucide-react';
-import type { AssetRecord } from '@forgon/project-schema';
+import { useMemo, useState, type DragEvent } from 'react';
+import { Box, FileCode, FileQuestion, Folder, FolderOpen, Image, Import, Package, Palette, RefreshCw, Search, Volume2, type LucideIcon } from 'lucide-react';
+import type { AssetRecord, PrefabDocument } from '@forgon/project-schema';
 import { Banner, Button, EmptyState, IconButton, cx } from '../../primitives/primitives.js';
+import { placementMime, primitives, type PlacementTarget } from '../../model/placement.js';
 
 export interface AssetsPanelProps {
   assets: readonly AssetRecord[];
   projectOpen: boolean;
+  prefabs?: readonly PrefabDocument[];
+  canPlace?: boolean;
+  onAddToScene?(target: PlacementTarget): void;
   onRefresh?: (() => Promise<void>) | undefined;
   onImport?: ((license: string) => Promise<void>) | undefined;
 }
@@ -32,7 +36,7 @@ function folderList(assets: readonly AssetRecord[]): string[] {
   return [...folders].sort();
 }
 
-export function AssetsPanel({ assets, projectOpen, onRefresh, onImport }: AssetsPanelProps) {
+export function AssetsPanel({ assets, prefabs = [], projectOpen, canPlace = false, onAddToScene, onRefresh, onImport }: AssetsPanelProps) {
   const [license, setLicense] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +44,8 @@ export function AssetsPanel({ assets, projectOpen, onRefresh, onImport }: Assets
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [collection, setCollection] = useState<'assets' | 'primitives' | 'prefabs'>('assets');
+  const [placement, setPlacement] = useState<PlacementTarget | null>(null);
   const folders = useMemo(() => folderList(assets), [assets]);
   const run = async (action: () => Promise<void>): Promise<void> => {
     setBusy(true); setError(null);
@@ -62,6 +68,16 @@ export function AssetsPanel({ assets, projectOpen, onRefresh, onImport }: Assets
   const subfolders = needle ? [] : folders.filter(item => item !== '' && dirOf(item) === folder);
   const selected = assets.find(asset => asset.id === selectedId) ?? null;
   const depth = (path: string): number => (path === '' ? 0 : path.split('/').length);
+  const placementName = placement?.kind === 'primitive' ? placement.primitive : placement?.kind === 'prefab' ? prefabs.find(prefab => prefab.prefabId === placement.prefabId)?.name : null;
+  const dragPlacement = (event: DragEvent, target: PlacementTarget): void => {
+    if (!canPlace) { event.preventDefault(); return; }
+    event.dataTransfer.effectAllowed = 'copy';
+    event.dataTransfer.setData(placementMime, JSON.stringify(target));
+    setPlacement(target); setSelectedId(null);
+  };
+  const placeables = collection === 'primitives'
+    ? primitives.filter(primitive => primitive.includes(needle)).map(primitive => ({ key: primitive, name: primitive, target: { kind: 'primitive', primitive } as PlacementTarget }))
+    : prefabs.filter(prefab => prefab.name.toLowerCase().includes(needle)).map(prefab => ({ key: prefab.prefabId, name: prefab.name, target: { kind: 'prefab', prefabId: prefab.prefabId } as PlacementTarget }));
 
   return (
     <section className="fg-dock-panel fg-assets" aria-label="Assets">
@@ -89,20 +105,40 @@ export function AssetsPanel({ assets, projectOpen, onRefresh, onImport }: Assets
       ) : null}
       {busy ? <p className="fg-sr-only" role="status">Working…</p> : null}
       {error ? <Banner tone="danger">{error}</Banner> : null}
-      {assets.length === 0 ? <EmptyState title="No assets" /> : (
-        <div className="fg-assets-body">
+      <div className="fg-assets-body">
           <ul className="fg-folder-tree" aria-label="Folders">
+            {(['primitives', 'prefabs'] as const).map(group => <li key={group}>
+              <button type="button" className={cx('fg-folder', collection === group && 'is-selected')} aria-current={collection === group ? 'true' : undefined}
+                onClick={() => { setCollection(group); setQuery(''); setPlacement(null); setSelectedId(null); }}>
+                {group === 'primitives' ? <Box size={14} strokeWidth={1.75} aria-hidden="true" /> : <Package size={14} strokeWidth={1.75} aria-hidden="true" />}
+                <span>{group === 'primitives' ? 'Primitives' : 'Prefabs'}</span><span className="fg-muted">{group === 'primitives' ? primitives.length : prefabs.length}</span>
+              </button>
+            </li>)}
             {folders.map(item => (
               <li key={item || 'root'}>
-                <button type="button" className={cx('fg-folder', item === folder && !needle && 'is-selected')} style={{ paddingLeft: 8 + depth(item) * 12 }} aria-current={item === folder ? 'true' : undefined} onClick={() => { setFolder(item); setQuery(''); }}>
-                  {item === folder ? <FolderOpen size={14} strokeWidth={1.75} aria-hidden="true" /> : <Folder size={14} strokeWidth={1.75} aria-hidden="true" />}
+                <button type="button" className={cx('fg-folder', collection === 'assets' && item === folder && !needle && 'is-selected')} style={{ paddingLeft: 8 + depth(item) * 12 }} aria-current={collection === 'assets' && item === folder ? 'true' : undefined} onClick={() => { setCollection('assets'); setFolder(item); setQuery(''); setPlacement(null); setSelectedId(null); }}>
+                  {collection === 'assets' && item === folder ? <FolderOpen size={14} strokeWidth={1.75} aria-hidden="true" /> : <Folder size={14} strokeWidth={1.75} aria-hidden="true" />}
                   <span>{item === '' ? 'Project' : baseName(item)}</span>
                 </button>
               </li>
             ))}
           </ul>
           <div className="fg-assets-main">
-            <ul className="fg-asset-grid" aria-label={needle ? 'Search results' : `Files in ${folder || 'project'}`}>
+            {collection !== 'assets' ? <ul className="fg-asset-grid" aria-label={collection === 'primitives' ? 'Primitives' : 'Prefabs'}>
+              {placeables.map(item => {
+                const selected = placement?.kind === item.target.kind && (placement.kind === 'primitive' ? placement.primitive === item.key : placement.prefabId === item.key);
+                return <li key={item.key}>
+                <button type="button" className={cx('fg-asset-tile', selected && 'is-selected')} draggable={canPlace}
+                  aria-pressed={selected}
+                  title={`${item.name}. Select, then Add to scene, or drag into the viewport.`}
+                  onClick={() => { setPlacement(item.target); setSelectedId(null); }} onDragStart={event => dragPlacement(event, item.target)}>
+                  <span className="fg-asset-thumb">{collection === 'primitives' ? <Box size={22} strokeWidth={1.5} aria-hidden="true" /> : <Package size={22} strokeWidth={1.5} aria-hidden="true" />}</span>
+                  <span className="fg-asset-name">{item.name}</span>
+                </button>
+              </li>;
+              })}
+              {placeables.length === 0 ? <li className="fg-muted fg-small">{needle ? 'No matches' : 'No prefabs'}</li> : null}
+            </ul> : <ul className="fg-asset-grid" aria-label={needle ? 'Search results' : `Files in ${folder || 'project'}`}>
               {subfolders.map(item => (
                 <li key={item}>
                   <button type="button" className="fg-asset-tile" title={item} onDoubleClick={() => setFolder(item)} onClick={() => setFolder(item)}>
@@ -115,7 +151,7 @@ export function AssetsPanel({ assets, projectOpen, onRefresh, onImport }: Assets
                 const Icon = kindIcons[asset.kind];
                 return (
                   <li key={asset.id}>
-                    <button type="button" className={cx('fg-asset-tile', asset.id === selectedId && 'is-selected')} aria-pressed={asset.id === selectedId} title={`${asset.name} · ${asset.path}`} onClick={() => setSelectedId(asset.id)}>
+                    <button type="button" className={cx('fg-asset-tile', asset.id === selectedId && 'is-selected')} aria-pressed={asset.id === selectedId} title={`${asset.name} · ${asset.path}`} onClick={() => { setSelectedId(asset.id); setPlacement(null); }}>
                       <span className="fg-asset-thumb"><Icon size={22} strokeWidth={1.5} aria-hidden="true" /></span>
                       <span className="fg-asset-name">{baseName(asset.path)}</span>
                     </button>
@@ -123,7 +159,12 @@ export function AssetsPanel({ assets, projectOpen, onRefresh, onImport }: Assets
                 );
               })}
               {subfolders.length === 0 && files.length === 0 ? <li className="fg-muted fg-small">{needle ? 'No matches' : 'Empty folder'}</li> : null}
-            </ul>
+            </ul>}
+            {placement && placementName ? <div className="fg-assets-bar">
+              <span className="fg-small">{placementName}</span>
+              <Button disabled={!canPlace || !onAddToScene} title={canPlace ? 'Place at the surface under the viewport centre' : 'Placement needs an editable scene and the viewport runtime.'}
+                onClick={() => { if (canPlace) onAddToScene?.(placement); }}>Add to scene</Button>
+            </div> : null}
             {selected ? (
               <dl className="fg-asset-detail">
                 <div><dt>Name</dt><dd>{selected.name}</dd></div>
@@ -133,8 +174,7 @@ export function AssetsPanel({ assets, projectOpen, onRefresh, onImport }: Assets
               </dl>
             ) : null}
           </div>
-        </div>
-      )}
+      </div>
     </section>
   );
 }

@@ -128,6 +128,7 @@ export const createFakeConnection = (config: {
   const orchestration: OrchestrationClient = {
     refreshProviders: async () => currentProviders,
     getConfig: async () => ({}),
+    enableProvider: async () => undefined,
     launchThread: async (input) => {
       calls.launches.push(input);
       return { threadId: config.projection.thread.id, projection: config.projection, resumed: false };

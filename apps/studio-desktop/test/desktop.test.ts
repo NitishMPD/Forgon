@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile, readFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createDesktopBridge } from '../src/bridge.js';
@@ -34,6 +34,26 @@ test('protocol refuses bad versions, malformed arguments and native privilege es
     await assert.rejects(h.dispatch('asset:read', { session: 'guessed', assetId: 'x' }), /another window/);
     assert.ok(h.services.agent.providers.every(p => p.readiness === 'not-ready' && p.models.length === 0 && p.permissionModes.length === 0));
     await assert.rejects(h.services.agent.service.cancel('guessed'), /No isolated/);
+  } finally { await h.close(); }
+});
+
+test('script compilation crosses only an owned project session and never executes project code', async () => {
+  const h = await harness();
+  try {
+    await assert.rejects(h.dispatch('scripts:compile', { session: 'guessed' }), /another window/);
+    const result = await h.services.project.openExample();
+    assert.equal(result.status, 'opened'); if (result.status !== 'opened') return;
+    const session = result.session;
+    await mkdir(join(session.root, 'scripts'), { recursive: true });
+    await writeFile(join(session.root, 'scripts', 'test.ts'), `import {defineScript, prop} from '@forgon/game-runtime/scripting';\nthrow new Error('PROJECT SCRIPT EXECUTED');\nexport default defineScript({props:{speed:prop.number(90)}});`);
+    const catalog = await session.compileScripts();
+    assert.deepEqual(catalog.diagnostics, []); assert.equal(catalog.scripts.length, 1);
+    assert.equal(catalog.scripts[0]!.props.speed!.default, 90);
+    assert.match(catalog.scripts[0]!.code, /export function load/);
+    await writeFile(join(session.root, 'scripts', 'test.ts'), `import {defineScript} from '@forgon/game-runtime/scripting';\nexport default defineScript({props:{}, update( { });`);
+    const broken = await session.compileScripts();
+    assert.ok(broken.diagnostics.length); assert.equal(broken.diagnostics[0]!.line, 2);
+    session.close(); await assert.rejects(session.compileScripts(), /closed/);
   } finally { await h.close(); }
 });
 

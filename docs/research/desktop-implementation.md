@@ -31,7 +31,7 @@ Recent roots are stored atomically under the native app-local-data directory, li
 
 ## Agent integration
 
-The native Node entry now uses agent-service's shared `loadAgentServiceConfig` for strict descriptor validation rather than an independent parser. Parent verification after integration: desktop typecheck and all eight desktop tests pass. Startup failures retain a fixed safe readiness message; raw configuration paths and error details are not sent to the renderer.
+The native Node entry now uses agent-service's shared `loadAgentServiceConfig` for strict descriptor validation rather than an independent parser. Parent verification after integration: desktop typecheck and all eight desktop tests pass. Startup failures retain a fixed safe readiness message; raw configuration paths and error details are not sent to the renderer. The redacted reason is written to the native host's stderr (`[forgon] agent service failed to start: ...`) so a failed start can be diagnosed from the launch terminal. On start, agent-service enables the `opencode` provider instance in the isolated T3 home, because T3 ships OpenCode disabled.
 
 No configured artifact means three provider rows with `not-ready`, an explicit missing-isolated-artifact message, zero models and zero supported permission modes. There are no fabricated provider successes or model choices. Check again performs a real provider refresh when the isolated service is available.
 

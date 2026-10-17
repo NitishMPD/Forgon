@@ -54,6 +54,8 @@ export interface FullThreadDiffInput {
 export interface OrchestrationClient {
   refreshProviders(): Promise<readonly T3ServerProvider[]>;
   getConfig(): Promise<unknown>;
+  /** Turn on a provider instance in this isolated T3 home (some drivers, e.g. OpenCode, default to off). */
+  enableProvider(input: { instanceId: string; driver: string }): Promise<void>;
   launchThread(input: Record<string, unknown>): Promise<{ threadId: string; projection: T3ThreadProjection; resumed: boolean }>;
   dispatchCommand(command: Record<string, unknown>): Promise<{ sequence: number }>;
   subscribeThread(input: SubscribeThreadInput): AsyncIterable<unknown>;
@@ -80,6 +82,14 @@ export const createOrchestrationClient = (session: RpcSession, defaults?: { read
     },
 
     getConfig: async () => session.request(SERVER_METHODS.getConfig, {}, { timeoutMs }),
+
+    enableProvider: async ({ instanceId, driver }) => {
+      // T3 reads both the instance flag and the driver config's own flag; an explicit false in either wins.
+      await session.request(SERVER_METHODS.updateSettings, {
+        patch: {},
+        providerInstanceMutation: { operation: 'upsert', instanceId, instance: { driver, enabled: true, config: { enabled: true } } },
+      }, { timeoutMs });
+    },
 
     launchThread: async (input) => {
       const result = await session.request(WS_METHODS.launchThread, input, { timeoutMs });

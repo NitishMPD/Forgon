@@ -7,6 +7,8 @@ import type {
   ProjectManifest,
   ProviderId,
   SceneDocument,
+  ScriptCatalog,
+  ScriptModules,
   SceneIO,
   Transform,
   ValidationContext,
@@ -28,6 +30,7 @@ export interface ProjectSession {
   assets: readonly AssetRecord[];
   prefabs: readonly PrefabDocument[];
   sceneIO: SceneIO;
+  compileScripts?(): Promise<ScriptCatalog>;
   readCatalog?(): Promise<{ manifest: ProjectManifest; assets: { assets: AssetRecord[] }; prefabs: PrefabDocument[] }>;
   readAsset?(assetId: string): Promise<{ asset: AssetRecord; bytes: Uint8Array; revision: string }>;
   importAsset?(license: string): Promise<void>;
@@ -91,6 +94,18 @@ export interface ViewportView {
 
 export type ViewportTool = 'select' | 'translate' | 'rotate' | 'scale';
 
+export interface SnapSettings {
+  enabled: boolean;
+  translate: number;
+  rotateDeg: number;
+  scale: number;
+}
+
+export interface SurfacePoint {
+  position: [number, number, number];
+  normal: [number, number, number];
+}
+
 export interface ViewportCallbacks {
   onPick(entityId: string | null): void;
   onFault(message: string): void;
@@ -105,8 +120,10 @@ export interface ViewportHandle {
   // Optional: present only when the runtime supports gizmos and camera framing.
   setTool?(tool: ViewportTool): void;
   setSpace?(space: 'local' | 'world'): void;
+  setSnap?(snap: SnapSettings): void;
+  surfaceAt?(clientX: number, clientY: number): SurfacePoint | null;
   frameSelection?(): void;
-  play?(scene: SceneDocument): void;
+  play?(scene: SceneDocument, scripts?: ScriptModules): void;
   stop?(): void;
   dispose(): void;
 }

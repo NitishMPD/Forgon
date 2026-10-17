@@ -3,7 +3,7 @@ import { createRenderSurface } from '../core/renderer.js';
 import type { SceneDocument } from '@forgon/project-schema';
 import { boundsOfEntities, createEditorCamera, type EditorCameraController } from '../core/editor-camera.js';
 import { createGizmoController, type GizmoController } from '../core/gizmos.js';
-import { createGridEntity } from '../core/grid.js';
+import { createGridEntity, setGridStep } from '../core/grid.js';
 import { createMaterialCache, createSceneRegistry, SceneNode, disposeGraph, type MaterialCache, type ProjectionDiagnostics, type SceneRegistry } from '../core/projection.js';
 import { createPickingSession, type PickingSession } from '../core/picking.js';
 import { reconcileScene } from '../core/reconcile.js';
@@ -43,6 +43,7 @@ export const mountEditorViewport = (
   world.add(editRoot);
   const worldRoot = new Group(); editRoot.add(worldRoot);
   const grid = createGridEntity(); editRoot.add(grid);
+  let gridStep = 0.5;
   const editorCamera = createEditorCamera(canvas); editRoot.add(editorCamera.entity);
 
   const registry: SceneRegistry = createSceneRegistry();
@@ -84,7 +85,11 @@ export const mountEditorViewport = (
     editRoot,
     context: options.context,
     loadAssetBytes: options.loadAssetBytes,
-    onRuntimeEvent: options.onRuntimeEvent ?? (() => undefined),
+    scripts: options.scripts,
+    onRuntimeEvent: (event: import('../core/types.js').RuntimeEvent) => {
+      options.onRuntimeEvent?.(event);
+      if (event.type === 'fault') callbacks.onFault(event.message);
+    },
     input: undefined as InputSource | undefined,
   };
   const playSession: PlaySession = createPlaySession(playDeps);
@@ -202,6 +207,20 @@ export const mountEditorViewport = (
       applySelection();
     },
     setSpace(space): void { if (!disposed) gizmoController.setSpace(space); },
+    setSnap(snap): void {
+      if (disposed) return;
+      if (!Number.isFinite(snap.translate) || snap.translate < 0.01) throw new RangeError('Grid step must be at least 0.01 m.');
+      gizmoController.setSnap(snap);
+      if (snap.translate !== gridStep) { setGridStep(grid, snap.translate); gridStep = snap.translate; }
+    },
+    surfaceAt(clientX, clientY) {
+      if (disposed || playSession.isPlaying) return null;
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return null;
+      return picker.surfaceAt(editorCamera.camera,
+        (clientX - rect.left) * canvas.clientWidth / rect.width,
+        (clientY - rect.top) * canvas.clientHeight / rect.height);
+    },
     frameSelection(): void {
       if (disposed) return;
       const view = lastView;
@@ -211,11 +230,11 @@ export const mountEditorViewport = (
         .filter((entity): entity is SceneNode => entity !== undefined);
       editorCamera.frameBox(boundsOfEntities(entities));
     },
-    play(scene: SceneDocument): void {
+    play(scene: SceneDocument, scripts?: import('../scripting/index.js').ScriptModules): void {
       if (disposed) return;
       try {
         if (!physicsReady()) throw new Error('Physics is still loading. Retry Play when initialization completes.');
-        playSession.start(scene);
+        playSession.start(scene, scripts);
         if (typeof window !== 'undefined') {
           if (!playInput) playInput = createInputSource(canvas);
           playDeps.input = playInput;

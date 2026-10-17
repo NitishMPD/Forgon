@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "projectId": "gen_e5dfb9b34eaead69",
+  "name": "Rooftop Relay",
+  "startScene": "gen_855855a5f982de90",
+  "scenes": [
+    {
+      "id": "gen_855855a5f982de90",
+      "path": "scenes/course-01.scene.json"
+    },
+    {
+      "id": "gen_6b5bdea5eacad85d",
+      "path": "scenes/course-02.scene.json"
+    },
+    {
+      "id": "gen_74d1c7a5f060f856",
+      "path": "scenes/course-03.scene.json"
+    },
+    {
+      "id": "gen_59fb48a5e0ef40cb",
+      "path": "scenes/course-04.scene.json"
+    },
+    {
+      "id": "gen_62b271a5e5e2f17c",
+      "path": "scenes/course-05.scene.json"
+    }
+  ],
+  "prefabs": [
+    {
+      "id": "gen_969c34785fc08c47",
+      "path": "prefabs/gen_969c34785fc08c47.prefab.json"
+    },
+    {
+      "id": "gen_675f0a1675fd7bc8",
+      "path": "prefabs/gen_675f0a1675fd7bc8.prefab.json"
+    },
+    {
+      "id": "gen_e1b6d080e2bb0641",
+      "path": "prefabs/gen_e1b6d080e2bb0641.prefab.json"
+    },
+    {
+      "id": "gen_aa1adcd94d4875e2",
+      "path": "prefabs/gen_aa1adcd94d4875e2.prefab.json"
+    },
+    {
+      "id": "gen_4b8ec62442fe3753",
+      "path": "prefabs/gen_4b8ec62442fe3753.prefab.json"
+    }
+  ],
+  "assetRegistry": "assets/registry.json",
+  "campaign": "progression/campaign.json"
+}

@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "id": "gen_ae1bdc824e4ac2ea",
+      "name": "Relay ambient loop",
+      "kind": "audio",
+      "path": "assets/relay-loop.wav",
+      "provenance": {
+        "source": "Original synthesized ambient loop; created for this repository",
+        "license": "CC0-1.0",
+        "generator": "forgon-rooftop-relay-1.0.0"
+      }
+    },
+    {
+      "id": "gen_68b538b6051fc5be",
+      "name": "Relay finish chime",
+      "kind": "audio",
+      "path": "assets/relay-chime.wav",
+      "provenance": {
+        "source": "Original synthesized rise cue; created for this repository",
+        "license": "CC0-1.0",
+        "generator": "forgon-rooftop-relay-1.0.0"
+      }
+    },
+    {
+      "id": "gen_9540925b59fc7031",
+      "name": "Rooftop Relay wordmark source",
+      "kind": "texture",
+      "path": "assets/rooftop-relay.svg",
+      "provenance": {
+        "source": "Original mark; created for this repository",
+        "license": "CC0-1.0"
+      }
+    },
+    {
+      "id": "gen_f2e10768ef4413d1",
+      "name": "Rooftop Relay palette",
+      "kind": "material",
+      "path": "assets/palette.json",
+      "provenance": {
+        "source": "Original palette; created for this repository",
+        "license": "CC0-1.0"
+      }
+    }
+  ]
+}

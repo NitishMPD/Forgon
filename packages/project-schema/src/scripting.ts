@@ -14,6 +14,8 @@ export const scriptPropSchema = z.discriminatedUnion('type', [
 ]);
 export type ScriptProp = z.infer<typeof scriptPropSchema>;
 export type ScriptProps = Record<string, ScriptProp>;
+export interface ScriptModule { default: unknown }
+export type ScriptModules = Readonly<Record<string, ScriptModule>>;
 export interface CompiledScript { src: string; props: ScriptProps; code: string }
 export interface ScriptCatalog { scripts: CompiledScript[]; diagnostics: Diagnostic[] }
 
@@ -42,6 +44,6 @@ export function parseScriptProps(value: unknown): ScriptProps {
 export function resolveScriptParams(props: ScriptProps, input: unknown): Record<string, JsonValue> {
   const values = z.record(jsonValueSchema).parse(input);
   const resolved: Record<string, JsonValue> = Object.create(null);
-  for (const [key, prop] of Object.entries(props)) resolved[key] = validateScriptValue(prop, values[key] ?? prop.default);
+  for (const [key, prop] of Object.entries(props)) resolved[key] = validateScriptValue(prop, Object.hasOwn(values, key) ? values[key] : prop.default);
   return resolved;
 }

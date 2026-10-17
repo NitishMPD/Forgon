@@ -1,9 +1,9 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { createHotelFixture, createEmpty3dFixture } from '@forgon/test-fixtures';
+import { createHotelFixture, createEmpty3dFixture, createRooftopRelayFixture } from '@forgon/test-fixtures';
 import type { ProjectFixture } from '@forgon/test-fixtures';
 import { runCli } from '../src/index.js';
 import { sha256 } from '../src/export-files.js';
@@ -73,6 +73,28 @@ test('real web artifact includes exact assets, catalog snapshots, independent ru
   const before = await readFile(join(output, 'game.js'));
   assert.equal((await run(['build', root, '--target', 'web', '--out', output])).code, 1);
   assert.deepEqual(await readFile(join(output, 'game.js')), before);
+});
+
+test('a campaign build ships its progression document and menu shell', async t => {
+  const { root, parent } = await setup(t, createRooftopRelayFixture());
+  const output = join(parent, 'relay');
+  const result = await run(['build', '--target', 'web', root, '--out', output]);
+  assert.equal(result.code, 0, result.stderr);
+  const game = JSON.parse(await readFile(join(output, 'game.json'), 'utf8'));
+  assert.equal(game.scenes.length, 5);
+  assert.equal(game.campaign.courses.length, 5);
+  assert.equal(game.campaign.title, 'Rooftop Relay');
+  assert.equal(game.manifest.campaign, 'progression/campaign.json');
+  assert.deepEqual(game.campaign.courses.map((course: { sceneId: string }) => course.sceneId), game.scenes.map((scene: { sceneId: string }) => scene.sceneId));
+  const js = await readFile(join(output, 'game.js'), 'utf8');
+  assert.match(js, /fg-shell/, 'the campaign menu shell is bundled into the standalone game');
+  assert.match(js, /Course/, 'the shell knows about courses');
+  const manifest = JSON.parse(await readFile(join(output, 'build-manifest.json'), 'utf8'));
+  assert.equal(manifest.scenes.length, 5);
+  for (const entry of manifest.files) {
+    const bytes = await readFile(join(output, entry.path));
+    assert.equal(sha256(bytes), entry.sha256, entry.path);
+  }
 });
 
 test('unsupported required components and scripts fail before creating an output', async t => {

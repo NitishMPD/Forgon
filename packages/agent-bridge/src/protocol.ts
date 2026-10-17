@@ -54,6 +54,7 @@ export const WS_METHODS = {
 export const SERVER_METHODS = {
   refreshProviders: 'server.refreshProviders',
   getConfig: 'server.getConfig',
+  updateSettings: 'server.updateSettings',
 } as const;
 
 // packages/contracts/src/providerPolicy.ts

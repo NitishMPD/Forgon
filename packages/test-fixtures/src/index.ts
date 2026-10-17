@@ -1,11 +1,14 @@
 import { parseScene, validateProject } from '@forgon/project-schema';
-import type { AssetRegistry, Component, Entity, JsonValue, PrefabDocument, ProjectManifest, SceneDocument } from '@forgon/project-schema';
+import type { AssetRegistry, CampaignDocument, Component, Entity, JsonValue, PrefabDocument, ProjectManifest, SceneDocument } from '@forgon/project-schema';
 import { instantiatePrefab, SceneAuthor } from '@forgon/procedural-authoring';
 import type { AuthoringArtifact, PrefabBindings } from '@forgon/procedural-authoring';
+import { createRooftopRelayFixture } from './rooftop-relay.js';
+
+export { createRooftopRelayFixture, relayChimeWav, relayLoopWav } from './rooftop-relay.js';
 
 export interface ProjectFixture {
   manifest: ProjectManifest; scenes: SceneDocument[]; prefabs: PrefabDocument[]; assets: AssetRegistry;
-  authoring: AuthoringArtifact; files: Record<string, string | Uint8Array>;
+  authoring: AuthoringArtifact; campaign?: CampaignDocument; files: Record<string, string | Uint8Array>;
 }
 const json = (value: unknown): string => `${JSON.stringify(value, null, 2)}\n`;
 
@@ -289,6 +292,10 @@ export function createSectorFixture(seed = 'forgon'): ProjectFixture {
     shard.transform.scale = [0.55, 0.55, 0.55];
     shard.components.push(component(author, `${key}:render`, 'render', { primitive: 'box', color: shardTint, castShadows: false }));
     shard.components.push(component(author, `${key}:collectible`, 'collectible', { value: 1, radius: 1.25, offsetY: 0 }));
+    if (key === 'shard:start') {
+      shard.components.push(component(author, `${key}:spinner`, 'script', { src: 'scripts/spinner.ts', params: { speed: 90 } }));
+      shard.components.push(component(author, `${key}:bobber`, 'script', { src: 'scripts/bobber.ts', params: { amplitude: 0.25, frequency: 0.8 } }));
+    }
     entities.push(shard);
   }
 
@@ -388,6 +395,32 @@ export function createSectorFixture(seed = 'forgon'): ProjectFixture {
     { id: author.id('asset:palette'), name: 'Sector material palette', kind: 'material', path: 'assets/palette.json', provenance },
   ] };
   return finish(author, 'Sector 07', entities, [liftPrefab, sentinelPrefab], assets, {
+    'scripts/spinner.ts': `import { defineScript, prop } from '@forgon/game-runtime/scripting';
+
+export default defineScript({
+  props: { speed: prop.number(90, { min: -360, max: 360, step: 5 }) },
+  update(ctx, dt) {
+    ctx.entity.rotateY(ctx.params.speed * Math.PI / 180 * dt);
+  },
+});
+`,
+    'scripts/bobber.ts': `import { defineScript, prop } from '@forgon/game-runtime/scripting';
+import type { Object3D } from 'three';
+
+const origins = new WeakMap<Object3D, number>();
+
+export default defineScript({
+  props: {
+    amplitude: prop.number(0.25, { min: 0, max: 2, step: 0.05 }),
+    frequency: prop.number(0.8, { min: 0, max: 5, step: 0.1 }),
+  },
+  start(ctx) { origins.set(ctx.entity, ctx.entity.position.y); },
+  update(ctx) {
+    ctx.entity.position.y = origins.get(ctx.entity)! + Math.sin(ctx.time.elapsed * ctx.params.frequency * Math.PI * 2) * ctx.params.amplitude;
+  },
+  destroy(ctx) { origins.delete(ctx.entity); },
+});
+`,
     'assets/relay.wav': sectorWav(),
     'assets/sector-mark.svg': `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="128" viewBox="0 0 512 128"><rect width="512" height="128" fill="#dfe8f2"/><path d="M40 34h44v60H40z" fill="none" stroke="${hex(edge)}" stroke-width="6"/><path d="M52 46h20v36H52z" fill="#0c0e13"/><text x="108" y="80" font-family="sans-serif" font-size="42" letter-spacing="6" fill="#12151c">SECTOR 07</text></svg>\n`,
     'assets/palette.json': json({ ink: '#0d0e13', deck: '#171921', surface: '#ebf0f6', wall: '#b8c7db', edge: hex(edge), warm: '#ffbd42', danger: '#ff2433', shard: '#6bedff', goal: '#ffc952', sky: '#d1e3f2' }),
@@ -399,5 +432,6 @@ export function createFixture(id: string, seed = 'forgon'): ProjectFixture {
   if (id === 'hotel') return createHotelFixture(seed);
   if (id === 'empty-3d') return createEmpty3dFixture(seed);
   if (id === 'sector') return createSectorFixture(seed);
+  if (id === 'rooftop-relay') return createRooftopRelayFixture(seed);
   throw new Error(`Unavailable built-in generator: ${id}`);
 }

@@ -40,11 +40,18 @@ test('standalone import is Node-safe and validates required semantics before mou
   const scene = fixture.scenes[0]!;
   const snapshot = validatePlayableScene(scene, context);
   assert.notEqual(snapshot, scene);
-  for (const type of ['script', 'rigidbody', 'unknown']) {
+  for (const type of ['rigidbody', 'unknown']) {
     const copy = structuredClone(scene);
-    copy.entities[0]!.components.push({ id: 'unsupported', type, enabled: false, properties: type === 'script' ? { src: 'scripts/unsupported.ts', params: {} } : {}, entityRefs: [], assetRefs: [] });
+    copy.entities[0]!.components.push({ id: 'unsupported', type, enabled: false, properties: {}, entityRefs: [], assetRefs: [] });
     assert.throws(() => validatePlayableScene(copy, context), /Unsupported/);
   }
+  // Scripts became first-class semantics: a valid attachment validates, a malformed one does not.
+  const scripted = structuredClone(scene);
+  scripted.entities[0]!.components.push({ id: 'scripted', type: 'script', enabled: true, properties: { src: 'scripts/spin.ts', params: {} }, entityRefs: [], assetRefs: [] });
+  assert.doesNotThrow(() => validatePlayableScene(scripted, context));
+  const badScript = structuredClone(scene);
+  badScript.entities[0]!.components.push({ id: 'bad-script', type: 'script', enabled: true, properties: { src: 'spin.ts', params: {} }, entityRefs: [], assetRefs: [] });
+  assert.throws(() => validatePlayableScene(badScript, context), /scripts\//);
   const broken = structuredClone(scene);
   broken.entities.find(e => e.components.some(c => c.type === 'collision'))!.transform.scale[0] = 0;
   assert.throws(() => validatePlayableScene(broken, context), /positive ancestor scales/);

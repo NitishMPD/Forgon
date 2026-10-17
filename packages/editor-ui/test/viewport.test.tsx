@@ -10,6 +10,8 @@ import { readEditorSnapshot } from '../src/hooks/useEditorSnapshot.js';
 import { emptyLog, type LogInput } from '../src/model/consoleLog.js';
 import { defaultLayout } from '../src/model/layout.js';
 import { SceneSession } from '../src/session/sceneSession.js';
+import { placementMime, primitives } from '../src/model/placement.js';
+import { AssetsPanel } from '../src/panels/assets/AssetsPanel.js';
 
 function viewportProps(node: ReactNode): ViewportSlotProps | undefined {
   for (const child of Children.toArray(node)) {
@@ -118,4 +120,29 @@ test('batch and singular viewport callbacks obey the invalid-file and conflict e
   assert.equal(commands.length, 0);
   assert.deepEqual(store.scene, scene);
   assert.equal(store.canUndo, false);
+});
+
+test('viewport placement selects the new object and respects the shared edit guard', () => {
+  const { scene, store, commands, render } = fixture();
+  let selected: unknown;
+  const surface = { position: [4, 1, 2] as [number, number, number], normal: [0, 1, 0] as [number, number, number] };
+  const slot = render({ onSelect: next => { selected = next; } });
+  slot.onPlace!({ kind: 'primitive', primitive: 'box' }, surface);
+  const entity = store.scene.entities.at(-1)!;
+  assert.deepEqual(entity.transform.position, surface.position);
+  assert.deepEqual(selected, { entityIds: [entity.id], primaryId: entity.id });
+  assert.equal(commands.length, 1);
+  assert.equal(store.undo(), true); assert.deepEqual(store.scene, scene); assert.equal(store.undo(), false);
+  const locked = render({ banner: { kind: 'invalid', diagnostics: [] } });
+  locked.onPlace!({ kind: 'primitive', primitive: 'box' }, surface);
+  assert.equal(commands.length, 1);
+  assert.equal(locked.placementEnabled, false);
+});
+
+test('Assets exposes keyboard-reachable primitive and prefab groups even for an empty project', () => {
+  const html = renderToStaticMarkup(<AssetsPanel assets={[]} projectOpen />);
+  assert.match(html, /<button[^>]*>[\s\S]*?<span>Primitives<\/span>/);
+  assert.match(html, /<span>Prefabs<\/span>/);
+  assert.match(html, new RegExp(`<span class="fg-muted">${primitives.length}</span>`));
+  assert.equal(placementMime, 'application/x-forgon-placement');
 });

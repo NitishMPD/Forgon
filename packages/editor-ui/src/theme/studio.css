@@ -201,7 +201,7 @@ svg { flex: none; }
 .fg-viewport { position: relative; flex: 1; border-radius: var(--radius-popover); overflow: hidden; background: radial-gradient(ellipse at 50% 55%, oklch(0.170 0.006 270), var(--surface-canvas) 70%); }
 .fg-viewport-canvas { position: absolute; inset: 0; }
 .fg-float { background: var(--surface-float); border: 1px solid var(--border-strong); border-radius: 12px; backdrop-filter: blur(10px); box-shadow: var(--shadow-float); }
-.fg-viewport-toolbar { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); display: flex; align-items: center; gap: 2px; padding: 4px; z-index: 1; }
+.fg-viewport-toolbar { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); display: flex; align-items: center; gap: 2px; padding: 4px; z-index: 1; max-width: calc(100% - 20px); flex-wrap: wrap; justify-content: center; }
 .fg-toolbar-sep { width: 1px; height: 18px; background: var(--border-strong); margin: 0 3px; }
 .fg-viewport-banners { position: absolute; top: 58px; left: 10px; right: 10px; max-width: 640px; display: flex; flex-direction: column; gap: 6px; z-index: 1; }
 .fg-viewport-badge { position: absolute; top: 10px; right: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; color: var(--state-success); z-index: 1; }
@@ -278,6 +278,7 @@ svg { flex: none; }
 .fg-composer-spacer { flex: 1; }
 .fg-select-quiet { border-color: transparent; background: transparent; color: var(--text-secondary); padding: 2px 4px; }
 .fg-select-quiet:hover:not(:disabled) { background: var(--surface-hover); }
+.fg-placement-preview { position: absolute; left: 50%; top: 64px; transform: translateX(-50%); pointer-events: none; padding: 6px 10px; border: 1px solid var(--accent); border-radius: 7px; background: var(--surface-raised); color: var(--text-primary); font-size: 12px; }
 .fg-composer-blocker { display: inline-flex; align-items: center; gap: 4px; color: var(--state-warning); font-size: 11px; cursor: help; }
 .fg-send { background: var(--accent); color: var(--accent-fg); border-radius: 50%; width: 28px; height: 28px; }
 .fg-send:hover:not(:disabled) { background: var(--accent-hover); color: var(--accent-fg); }

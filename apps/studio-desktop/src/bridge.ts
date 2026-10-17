@@ -204,6 +204,14 @@ export async function createDesktopBridge(options: BridgeOptions) {
         case 'scene:read': return s.sceneIO.readScene(string(a.path, 'scene path'));
         case 'scene:save': return s.sceneIO.saveScene(a.request as SaveSceneRequest);
         case 'catalog:read': return s.readCatalog();
+        case 'scripts:compile': {
+          // Keep compiler/native esbuild dependencies out of the existing bridge bundle until packaging owns them.
+          const compilerPackage = ['@forgon/project-io', 'scripting'].join('/');
+          let compiler: typeof import('@forgon/project-io/scripting');
+          try { compiler = await import(compilerPackage) as typeof compiler; }
+          catch { return { scripts: [], diagnostics: [{ path: 'scripts', message: 'Script compiler unavailable in this desktop package (compiler packaging pending).' }] }; }
+          return compiler.compileProjectScripts(s.root);
+        }
         case 'asset:read': {
           const value = await s.readAsset(string(a.assetId, 'asset id'));
           return { ...value, bytes: Buffer.from(value.bytes).toString('base64') };

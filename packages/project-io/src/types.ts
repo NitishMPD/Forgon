@@ -1,10 +1,10 @@
-import type { AssetRecord, AssetRegistry, PrefabDocument, ProjectManifest, SceneDocument, SceneIO } from '@forgon/project-schema';
+import type { AssetRecord, AssetRegistry, CampaignDocument, PrefabDocument, ProjectManifest, SceneDocument, SceneIO } from '@forgon/project-schema';
 import type { AuthoringArtifact } from '@forgon/procedural-authoring';
 
 export type ProjectIOErrorCode = 'INVALID_PATH' | 'INVALID_DOCUMENT' | 'LIMIT_EXCEEDED' | 'NOT_FOUND' | 'IO_ERROR' | 'ALREADY_EXISTS' | 'CLOSED' | 'UNRECORDED_CHANGES' | 'AUTHORING_CONFLICT' | 'RECOVERY_CONFLICT';
 export interface ReadProject {
   manifest: ProjectManifest; scenes: SceneDocument[]; prefabs: PrefabDocument[]; assets: AssetRegistry;
-  authoring?: AuthoringArtifact;
+  authoring?: AuthoringArtifact; campaign?: CampaignDocument;
 }
 export interface AuthoringRead { document: AuthoringArtifact; revision: string }
 export interface SaveAuthoringRequest {

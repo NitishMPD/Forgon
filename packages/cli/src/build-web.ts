@@ -6,7 +6,7 @@ import { ProjectReader, readProject } from '@forgon/project-io/node';
 import { outputDestination, publishArtifact, readAssetBytes, sha256 } from './export-files.js';
 
 const json = (value: unknown): Buffer => Buffer.from(`${JSON.stringify(value, null, 2)}\n`);
-const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Forgon game</title><style>html,body,#game{margin:0;width:100%;height:100%;overflow:hidden;background:#121722;color:#fff;font:16px system-ui}#start,#status{position:absolute;z-index:1;left:50%;top:50%;transform:translate(-50%,-50%)}#start{padding:1em 2em;font:inherit}#status{top:65%;max-width:80%;text-align:center}</style><div id="game" aria-label="Game viewport"></div><button id="start" disabled>Start game</button><p id="status" role="status">Loading game…</p><script type="module" src="./game.js"></script></html>`;
+const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Forgon game</title><link rel="icon" href="data:,"><style>html,body,#game{margin:0;width:100%;height:100%;overflow:hidden;background:#121722;color:#fff;font:16px system-ui}#start,#status{position:absolute;z-index:1;left:50%;top:50%;transform:translate(-50%,-50%)}#start{padding:1em 2em;font:inherit}#status{top:65%;max-width:80%;text-align:center}</style><div id="game" aria-label="Game viewport"></div><button id="start" disabled>Start game</button><p id="status" role="status">Loading game…</p><script type="module" src="./game.js"></script></html>`;
 
 export async function buildWeb(root: string, output: string): Promise<{ status: 'built'; target: 'web'; output: string; manifestHash: string }> {
   const destination = await outputDestination(output);
@@ -31,7 +31,7 @@ export async function buildWeb(root: string, output: string): Promise<{ status: 
     assetUrls[asset.id] = `./${path.split('/').map(encodeURIComponent).join('/')}`;
     assets.push({ id: asset.id, sourcePath: asset.path, path, bytes: bytes.length, sha256: sha256(bytes), provenance: asset.provenance ?? null });
   }
-  files.set('game.json', json({ manifest: project.manifest, scenes: project.scenes, prefabs: project.prefabs, assets: project.assets, assetUrls }));
+  files.set('game.json', json({ manifest: project.manifest, scenes: project.scenes, prefabs: project.prefabs, assets: project.assets, assetUrls, ...(project.campaign ? { campaign: project.campaign } : {}) }));
   const { build } = await import('vite');
   const result = await build({
     configFile: false, envFile: false, publicDir: false, root: fileURLToPath(new URL('..', import.meta.url)),

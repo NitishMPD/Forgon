@@ -2,12 +2,13 @@ import { EdgesGeometry, Group, LineBasicMaterial, LineSegments, Matrix4, Mesh, Q
 import type { Object3D, PerspectiveCamera } from 'three';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import type { Transform } from '@forgon/project-schema';
-import type { ViewportTool } from './types.js';
+import type { SnapSettings, ViewportTool } from './types.js';
 import { isVisible, rotationDegrees } from './projection.js';
 
 export interface GizmoController {
   setActiveTool(tool: ViewportTool): void;
   setSpace(space: 'local' | 'world'): void;
+  setSnap(snap: SnapSettings): void;
   setSelection(entities: readonly Object3D[], ids: readonly string[]): void;
   setGestureHandler(handler: ((entityId: string, transform: Transform) => void) | null): void;
   setLocked(locked: boolean): void;
@@ -60,6 +61,21 @@ export function createGizmoController(
   let tool: ViewportTool = 'select';
   let locked = false;
   let active = false;
+  let snap: SnapSettings = { enabled: false, translate: 0.5, rotateDeg: 15, scale: 0.1 };
+  let ctrl = false;
+  const applySnap = (): void => {
+    const enabled = snap.enabled !== ctrl;
+    controls.setTranslationSnap(enabled ? snap.translate : null);
+    controls.setRotationSnap(enabled ? snap.rotateDeg * Math.PI / 180 : null);
+    controls.setScaleSnap(enabled ? snap.scale : null);
+  };
+  const modifier = (event: KeyboardEvent | PointerEvent): void => { ctrl = event.ctrlKey; applySnap(); };
+  const clearModifier = (): void => { ctrl = false; applySnap(); };
+  const window = canvas.ownerDocument?.defaultView;
+  canvas.addEventListener('pointerdown', modifier, true);
+  window?.addEventListener('keydown', modifier);
+  window?.addEventListener('keyup', modifier);
+  window?.addEventListener('blur', clearModifier);
   let ended = 0;
   let handler: ((entityId: string, transform: Transform) => void) | null = onTransformCommit;
   let selection: ReturnType<typeof captureSelection> = [];
@@ -112,6 +128,12 @@ export function createGizmoController(
   return {
     setActiveTool(value) { if (active) return; tool = value; attach(); },
     setSpace(value) { if (active) return; controls.setSpace(value); resetPivot(); },
+    setSnap(value) {
+      if (typeof value.enabled !== 'boolean' || ![value.translate, value.rotateDeg, value.scale].every(step => Number.isFinite(step) && step > 0)) {
+        throw new RangeError('Snap steps must be finite positive numbers.');
+      }
+      snap = { ...value }; applySnap();
+    },
     setSelection(next, nextIds) {
       if (active) return;
       entities = [...next]; ids = [...nextIds];
@@ -137,6 +159,10 @@ export function createGizmoController(
       }
     },
     destroy() {
+      canvas.removeEventListener('pointerdown', modifier, true);
+      window?.removeEventListener('keydown', modifier);
+      window?.removeEventListener('keyup', modifier);
+      window?.removeEventListener('blur', clearModifier);
       controls.removeEventListener('mouseDown', start); controls.removeEventListener('objectChange', change); controls.removeEventListener('mouseUp', end);
       controls.dispose(); clearOutlines(); outlineMaterial.dispose();
       helper.removeFromParent(); pivot.removeFromParent(); outlines.removeFromParent();

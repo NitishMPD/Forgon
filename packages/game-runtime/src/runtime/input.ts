@@ -7,6 +7,8 @@ import { createInputState } from './parkour.js';
 import type { ParkourInputState } from './parkour.js';
 
 export interface InputSample {
+  keysDown?: readonly string[];
+  keysPressed?: readonly string[];
   state: ParkourInputState;
   /** Yaw the chase camera should adopt this frame, radians. */
   yaw: number;
@@ -20,6 +22,8 @@ export interface InputSample {
 
 export interface InputSource {
   sample(dt: number): InputSample;
+  /** Scale the look sensitivity at runtime; 1 keeps the authored default. */
+  setSensitivity?(multiplier: number): void;
   dispose(): void;
 }
 
@@ -32,8 +36,10 @@ const SCROLL_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'Arro
 interface TouchAxis { id: number; startX: number; startY: number; x: number; y: number; moved: number }
 
 /** Attaches real listeners to `target`; `dispose` removes all of them. */
-export function createInputSource(target: HTMLElement): InputSource {
+export function createInputSource(target: HTMLElement, options: { sensitivity?: number } = {}): InputSource {
   const pressed = new Set<string>();
+  const edges = new Set<string>();
+  let sensitivity = options.sensitivity ?? 0.0026;
   let jumpEdge = false;
   let slideEdge = false;
   let restartEdge = false;
@@ -47,10 +53,11 @@ export function createInputSource(target: HTMLElement): InputSource {
   let touchMove: TouchAxis | null = null;
   let touchLook: TouchAxis | null = null;
   let touchJumpEdge = false;
-  const SENSITIVITY = 0.0026;
+  const padScale = (): number => sensitivity / 0.0026;
 
   const onKeyDown = (event: KeyboardEvent): void => {
     if (event.repeat) { if (SCROLL_KEYS.has(event.code)) event.preventDefault(); return; }
+    if (!pressed.has(event.code)) edges.add(event.code);
     pressed.add(event.code);
     if (event.code === 'Space') jumpEdge = true;
     if (event.code === 'KeyC' || event.code === 'ControlLeft' || event.code === 'ControlRight') slideEdge = true;
@@ -58,7 +65,7 @@ export function createInputSource(target: HTMLElement): InputSource {
     if (SCROLL_KEYS.has(event.code)) event.preventDefault();
   };
   const onKeyUp = (event: KeyboardEvent): void => { pressed.delete(event.code); };
-  const onBlur = (): void => { pressed.clear(); dragging = false; };
+  const onBlur = (): void => { pressed.clear(); edges.clear(); dragging = false; };
 
   const onPointerDown = (event: PointerEvent): void => {
     if (event.pointerType === 'touch') { onTouchStart(event); return; }
@@ -73,8 +80,8 @@ export function createInputSource(target: HTMLElement): InputSource {
   const onPointerMove = (event: PointerEvent): void => {
     if (event.pointerType === 'touch') { onTouchMove(event); return; }
     if (!locked && !dragging) return;
-    yaw -= event.movementX * SENSITIVITY;
-    pitch -= event.movementY * SENSITIVITY;
+    yaw -= event.movementX * sensitivity;
+    pitch -= event.movementY * sensitivity;
     pitch = Math.max(-0.55, Math.min(1.05, pitch));
     if (Math.abs(event.movementX) + Math.abs(event.movementY) > 1) manual = true;
   };
@@ -94,8 +101,8 @@ export function createInputSource(target: HTMLElement): InputSource {
     const dy = event.clientY - axis.startY;
     axis.moved = Math.max(axis.moved, Math.hypot(dx, dy));
     if (axis === touchLook) {
-      yaw -= (event.clientX - axis.x) * SENSITIVITY * 1.4;
-      pitch -= (event.clientY - axis.y) * SENSITIVITY * 1.4;
+      yaw -= (event.clientX - axis.x) * sensitivity * 1.4;
+      pitch -= (event.clientY - axis.y) * sensitivity * 1.4;
       pitch = Math.max(-0.55, Math.min(1.05, pitch));
       if (Math.abs(event.clientX - axis.x) > 1) manual = true;
     }
@@ -142,7 +149,7 @@ export function createInputSource(target: HTMLElement): InputSource {
         if (Math.abs(lx) > 0.15 || Math.abs(ly) > 0.15) { state.moveX = lx; state.moveZ = -ly; }
         const rx = pad.axes[2] ?? 0; const ry = pad.axes[3] ?? 0;
         if (Math.abs(rx) > 0.12 || Math.abs(ry) > 0.12) {
-          yaw -= rx * 2.6 * 0.016; pitch = Math.max(-0.55, Math.min(1.05, pitch - ry * 1.8 * 0.016));
+          yaw -= rx * 2.6 * padScale() * 0.016; pitch = Math.max(-0.55, Math.min(1.05, pitch - ry * 1.8 * padScale() * 0.016));
           manual = true;
         }
         if (pad.buttons[0]?.pressed && !jumpEdge) jumpEdge = true;
@@ -157,7 +164,11 @@ export function createInputSource(target: HTMLElement): InputSource {
       state.cameraYaw = yaw;
       jumpEdge = false; slideEdge = false; touchJumpEdge = false;
       const restart = restartEdge; restartEdge = false;
-      return { state, yaw, pitch, manual, restart };
+      const keysPressed = [...edges]; edges.clear();
+      return { state, yaw, pitch, manual, restart, keysDown: [...pressed], keysPressed };
+    },
+    setSensitivity(multiplier: number): void {
+      sensitivity = 0.0026 * (Number.isFinite(multiplier) ? Math.max(0.1, Math.min(5, multiplier)) : 1);
     },
     dispose(): void {
       target.removeEventListener('pointerdown', onPointerDown);

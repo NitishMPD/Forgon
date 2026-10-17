@@ -1,0 +1,14 @@
+{
+  "formatVersion": 1,
+  "prefabId": "gen_675f0a1675fd7bc8",
+  "references": [
+    {
+      "componentId": "gen_6d69af19a458a266",
+      "path": [
+        "waypoints",
+        0
+      ],
+      "kind": "entity"
+    }
+  ]
+}

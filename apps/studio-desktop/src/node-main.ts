@@ -1,6 +1,6 @@
 import { createDesktopBridge } from './bridge.js';
 import { MAX_FRAME, VERSION, parseRequest } from './protocol.js';
-import { loadAgentServiceConfig, startAgentService } from '@forgon/agent-service';
+import { loadAgentServiceConfig, redactSecrets, startAgentService } from '@forgon/agent-service';
 import { join } from 'node:path';
 
 const dataDir = process.argv[2];
@@ -53,7 +53,11 @@ if (process.env.FORGON_T3_CONFIG) {
         resumeOnStart: false,
       });
       await bridge.attachAgent(agent);
-    } catch {
+    } catch (cause) {
+      // The renderer only gets the fixed message; the real reason goes to the host terminal so a failed start is diagnosable.
+      const detail = cause instanceof Error ? `${cause.message}${'detail' in cause && typeof cause.detail === 'string' ? `: ${cause.detail}` : ''}` : String(cause);
+      process.stderr.write(`[forgon] agent service failed to start: ${redactSecrets(detail)}
+`);
       bridge.setAgentMessage('Configured isolated T3 service could not start. Verify artifact, Node version and port configuration.');
     }
   })();

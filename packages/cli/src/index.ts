@@ -7,7 +7,7 @@ export { ProjectReader, readProject } from './read-project.js';
 export { buildWeb } from './build-web.js';
 
 export interface CliOutput { stdout(text: string): void; stderr(text: string): void }
-const usage = 'Usage: forge inspect|validate <root>; create <root> [--template empty-3d|hotel|sector]; bake <root> [--seed <seed>] [--write]; import <root> <source> --license <license> [--id <id>] [--destination assets/<filename>] [--source <provenance>] [--name <name>]; build --target web <root> --out <nonexistent-output>';
+const usage = 'Usage: forge inspect|validate <root>; create <root> [--template empty-3d|hotel|sector|rooftop-relay]; bake <root> [--seed <seed>] [--write]; import <root> <source> --license <license> [--id <id>] [--destination assets/<filename>] [--source <provenance>] [--name <name>]; build --target web <root> --out <nonexistent-output>';
 function options(args: readonly string[], allowed: readonly string[], flags: readonly string[] = []): Record<string, string> {
   const result: Record<string, string> = {};
   for (let i = 0; i < args.length; i++) {
@@ -48,7 +48,7 @@ export async function runCli(args: readonly string[], output: CliOutput = { stdo
   try {
     if (!['inspect', 'validate', 'bake', 'create', 'import'].includes(command ?? '') || !root) throw new Error('Usage');
     opts = options(command === 'import' ? rest.slice(1) : rest, command === 'bake' ? ['--seed', '--write'] : command === 'create' ? ['--template'] : command === 'import' ? ['--license', '--id', '--destination', '--source', '--name'] : [], ['--write']);
-    if (command === 'create' && opts['--template'] && !['empty-3d', 'hotel', 'sector'].includes(opts['--template'])) throw new Error('Template');
+    if (command === 'create' && opts['--template'] && !['empty-3d', 'hotel', 'sector', 'rooftop-relay'].includes(opts['--template'])) throw new Error('Template');
     if (command === 'import' && (!rest[0] || rest[0].startsWith('--') || !opts['--license'])) throw new Error('Import requires source and license');
   } catch { output.stderr(`${usage}\n`); return 2; }
   try {
@@ -95,6 +95,7 @@ export async function runCli(args: readonly string[], output: CliOutput = { stdo
         output.stdout(`${JSON.stringify({ status: 'valid', projectId: project.manifest.projectId, name: project.manifest.name,
           scenes: project.scenes.length, prefabs: project.prefabs.length, assets: project.assets.assets.length,
           entities: project.scenes.reduce((count, scene) => count + scene.entities.length, 0),
+          ...(project.campaign ? { campaign: { title: project.campaign.title, courses: project.campaign.courses.length, unlock: project.campaign.unlock ?? 'sequential' } } : {}),
           ...(command === 'inspect' ? { manifest: project.manifest, generator: project.authoring?.generator ?? null } : {}) }, null, 2)}\n`);
       }
     } finally { session?.close(); }

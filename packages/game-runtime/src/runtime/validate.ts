@@ -2,12 +2,13 @@ import { parseScene } from '@forgon/project-schema';
 import type { SceneDocument, ValidationContext } from '@forgon/project-schema';
 
 const properties: Record<string, readonly string[]> = {
+  script: ['src', 'params'],
   render: ['primitive', 'color', 'castShadows'],
   camera: ['fov', 'nearClip', 'farClip', 'clearColor', 'mode', 'distance', 'height', 'lag', 'intro', 'speedFov', 'lookAhead'],
   light: ['kind', 'color', 'intensity', 'castShadows', 'range'],
   collision: ['shape', 'halfExtents', 'isTrigger', 'surface'],
   guestQueue: ['waypoints', 'speed', 'arrivalRadius', 'loop', 'visualComponentId'],
-  audio: ['assetId', 'autoplay', 'loop', 'volume'],
+  audio: ['assetId', 'autoplay', 'loop', 'volume', 'on'],
   vfx: ['kind', 'color', 'duration', 'autoplay'],
   // Parkour course vocabulary (Sector demo).
   player: ['runSpeed', 'sprintSpeed', 'groundAccel', 'airControl', 'friction', 'gravity', 'terminalVelocity',
@@ -39,7 +40,7 @@ export function validatePlayableScene(input: unknown, context: ValidationContext
       const fail = (detail: string): never => { throw new Error(`Unsupported ${component.type} ${component.id}: ${detail}`); };
       const allowed = properties[component.type];
       if (!allowed) fail('component type');
-      if (types.has(component.type)) fail('multiple components of the same type on one entity');
+      if (component.type !== 'script' && types.has(component.type)) fail('multiple components of the same type on one entity');
       types.add(component.type);
       for (const key of Object.keys(p)) if (!allowed!.includes(key)) fail(`property ${key}`);
       const number = (key: string, min: number, max = Infinity): void => {
@@ -91,6 +92,7 @@ export function validatePlayableScene(input: unknown, context: ValidationContext
         }
         case 'audio':
           number('volume', 0, 1);
+          choice('on', ['any', 'arrival', 'checkpoint', 'goal', 'death']);
           if (typeof p.assetId !== 'string' || !component.assetRefs.includes(p.assetId) || !context.assets?.some(asset => asset.id === p.assetId && asset.kind === 'audio')) fail('assetId must reference a catalogued audio asset');
           break;
         case 'vfx':

@@ -21,6 +21,8 @@ const readiness: Record<AgentProviderInfo['readiness'], { label: string; tone: T
 export const shortcuts: ReadonlyArray<[string, string]> = [
   ['Ctrl+S', 'Save'],
   ['Ctrl+Z / Ctrl+Shift+Z', 'Undo / redo'],
+  ['Ctrl+D', 'Duplicate selection'],
+  ['Ctrl while dragging', 'Invert snapping'],
   ['Q W E R', 'Select, move, rotate, scale'],
   ['F', 'Frame selection'],
   ['Ctrl+K / Ctrl+L / /', 'Focus prompt'],

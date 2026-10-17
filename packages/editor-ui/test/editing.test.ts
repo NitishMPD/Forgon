@@ -94,7 +94,7 @@ test('duplicating a subtree gives fresh IDs, remaps internal references, and kee
   const duplicated = applyCommand(withRefs, { type: 'batch', commands: plan.value.commands }, {});
   const [copyId] = plan.value.topLevelIds;
   const copy = duplicated.entities.find(entity => entity.id === copyId)!;
-  assert.equal(copy.name, 'Child copy');
+  assert.equal(copy.name, 'Child (1)');
   assert.equal(copy.parentId, ids.root);
   const copyGrand = duplicated.entities.find(entity => entity.parentId === copyId)!;
   assert.notEqual(copyGrand.id, ids.grandchild);
@@ -107,12 +107,18 @@ test('duplicating a subtree gives fresh IDs, remaps internal references, and kee
   assert.equal(duplicated.entities.filter(entity => entity.id === ids.child).length, 1, 'original is untouched');
 });
 
-test('duplicates of prefab members are refused rather than producing a second instance member', () => {
+test('duplicates of complete prefab instances receive a fresh instance ID', () => {
   const { scene, ids } = tree();
   const entities = scene.entities.map(entity => (entity.id === ids.sibling ? prefabMember(entity, 'instance_1') : entity));
-  const plan = duplicatePlan(entities, [ids.sibling!], () => 'entity_copy');
-  assert.equal(plan.ok, false);
-  assert.match(plan.ok ? '' : plan.reason, /Prefab instance members/);
+  let index = 0;
+  const plan = duplicatePlan(entities, [ids.sibling!], prefix => `${prefix}_copy_${++index}`);
+  assert.ok(plan.ok);
+  const command = plan.value.commands[0]!;
+  assert.equal(command.type, 'create');
+  if (command.type === 'create') {
+    assert.notEqual(command.entity.prefab?.instanceId, 'instance_1');
+    assert.equal(command.entity.prefab?.sourceEntityId, 'source_root');
+  }
 });
 
 test('a duplicate batch is one undoable step in the store', () => {

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  createEntity, createScene, parseScene, parsePrefab, parseAssetRegistry, parseProjectManifest,
+  createEntity, createScene, parseCampaign, parseScene, parsePrefab, parseAssetRegistry, parseProjectManifest,
   relativePathSchema, serializeScene, validateProject,
 } from '../src/index.js';
 import type { Component, PrefabDocument, ProjectManifest } from '../src/index.js';
@@ -119,4 +119,22 @@ test('project validation checks complete catalogs, references, and project-wide 
   parent.id = manifest.projectId;
   scene.entities[1]!.parentId = parent.id;
   assert.throws(() => validateProject(project));
+});
+test('campaign documents are ordered, referenced and enforced by the manifest', () => {
+  const { scene } = fixture();
+  const manifest: ProjectManifest = { schemaVersion: 1, projectId: 'project_test', name: 'Test', startScene: scene.sceneId,
+    scenes: [{ id: scene.sceneId, path: 'scenes/test.scene.json' }], prefabs: [], assetRegistry: 'assets/registry.json' };
+  const assets = { schemaVersion: 1 as const, assets: [] };
+  const campaign = { schemaVersion: 1 as const, campaignId: 'campaign_test', title: 'Relay', tagline: 'Five routes',
+    courses: [{ sceneId: scene.sceneId, name: 'One', subtitle: 'first', goldSeconds: 20, silverSeconds: 30, bronzeSeconds: 40 }] };
+  assert.equal(parseCampaign(campaign, { sceneIds: [scene.sceneId] }).courses.length, 1);
+  assert.throws(() => parseCampaign(campaign, { sceneIds: ['other_scene'] }), /not registered/);
+  assert.throws(() => parseCampaign({ ...campaign, courses: [{ ...campaign.courses[0], goldSeconds: 35 }] }, { sceneIds: [scene.sceneId] }), /ascend/);
+  assert.throws(() => parseCampaign({ ...campaign, courses: [campaign.courses[0], campaign.courses[0]] }, { sceneIds: [scene.sceneId] }), /Duplicate/);
+  const withCampaign = { ...manifest, campaign: 'progression/campaign.json' };
+  assert.doesNotThrow(() => parseProjectManifest(withCampaign));
+  assert.throws(() => parseProjectManifest({ ...withCampaign, campaign: manifest.assetRegistry }), /paths/);
+  assert.throws(() => validateProject({ manifest: withCampaign, scenes: [scene], prefabs: [], assets }), /campaign/);
+  assert.throws(() => validateProject({ manifest: withCampaign, scenes: [scene], prefabs: [], assets, campaign: { ...campaign, campaignId: 'project_test' } }), /Duplicate/);
+  assert.doesNotThrow(() => validateProject({ manifest: withCampaign, scenes: [scene], prefabs: [], assets, campaign }));
 });
