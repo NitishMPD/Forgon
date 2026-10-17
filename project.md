@@ -1170,6 +1170,8 @@ Project IO implements create-only projects, validated catalog/asset reads, revis
 CLI now uses shared IO and supports create --template, explicit bake --write and validated local GLB/PNG/JPEG/WAV import with provenance. Worker checks: IO/assets/CLI 37 tests passed. Editor supports component value updates, reparent/duplicate, guarded scene switching and viewport transform callbacks; 69 UI/studio tests and studio build passed. These are subsystem checks: desktop/runtime/provider services are not yet connected. Asset reimport/transcoding and other import formats remain unimplemented.
 
 ### Runtime and export integration status
+First native launch exposed a viewport startup error: PlayCanvas's scene root is null until scene loading, whereas the application root is initialized. The editor now attaches its graph to app.root. Runtime typecheck and five tests pass after the correction; native visual confirmation remains pending.
+
 Studio forwards multi-object gizmo commits through one atomic batch command and undo step. Empty/unchanged gestures preserve history; invalid or stale edits reject the whole batch. Worker evidence: 74 editor-UI tests and UI/Studio typechecks pass. Actual browser gesture behavior remains unverified.
 
 The real editor viewport is connected to Studio. Runtime validation and asynchronous standalone mounting are implemented, with detached play snapshots, guest paths, arrival audio/VFX and vendored Ammo static/kinematic box physics. Unsupported playable semantics fail explicitly; dynamic bodies, arbitrary scripts and asset-backed model rendering are not supported by this runtime yet. Imported GLB registration does not imply playable GLB rendering.

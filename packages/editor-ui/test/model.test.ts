@@ -87,16 +87,25 @@ test('scene diff reports per-property and per-object differences by stable ID', 
   assert.ok(root);
 });
 
-test('layout parsing falls back on corrupt input and clamps numeric values', () => {
+test('layout parsing falls back on corrupt or older input, clamps splits and repairs groups', () => {
   assert.deepEqual(parseLayout('nope'), { layout: defaultLayout, recovered: true });
-  const clamped = parseLayout({ hierarchyWidth: 9999, inspectorWidth: -4, dockHeight: 240, dockMode: 'right', dockWidth: Number.NaN, hierarchyCollapsed: true });
-  assert.equal(clamped.layout.hierarchyWidth, 360);
-  assert.equal(clamped.layout.inspectorWidth, 288);
-  assert.equal(clamped.layout.dockMode, 'right');
-  assert.equal(clamped.layout.dockWidth, defaultLayout.dockWidth);
-  assert.equal(clamped.layout.hierarchyCollapsed, true);
-  assert.equal(clamped.recovered, false);
-  assert.equal(parseLayout({ dockMode: 'floating' }).recovered, true);
+  assert.equal(parseLayout({ hierarchyWidth: 264, dockMode: 'bottom' }).recovered, true, 'version 1 layouts fall back');
+  const repaired = parseLayout({
+    version: 2, columns: 9, leftRows: -1, rightRows: Number.NaN,
+    groups: {
+      topLeft: { tabs: ['viewport', 'viewport', 'nonsense'], active: 'game' },
+      topRight: { tabs: ['viewport', 'inspector'], active: 'inspector' },
+      bottomLeft: 'broken',
+    },
+  });
+  assert.equal(repaired.recovered, false);
+  assert.equal(repaired.layout.columns, 0.85);
+  assert.equal(repaired.layout.leftRows, 0.15);
+  assert.equal(repaired.layout.rightRows, defaultLayout.rightRows);
+  assert.deepEqual(repaired.layout.groups.topLeft, { tabs: ['viewport'], active: 'viewport' }, 'duplicates, unknown panels and a foreign active tab are dropped');
+  assert.deepEqual(repaired.layout.groups.topRight, { tabs: ['inspector'], active: 'inspector' }, 'a panel lives in one group only');
+  assert.deepEqual(repaired.layout.groups.bottomLeft, { tabs: [], active: null });
+  assert.deepEqual(parseLayout(JSON.parse(JSON.stringify(defaultLayout))), { layout: defaultLayout, recovered: false });
 });
 
 test('stored layout that is not JSON recovers silently and writes survive a failing storage', () => {

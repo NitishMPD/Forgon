@@ -16,7 +16,7 @@ export type {
   ViewportView,
 } from './services.js';
 
-export { Banner, Button, EmptyState, StatusText } from './primitives/primitives.js';
+export { Banner, Button, EmptyState, IconButton, StatusText } from './primitives/primitives.js';
 export { Workspace, type SceneEntry, type WorkspaceProps } from './shell/Workspace.js';
 export { Launcher, type LauncherProps } from './launcher/Launcher.js';
 
@@ -36,7 +36,7 @@ export { planSceneSwitch, type SceneSwitchPlan } from './model/sceneSwitch.js';
 export { diffScenes, type EntityChange, type PropertyChange } from './model/sceneDiff.js';
 export { parseFiniteNumber, formatNumber } from './model/numbers.js';
 export { appendLog, countBySeverity, emptyLog, logCap, type ConsoleLog, type LogEntry, type LogInput, type LogSeverity, type LogSource } from './model/consoleLog.js';
-export { defaultLayout, keyboardResize, layoutLimits, parseLayout, readLayout, rightDockSharesInspector, sharedRightDockBelow, writeLayout, type DockMode, type KeyValueStorage, type LayoutState } from './model/layout.js';
+export { activatePanel, closePanel, defaultLayout, groupAt, groupIds, groupOf, homeGroup, isPanelVisible, keyboardSplit, movePanel, neighbourGroup, panelIds, parseLayout, readLayout, showPanel, splitLimits, writeLayout, type GroupId, type KeyValueStorage, type LayoutState, type PanelGroup, type PanelId } from './model/layout.js';
 export type { FileBanner, SaveStatus } from './model/fileState.js';
 
 export { projectDestination } from './model/projectDestination.js';

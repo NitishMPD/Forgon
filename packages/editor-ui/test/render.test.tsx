@@ -12,7 +12,7 @@ import { AgentDock } from '../src/agent/AgentDock.js';
 import { Workspace } from '../src/shell/Workspace.js';
 import { readEditorSnapshot } from '../src/hooks/useEditorSnapshot.js';
 import { emptyLog } from '../src/model/consoleLog.js';
-import { defaultLayout } from '../src/model/layout.js';
+import { closePanel, defaultLayout } from '../src/model/layout.js';
 import { noSelection, selectOne } from '../src/model/selection.js';
 
 function fixtureScene() {
@@ -94,7 +94,7 @@ test('provider setup lists only the limits the adapter reported', () => {
 
 test('agent dock without a service says the capability is missing and offers no send action', () => {
   const html = renderToStaticMarkup(
-    <AgentDock agent={null} scene={null} assets={[]} projectOpen={false} providersOpen={false} onCloseProviders={() => {}} focusToken={0} />,
+    <AgentDock agent={null} scene={null} assets={[]} projectOpen={false} focusToken={0} />,
   );
   assert.match(html, /agent service is not connected/);
   assert.doesNotMatch(html, />Send</);
@@ -145,17 +145,16 @@ test('workspace renders from a real store with the viewport slot, honest capabil
   assert.match(html, /Scripts do not run on open/);
   assert.match(html, /Saved/);
   assert.match(html, /Watching scenes\/lobby\.scene\.json/);
-  assert.match(html, /data-dock="bottom"/);
+  assert.match(html, /data-layout="dock"/);
   assert.doesNotMatch(html, /Showing last valid scene/);
   assert.match(html, /aria-label="Scene"/);
   assert.match(html, /aria-label="Viewport tools"/);
-  assert.match(html, /disabled=""[^>]*>Move</);
-  assert.match(html, /disabled=""[^>]*>Frame</);
+  assert.match(html, /<button(?=[^>]*aria-label="Move")(?=[^>]*disabled="")/);
+  assert.match(html, /<button(?=[^>]*aria-label="Frame")(?=[^>]*disabled="")/);
 });
 
-test('a right dock below 1680 px shares the inspector column as a tab', () => {
+test('the default dock shows four tab groups with movable tabs, add-panel menus and split handles', () => {
   const store = new EditorStore(fixtureScene(), 'r1');
-  // The server render has no window width, so the 1440 px default applies: the shared layout.
   const html = renderToStaticMarkup(
     <Workspace
       projectName="Hotel"
@@ -182,16 +181,19 @@ test('a right dock below 1680 px shares the inspector column as a tab', () => {
       onLog={() => {}}
       agent={null}
       viewport={null}
-      layout={{ ...defaultLayout, dockMode: 'right' }}
+      layout={closePanel(defaultLayout, 'game')}
       onLayoutChange={() => {}}
       onClose={() => {}}
     />,
   );
-  assert.match(html, /data-dock-shared="true"/);
-  assert.match(html, /aria-label="Right column"/);
-  assert.match(html, />Panels</);
-  assert.doesNotMatch(html, /fg-dock-shared/, 'panels are hidden until the Panels tab is chosen');
-  assert.doesNotMatch(html, /aria-label="Resize dock width"/);
+  for (const label of ['Viewport', 'Hierarchy', 'Inspector', 'Composer', 'Agents', 'Project', 'Console', 'Review']) {
+    assert.match(html, new RegExp(`role="tab"[^>]*>(<svg[\\s\\S]*?</svg>)?<span>${label}</span>`), `${label} tab`);
+  }
+  assert.doesNotMatch(html, /<span>Game<\/span>/, 'a closed panel has no tab');
+  assert.match(html, /id="panel-game"[^>]*class="[^"]*is-hidden/, 'a closed panel stays mounted but hidden');
+  assert.equal(html.match(/aria-label="Add panel"/g)?.length, 4);
+  assert.equal(html.match(/role="separator"/g)?.length, 3);
+  assert.match(html, /draggable="true" data-panel-tab="viewport"/);
 });
 
 test('inspector renders typed editors for each property kind and a whole-component summary', () => {

@@ -10,6 +10,11 @@ export function Button({ variant = 'default', className, type = 'button', ...res
   return <button type={type} className={cx('fg-button', `fg-button-${variant}`, className)} {...rest} />;
 }
 
+// Icon-only button: the label is the accessible name and the default tooltip.
+export function IconButton({ label, className, type = 'button', title, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string }) {
+  return <button type={type} aria-label={label} title={title ?? label} className={cx('fg-icon-button', className)} {...rest} />;
+}
+
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'accent';
 
 export function StatusText({ tone = 'neutral', children }: { tone?: Tone; children: ReactNode }) {

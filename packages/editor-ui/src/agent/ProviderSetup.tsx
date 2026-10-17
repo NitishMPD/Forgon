@@ -9,7 +9,7 @@ const readinessWords: Record<AgentProviderInfo['readiness'], { label: string; to
   unknown: { label: 'Not checked', tone: 'neutral' },
 };
 
-export function ProviderSetup({ providers, onClose, onRefresh }: { providers: readonly AgentProviderInfo[]; onClose(): void; onRefresh?: (() => Promise<void>) | undefined }) {
+export function ProviderSetup({ providers, onClose, onRefresh }: { providers: readonly AgentProviderInfo[]; onClose?: (() => void) | undefined; onRefresh?: (() => Promise<void>) | undefined }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const refresh = async (): Promise<void> => {
@@ -23,7 +23,7 @@ export function ProviderSetup({ providers, onClose, onRefresh }: { providers: re
     <section className="fg-provider-setup" aria-labelledby="provider-setup-title">
       <header className="fg-toolbar">
         <h3 id="provider-setup-title" className="fg-section-title">Providers</h3>
-        <Button variant="ghost" onClick={onClose}>Close</Button>
+        {onClose ? <Button variant="ghost" onClick={onClose}>Close</Button> : null}
       </header>
       {error ? <p role="alert">{error}</p> : null}
       {providers.length === 0 ? (

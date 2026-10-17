@@ -3,7 +3,6 @@ import type { AssetRecord, PermissionMode, SceneDocument } from '@forgon/project
 import { Banner, Button, EmptyState, StatusText, cx, type Tone } from '../primitives/primitives.js';
 import { buildContext, chipStatus, isSendKey } from './composerModel.js';
 import type { AgentController } from './useAgentSessions.js';
-import { ProviderSetup } from './ProviderSetup.js';
 import { enforcementNote, permissionLabels, providerLimitsNote } from './permissions.js';
 import { threadStatus, threadStatusLabels, type AgentThread, type ThreadStatus, type TranscriptItem } from './threadState.js';
 
@@ -12,12 +11,10 @@ export interface AgentDockProps {
   scene: SceneDocument | null;
   assets: readonly AssetRecord[];
   projectOpen: boolean;
-  providersOpen: boolean;
-  onCloseProviders(): void;
   focusToken: number;
 }
 
-const statusTone: Record<ThreadStatus, Tone> = {
+export const statusTone: Record<ThreadStatus, Tone> = {
   idle: 'neutral',
   starting: 'info',
   running: 'info',
@@ -216,7 +213,7 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
   );
 }
 
-export function AgentDock({ agent, scene, assets, projectOpen, providersOpen, onCloseProviders, focusToken }: AgentDockProps) {
+export function AgentDock({ agent, scene, assets, projectOpen, focusToken }: AgentDockProps) {
   if (!agent) {
     return (
       <section className="fg-dock-panel" aria-label="Agent">
@@ -232,19 +229,15 @@ export function AgentDock({ agent, scene, assets, projectOpen, providersOpen, on
   const thread = agent.activeThread;
   return (
     <section className="fg-dock-panel fg-agent" aria-label="Agent">
-      <div className="fg-toolbar">
-        <label className="fg-sr-only" htmlFor="thread-select">Thread</label>
-        <select
-          id="thread-select"
-          className="fg-select"
-          value={thread?.id ?? ''}
-          onChange={event => agent.selectThread(event.currentTarget.value)}
-        >
-          {agent.state.threads.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
-        </select>
-        <Button onClick={agent.newThread}>New thread</Button>
-      </div>
-      {providersOpen ? <ProviderSetup providers={agent.connection.providers} onClose={onCloseProviders} onRefresh={agent.refreshProviders} /> : null}
+      <header className="fg-agent-head">
+        {thread ? (
+          <>
+            <span className="fg-agent-title">{thread.title}</span>
+            <StatusText tone={statusTone[threadStatus(thread)]}>{threadStatusLabels[threadStatus(thread)]}</StatusText>
+          </>
+        ) : <span className="fg-muted">No thread</span>}
+        <Button variant="ghost" className="fg-agent-new" onClick={agent.newThread}>New thread</Button>
+      </header>
       {thread ? <Transcript thread={thread} onApprove={(runId, requestId, allow) => agent.approve(thread.id, runId, requestId, allow)} /> : null}
       <Composer agent={agent} scene={scene} assets={assets} projectOpen={projectOpen} focusToken={focusToken} />
     </section>

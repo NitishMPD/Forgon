@@ -156,7 +156,7 @@ function ReadyWorkspace({ target, session, store, notice, onDismissNotice, servi
   }), [catalog, project]);
   const [selection, setSelection] = useState<Selection>(noSelection);
   const projectId = target.kind === 'project' ? target.session.manifest.projectId : 'sample';
-  const storageKey = `forgon.layout.v1:${projectId}`;
+  const storageKey = `forgon.layout.v2:${projectId}`;
   const [storage] = useState(browserStorage);
   const [layoutRead] = useState(() => readLayout(storage, storageKey));
   const [layout, setLayout] = useState<LayoutState>(layoutRead.layout);
