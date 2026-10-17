@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type ReactElement, type KeyboardEvent } from 'react';
 import {
-  Activity, Bot, Box, ChevronRight, CircleAlert, Diamond, Eye, FolderOpen,
+  Activity, Bot, Box, ChevronRight, CircleAlert, Eye, FolderOpen,
   GitCompareArrows, LayoutDashboard, ListTree, LogOut, Play, Redo2, Save, Settings as SettingsIcon,
-  ShieldCheck, SlidersHorizontal, Sparkles, Square, Terminal, TriangleAlert, Undo2, X, type LucideIcon,
+  MessageSquare, ShieldCheck, SlidersHorizontal, Square, Terminal, TriangleAlert, Undo2, X, type LucideIcon,
 } from 'lucide-react';
 import { duplicatePlan, type SceneCommand } from '@forgon/editor-core';
 import { createEntity, type AssetRecord, type ScriptCatalog, type ScriptModules, type Transform } from '@forgon/project-schema';
 import { AgentDock } from '../agent/AgentDock.js';
+import { ForgonMark } from '../brand/ForgonMark.js';
 import { AgentsPanel } from '../agent/AgentsPanel.js';
 import { threadStatus, threadStatusLabels } from '../agent/threadState.js';
 import type { AgentController } from '../agent/useAgentSessions.js';
@@ -80,7 +81,7 @@ const secondaryCards: ReadonlyArray<{ id: CardId; label: string; icon: LucideIco
   { id: 'review', label: 'Review', icon: GitCompareArrows },
   { id: 'agents', label: 'Agents', icon: Bot },
   { id: 'stats', label: 'Stats', icon: Activity },
-  { id: 'composer', label: 'Conversation', icon: Sparkles },
+  { id: 'composer', label: 'Chat', icon: MessageSquare },
 ];
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -476,7 +477,7 @@ export function Workspace(props: WorkspaceProps) {
   return (
     <div ref={workspaceRef} className="fg-workspace" data-layout="floating" onKeyDown={onKeyDown}>
       <nav className="fg-rail" aria-label="Main">
-        <span className="fg-logo" aria-hidden="true"><Diamond size={16} strokeWidth={2} /></span>
+        <ForgonMark />
         <IconButton className={cx('fg-rail-item', view_ === 'editor' && 'is-active')} label="Editor" aria-current={view_ === 'editor' ? 'page' : undefined} onClick={() => setView('editor')}><LayoutDashboard {...iconProps} size={18} /></IconButton>
         <IconButton className={cx('fg-rail-item', view_ === 'settings' && 'is-active')} label="Settings" aria-current={view_ === 'settings' ? 'page' : undefined} onClick={() => setView(current => (current === 'settings' ? 'editor' : 'settings'))}><SettingsIcon {...iconProps} size={18} /></IconButton>
         <span className="fg-rail-spacer" />
@@ -503,7 +504,7 @@ export function Workspace(props: WorkspaceProps) {
             <span className="fg-topbar-scene">{scene.name}</span>
           )}
         </div>
-        <span className="fg-topbar-spacer" />
+        <div className="fg-topbar-controls">
         <IconButton id="toggle-hierarchy" label="Toggle Hierarchy" title="Hierarchy (Ctrl+1)" aria-pressed={layout.hierarchy} onClick={() => setLayout({ ...layout, hierarchy: !layout.hierarchy })}><ListTree {...iconProps} /></IconButton>
         <IconButton id="toggle-inspector" label="Toggle Inspector" title="Inspector (Ctrl+2)" aria-pressed={layout.inspector} onClick={() => setLayout({ ...layout, inspector: !layout.inspector })}><SlidersHorizontal {...iconProps} /></IconButton>
         <div className="fg-pill fg-play-pill" role="group" aria-label="Mode">
@@ -525,13 +526,15 @@ export function Workspace(props: WorkspaceProps) {
           <IconButton label="Redo" disabled={!snapshot.canRedo || !canEdit} title="Redo (Ctrl+Shift+Z)" onClick={props.onRedo}><Redo2 {...iconProps} size={16} /></IconButton>
           <IconButton label="Save" disabled={saveDisabled} title={props.saveDisabledReason ?? 'Save (Ctrl+S)'} onClick={() => { void props.onSave(); }}><Save {...iconProps} size={16} /></IconButton>
         </div>
-        <span className="fg-topbar-spacer" />
+        </div>
+        <div className="fg-topbar-actions">
         {closeArmed ? (
           <>
             <Button variant="danger" disabled={props.saveStatus === 'saving'} onClick={props.onClose}>Discard changes and close</Button>
             <Button variant="ghost" onClick={() => setCloseArmed(false)}>Keep editing</Button>
           </>
         ) : null}
+        </div>
       </header>
 
       <main className="fg-floating-stage" inert={view_ === 'settings'} aria-label="Scene workspace">
@@ -556,7 +559,7 @@ export function Workspace(props: WorkspaceProps) {
           <nav className="fg-command-bar" aria-label="Workspace panels">
             {secondaryCards.map(({ id, label, icon: Icon }) => (
               <button key={id} id={`command-${id}`} type="button" aria-expanded={layout.expandedCard === id}
-                aria-controls={id === 'composer' ? 'agent-conversation' : `card-${id}`} title={id === 'console' ? 'Console (Ctrl+`)' : id === 'composer' ? 'Conversation ? focus prompt (Ctrl+K or /)' : label}
+                aria-controls={id === 'composer' ? 'agent-conversation' : `card-${id}`} title={id === 'console' ? 'Console (Ctrl+`)' : id === 'composer' ? 'Chat: focus prompt (Ctrl+K or /)' : label}
                 onClick={() => setLayout(toggleCard(layout, id))}><Icon {...iconProps} /><span>{label}</span></button>
             ))}
           </nav>

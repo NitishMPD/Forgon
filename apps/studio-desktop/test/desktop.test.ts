@@ -202,7 +202,10 @@ test('project services work before agent attachment and late services are stoppe
   try {
     assert.equal((await h.services.project.openExample()).status, 'opened');
     assert.ok(h.services.agent.providers.every(p => p.readiness === 'not-ready'));
+    let providerChanges = 0;
+    h.services.agent.onProvidersChanged(() => { providerChanges++; });
     await h.bridge.attachAgent(agent);
+    assert.equal(providerChanges, 1, 'a late agent start must tell the renderer to re-read providers');
     assert.equal(subscriptions, 1);
     assert.deepEqual(await h.services.agent.refreshProviders(), []);
     await h.bridge.close();

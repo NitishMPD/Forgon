@@ -62,6 +62,11 @@ export function useAgentSessions(input: AgentSessionInput): AgentController | nu
     const providers = await originalConnection.refreshProviders!();
     setProviderSnapshot({ owner: originalConnection, providers });
   } : undefined;
+  useEffect(() => originalConnection?.onProvidersChanged?.(() => {
+    void originalConnection.refreshProviders?.()
+      .then(providers => setProviderSnapshot({ owner: originalConnection, providers }))
+      .catch(() => undefined);
+  }), [originalConnection]);
   const [state, dispatch] = useReducer(agentReducer, emptyState);
   const [draft, setDraft] = useState('');
   const [chips, setChips] = useState<ContextChip[]>([]);

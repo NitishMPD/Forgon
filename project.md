@@ -13,6 +13,8 @@ Author: Nitish
 **Project model:** Local-first, agent-readable, file-based; no mandatory MCP protocol  
 **Status:** Implementation in progress; subsystem checks pass, integrated desktop acceptance remains pending
 
+**Brand assets:** The shared Forgon SVG in `packages/editor-ui/src/brand/forgon.svg` supplies launcher/rail identity and Studio's favicon. Regenerate the Windows window/installer icon from that source with `powershell -ExecutionPolicy Bypass -File apps/studio-desktop/scripts/brand-icon.ps1` after changing it. Native icon appearance requires a subsequent desktop build and Windows verification.
+
 ---
 
 ## 0. Executive summary

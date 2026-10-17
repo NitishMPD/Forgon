@@ -12,7 +12,7 @@ const disconnectedServices: StudioServices = { project: null, agent: null, viewp
 
 test('studio with no desktop services renders the launcher with the capability gaps stated', () => {
   const html = renderToStaticMarkup(<App services={disconnectedServices} />);
-  assert.match(html, /Forgon Engine/);
+  assert.match(html, /Forgon <span>Engine<\/span>/);
   assert.match(html, /desktop host is not connected/);
   assert.match(html, /In-memory sample/);
 });

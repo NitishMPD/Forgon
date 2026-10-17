@@ -81,6 +81,8 @@ export interface AgentProviderInfo {
 export interface AgentConnection {
   service: AgentService;
   refreshProviders?(): Promise<readonly AgentProviderInfo[]>;
+  /** Fires when the host's provider readiness changed (for example, the agent service finished starting). */
+  onProvidersChanged?(listener: () => void): () => void;
   providers: readonly AgentProviderInfo[];
 }
 

@@ -242,8 +242,8 @@ export function AgentDock({ agent, scene, assets, projectOpen, focusToken, trans
   if (!agent) {
     return (
       <section className="fg-dock-panel" aria-label="Agent">
-        <section id="agent-conversation" className="fg-conversation fg-floating-card" aria-label="Conversation" hidden={!transcriptOpen} inert={!transcriptOpen}>
-          <header className="fg-agent-head"><span className="fg-agent-title">Conversation</span>
+        <section id="agent-conversation" className="fg-conversation fg-floating-card" aria-label="Chat" hidden={!transcriptOpen} inert={!transcriptOpen}>
+          <header className="fg-agent-head"><span className="fg-agent-title">Chat</span>
             {onCloseTranscript ? <IconButton label="Close conversation" title="Close (Escape)" onClick={onCloseTranscript}><X size={14} aria-hidden="true" /></IconButton> : null}
           </header>
           <Banner tone="neutral">Agent service not connected</Banner>
@@ -257,7 +257,7 @@ export function AgentDock({ agent, scene, assets, projectOpen, focusToken, trans
   const thread = agent.activeThread;
   return (
     <section className="fg-dock-panel fg-agent" aria-label="Agent">
-      <section id="agent-conversation" className="fg-conversation fg-floating-card" aria-label="Conversation" hidden={!transcriptOpen} inert={!transcriptOpen}>
+      <section id="agent-conversation" className="fg-conversation fg-floating-card" aria-label="Chat" hidden={!transcriptOpen} inert={!transcriptOpen}>
         <header className="fg-agent-head">
           <span className="fg-agent-title">{thread ? thread.title : 'No thread'}</span>
           {thread ? <StatusText tone={statusTone[threadStatus(thread)]}>{threadStatusLabels[threadStatus(thread)]}</StatusText> : null}

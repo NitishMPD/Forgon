@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { projectDestination } from '../model/projectDestination.js';
 import type { Diagnostic } from '@forgon/project-schema';
 import type { CreatePlan, ProjectHost, ProjectOpenResult, ProjectSession, RecentProject } from '../services.js';
-import { Box, Building2, Copy, Diamond, FolderOpen, Plus, Search, ShieldCheck, X } from 'lucide-react';
+import { Box, Building2, Copy, FolderOpen, Plus, Search, ShieldCheck, X } from 'lucide-react';
+import { ForgonMark } from '../brand/ForgonMark.js';
 import { Banner, Button, IconButton, StatusText, type Tone } from '../primitives/primitives.js';
 
 export interface LauncherProps {
@@ -147,8 +148,11 @@ export function Launcher({ host, onOpened, onSample }: LauncherProps) {
   return (
     <main className="fg-launcher" aria-labelledby="launcher-title">
       <header className="fg-launcher-header">
-        <span className="fg-logo" aria-hidden="true"><Diamond size={16} strokeWidth={2} /></span>
-        <h1 id="launcher-title" className="fg-launcher-title">Forgon Engine</h1>
+        <ForgonMark alt="" />
+        <div className="fg-launcher-identity">
+          <h1 id="launcher-title" className="fg-launcher-title">Forgon <span>Engine</span></h1>
+          <p className="fg-launcher-description">Local-first game studio</p>
+        </div>
       </header>
       {!host ? <Banner tone="warning">The desktop host is not connected in this build. Only the in-memory sample is available.</Banner> : null}
       {notice ? <Banner tone="warning">{notice}</Banner> : null}

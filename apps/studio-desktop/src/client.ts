@@ -11,10 +11,12 @@ export async function createDesktopServices(transport: Transport) {
   // Reload/reconnect releases watches and sessions owned by the previous renderer generation.
   await transport.request('bridge:reset');
   const listeners = new Set<(event: AgentEvent) => void>();
+  const providerListeners = new Set<() => void>();
   const sessions = new Map<string, () => void>();
   let disconnected = false;
   const stop = transport.subscribe(event => {
     if (event.kind === 'agent') for (const listener of listeners) listener(event.value as AgentEvent);
+    if (event.kind === 'providers') for (const listener of providerListeners) listener();
     if (event.kind === 'closed') {
       disconnected = true;
       for (const close of sessions.values()) close();
@@ -86,8 +88,11 @@ export async function createDesktopServices(transport: Transport) {
       create: (root: string) => open('project:create', { root }),
       openExample: () => open('project:example'),
     },
-    agent: { service, providers: await refreshProviders(), refreshProviders },
-    dispose() { for (const close of sessions.values()) close(); listeners.clear(); stop(); },
+    agent: {
+      service, providers: await refreshProviders(), refreshProviders,
+      onProvidersChanged(listener: () => void) { providerListeners.add(listener); return () => { providerListeners.delete(listener); }; },
+    },
+    dispose() { for (const close of sessions.values()) close(); listeners.clear(); providerListeners.clear(); stop(); },
   };
 }
 

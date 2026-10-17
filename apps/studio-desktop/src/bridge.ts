@@ -102,8 +102,10 @@ export async function createDesktopBridge(options: BridgeOptions) {
       if (options.agent) throw new Error('Agent service already attached');
       options.agent = agent;
       subscribeAgent();
+      // The service starts after the renderer has loaded, so tell it to re-read provider readiness.
+      options.emit({ kind: 'providers', value: null });
     },
-    setAgentMessage(message: string) { options.agentMessage = message; },
+    setAgentMessage(message: string) { options.agentMessage = message; if (!closed) options.emit({ kind: 'providers', value: null }); },
     async dispatch(input: unknown, native = false): Promise<unknown> {
       if (closed) throw new Error('Bridge closed');
       const { method, args: a } = parseRequest(input);

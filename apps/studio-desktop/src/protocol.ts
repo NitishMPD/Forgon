@@ -2,7 +2,7 @@ export const VERSION = 1;
 // 32 MiB assets expand to base64; JSON documents are bounded again by project-io.
 export const MAX_FRAME = 48 * 1024 * 1024;
 export interface Request { v: 1; id: string; method: string; args: Record<string, unknown> }
-export interface BridgeEvent { kind: 'scene' | 'agent' | 'closed'; session?: string; watch?: string; value: unknown }
+export interface BridgeEvent { kind: 'scene' | 'agent' | 'providers' | 'closed'; session?: string; watch?: string; value: unknown }
 export interface Transport {
   request<T>(method: string, args?: Record<string, unknown>): Promise<T>;
   subscribe(listener: (event: BridgeEvent) => void): () => void;

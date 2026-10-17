@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { EditorStore } from '@forgon/editor-core';
 import { createEntity, createScene, parseScene } from '@forgon/project-schema';
 import { Launcher } from '../src/launcher/Launcher.js';
+import { ForgonMark } from '../src/brand/ForgonMark.js';
 import { Hierarchy } from '../src/panels/hierarchy/Hierarchy.js';
 import { Inspector } from '../src/panels/inspector/Inspector.js';
 import { ConsolePanel } from '../src/panels/console/ConsolePanel.js';
@@ -20,6 +21,16 @@ function fixtureScene() {
   const desk = createEntity('Reception', root.id);
   return parseScene({ ...createScene('Lobby scene'), entities: [root, desk] });
 }
+
+test('brand mark has a product name alone and is decorative beside the launcher wordmark', () => {
+  const mark = renderToStaticMarkup(<ForgonMark />);
+  assert.match(mark, /alt="Forgon Engine"/);
+  assert.match(mark, /forgon\.svg/);
+  const launcher = renderToStaticMarkup(<Launcher host={null} onOpened={() => {}} onSample={() => {}} />);
+  assert.match(launcher, /alt=""/);
+  assert.match(launcher, /Forgon <span>Engine<\/span>/);
+  assert.match(launcher, /Local-first game studio/);
+});
 
 test('launcher without a desktop host says so, disables project actions, and still offers the sample', () => {
   const html = renderToStaticMarkup(<Launcher host={null} onOpened={() => {}} onSample={() => {}} />);
@@ -186,7 +197,7 @@ test('floating workspace keeps its viewport and panels mounted with named comman
       onClose={() => {}}
     />,
   );
-  for (const label of ['Assets', 'Console', 'Review', 'Agents', 'Stats', 'Conversation']) {
+  for (const label of ['Assets', 'Console', 'Review', 'Agents', 'Stats', 'Chat']) {
     assert.match(html, new RegExp(`<span>${label}</span>`));
   }
   assert.match(html, /id="panel-hierarchy"[^>]*hidden=""/);

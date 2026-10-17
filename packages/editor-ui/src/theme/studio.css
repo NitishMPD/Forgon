@@ -144,19 +144,22 @@ svg { flex: none; }
 }
 
 .fg-rail { grid-area: 1 / 1 / 4 / 2; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 0; border-right: 1px solid var(--border-subtle); }
-.fg-logo { width: 32px; height: 32px; border-radius: 9px; background: var(--accent); color: var(--accent-fg); display: grid; place-items: center; margin-bottom: 10px; }
+.fg-logo { display: block; width: 32px; height: 32px; flex: none; margin-bottom: 10px; }
 .fg-rail-item { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; color: var(--text-muted); }
 .fg-rail-item.is-active { background: var(--surface-hover); color: var(--text-primary); }
 .fg-rail-spacer { flex: 1; }
 
-.fg-topbar { grid-area: 1 / 2 / 2 / 3; display: flex; align-items: center; gap: 10px; padding: 0 12px 0 10px; min-width: 0; }
+.fg-topbar { grid-area: 1 / 2 / 2 / 3; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px; padding: 0 10px; min-width: 0; }
+.fg-topbar-controls { display: flex; align-items: center; gap: 10px; }
+.fg-topbar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; min-width: 0; overflow-x: auto; }
+.fg-topbar-actions > .fg-button { flex: none; }
 .fg-crumb { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--text-secondary); }
 .fg-crumb-icon { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--surface-raised); border: 1px solid var(--border-strong); color: var(--accent); flex: none; }
 .fg-topbar-project, .fg-topbar-scene { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
 .fg-topbar-project { color: var(--text-primary); font-weight: 600; }
 .fg-topbar-select { max-width: 240px; min-width: 0; }
 .fg-topbar-scene { color: var(--text-primary); }
-.fg-topbar-spacer, .fg-statusbar-spacer, .fg-tabstrip-spacer { flex: 1; }
+.fg-statusbar-spacer, .fg-tabstrip-spacer { flex: 1; }
 .fg-pill { height: 34px; display: inline-flex; align-items: center; gap: 2px; padding: 0 2px; border-radius: 10px; background: var(--surface-panel); border: 1px solid var(--border-subtle); color: var(--text-primary); }
 .fg-play-pill { padding: 0 2px 0 10px; gap: 8px; }
 .fg-mode { color: var(--text-muted); font-size: 11px; }
@@ -348,9 +351,12 @@ svg { flex: none; }
 
 /* Launcher */
 .fg-launcher { max-width: 880px; margin: 0 auto; padding: 56px 24px 32px; display: flex; flex-direction: column; gap: 20px; min-height: 100vh; }
-.fg-launcher-header { display: flex; align-items: center; gap: 10px; }
-.fg-launcher-header .fg-logo { margin: 0; }
-.fg-launcher-title { font-size: 20px; font-weight: 600; margin: 0; }
+.fg-launcher-header { display: flex; align-items: center; gap: 14px; padding-bottom: 8px; }
+.fg-launcher-header .fg-logo { width: 56px; height: 56px; margin: 0; }
+.fg-launcher-identity { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fg-launcher-title { font-size: 28px; line-height: 1.15; letter-spacing: -0.03em; font-weight: 650; margin: 0; }
+.fg-launcher-title span { color: var(--text-secondary); font-weight: 400; }
+.fg-launcher-description { margin: 0; color: var(--text-muted); font-size: 12px; }
 .fg-launch-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
 .fg-launch-tile { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 12px; align-items: center; padding: 14px; border-radius: 12px; border: 1px solid var(--border-subtle); background: var(--surface-panel); color: var(--text-primary); text-align: left; cursor: pointer; }
 .fg-launch-tile:hover:not(:disabled) { background: var(--surface-raised); border-color: var(--border-strong); }
@@ -439,7 +445,8 @@ svg { flex: none; }
   .fg-floating-inspector .fg-vector-title { float: none; width: auto; margin: 0; }
   .fg-command-bar span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .fg-topbar { gap: 3px; padding: 0 4px; }
-  .fg-crumb { max-width: 24%; overflow: hidden; }
+  .fg-topbar-controls { gap: 3px; }
+  .fg-crumb { overflow: hidden; }
   .fg-viewport-readout { display: none; }
 }
 
