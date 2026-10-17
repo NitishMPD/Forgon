@@ -11,7 +11,17 @@ export interface TreeRow {
 }
 
 // Rows follow author order. The store validates that parents exist and no cycles exist.
-export function buildRows(entities: readonly Entity[], collapsed: ReadonlySet<string>): TreeRow[] {
+export function buildRows(entities: readonly Entity[], collapsed: ReadonlySet<string>, search = ''): TreeRow[] {
+  const query = search.trim().toLowerCase();
+  const matches = new Set<string>();
+  if (query) {
+    const byId = new Map(entities.map(entity => [entity.id, entity]));
+    for (const entity of entities) {
+      if (!entity.name.toLowerCase().includes(query) && !entity.id.toLowerCase().includes(query)) continue;
+      let item: Entity | undefined = entity;
+      while (item && !matches.has(item.id)) { matches.add(item.id); item = item.parentId ? byId.get(item.parentId) : undefined; }
+    }
+  }
   const children = new Map<string, Entity[]>();
   for (const entity of entities) {
     if (entity.parentId === null) continue;
@@ -21,8 +31,9 @@ export function buildRows(entities: readonly Entity[], collapsed: ReadonlySet<st
   }
   const rows: TreeRow[] = [];
   const visit = (entity: Entity, depth: number): void => {
+    if (query && !matches.has(entity.id)) return;
     const kids = children.get(entity.id) ?? [];
-    const expanded = !collapsed.has(entity.id);
+    const expanded = !!query || !collapsed.has(entity.id);
     rows.push({
       id: entity.id,
       name: entity.name,

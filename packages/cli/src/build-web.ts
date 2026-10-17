@@ -55,12 +55,12 @@ export async function buildWeb(root: string, output: string): Promise<{ status: 
   files.set('index.html', Buffer.from(html));
   const runtimeRequire = createRequire(import.meta.resolve('@forgon/game-runtime/runtime'));
   const schemaRequire = createRequire(import.meta.resolve('@forgon/project-schema'));
-  files.set('licenses/playcanvas.txt', await readFile(join(dirname(dirname(runtimeRequire.resolve('playcanvas'))), 'LICENSE')));
+  files.set('licenses/three.txt', await readFile(join(dirname(dirname(runtimeRequire.resolve('three'))), 'LICENSE')));
   files.set('licenses/ammo.txt', await readFile(new URL('../../game-runtime/vendor/AMMO-LICENSE.txt', import.meta.url)));
   files.set('licenses/ammo-provenance.md', await readFile(new URL('../../game-runtime/vendor/PROVENANCE.md', import.meta.url)));
   files.set('licenses/zod.txt', await readFile(join(dirname(schemaRequire.resolve('zod')), 'LICENSE')));
   const manifest = json({ formatVersion: 1, target: 'web', projectId: project.manifest.projectId, startScene: project.manifest.startScene,
-    toolchain: { exporter: '@forgon/cli@0.0.0', vite: '8.3.4', esbuild: '0.28.2', runtime: '@forgon/game-runtime@0.0.0', playcanvas: '2.23.3' },
+    toolchain: { exporter: '@forgon/cli@0.0.0', vite: '8.3.4', esbuild: '0.28.2', runtime: '@forgon/game-runtime@0.0.0', three: '0.186.1' },
     generator: project.authoring?.generator ?? null,
     scenes: project.scenes.map(scene => ({ id: scene.sceneId, sourcePath: project.manifest.scenes.find(ref => ref.id === scene.sceneId)!.path, sha256: sha256(json(scene)) })),
     assets, files: [...files].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([path, bytes]) => ({ path, bytes: bytes.length, sha256: sha256(bytes) })) });

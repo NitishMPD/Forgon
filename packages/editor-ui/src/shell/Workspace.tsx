@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement, type DragEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactElement, type KeyboardEvent } from 'react';
 import {
-  Activity, AudioLines, Bot, Box, ChevronRight, CircleAlert, Clock, Diamond, Eye, Film, Focus, FolderOpen, Gamepad2,
-  GitCompareArrows, LayoutDashboard, ListTree, LogOut, MousePointer2, Move, Play, Plus, Redo2, RotateCw, Save, Settings as SettingsIcon,
-  Scaling, ShieldCheck, SlidersHorizontal, Sparkles, Square, Terminal, TriangleAlert, Undo2, X, type LucideIcon,
+  Activity, Bot, Box, ChevronRight, CircleAlert, Diamond, Eye, FolderOpen,
+  GitCompareArrows, LayoutDashboard, ListTree, LogOut, Play, Redo2, Save, Settings as SettingsIcon,
+  ShieldCheck, SlidersHorizontal, Sparkles, Square, Terminal, TriangleAlert, Undo2, X, type LucideIcon,
 } from 'lucide-react';
 import type { SceneCommand } from '@forgon/editor-core';
 import { createEntity, type AssetRecord, type Transform } from '@forgon/project-schema';
@@ -18,16 +18,14 @@ import { Inspector } from '../panels/inspector/Inspector.js';
 import { ReviewPanel } from '../review/ReviewPanel.js';
 import { countBySeverity, type ConsoleLog, type LogInput } from '../model/consoleLog.js';
 import type { FileBanner, SaveStatus } from '../model/fileState.js';
-import {
-  closePanel, defaultLayout, groupAt, groupIds, groupOf, isPanelVisible, keyboardSplit, movePanel, neighbourGroup, panelIds,
-  showPanel, splitLimits, activatePanel, type GroupId, type LayoutState, type PanelId,
-} from '../model/layout.js';
+import { defaultLayout, toggleCard, type CardId, type LayoutState } from '../model/layout.js';
 import { noSelection, selectOne, type Selection } from '../model/selection.js';
 import { planSceneSwitch } from '../model/sceneSwitch.js';
 import { topmostIds } from '../model/tree.js';
 import { Banner, Button, IconButton, StatusText, cx, type Tone } from '../primitives/primitives.js';
 import type { ViewportHandle, ViewportMount, ViewportTool, ViewportView } from '../services.js';
 import { Settings } from './Settings.js';
+import { toolButtons, ViewportTools } from './ViewportTools.js';
 import { ViewportSlot } from './ViewportSlot.js';
 
 export interface SceneEntry {
@@ -72,175 +70,18 @@ export interface WorkspaceProps {
 }
 
 const iconProps = { size: 14, strokeWidth: 1.75, 'aria-hidden': true } as const;
-const panelMime = 'application/x-forgon-panel';
-const gap = 8;
-const tabStripHeight = 40;
-
-const panelMeta: Record<PanelId, { label: string; icon: LucideIcon }> = {
-  viewport: { label: 'Viewport', icon: Box },
-  game: { label: 'Game', icon: Gamepad2 },
-  hierarchy: { label: 'Hierarchy', icon: ListTree },
-  inspector: { label: 'Inspector', icon: SlidersHorizontal },
-  composer: { label: 'Composer', icon: Sparkles },
-  agents: { label: 'Agents', icon: Bot },
-  project: { label: 'Project', icon: FolderOpen },
-  console: { label: 'Console', icon: Terminal },
-  review: { label: 'Review', icon: GitCompareArrows },
-};
-
-// Listed in the add-panel menu so the slot exists, but not built yet. Shown disabled, never as working panels.
-const plannedPanels: ReadonlyArray<{ label: string; icon: LucideIcon }> = [
-  { label: 'Audio', icon: AudioLines },
-  { label: 'Animation', icon: Film },
-  { label: 'Timeline', icon: Clock },
-  { label: 'Profiler', icon: Activity },
-];
-
-const toolButtons: ReadonlyArray<{ id: ViewportTool; label: string; key: string; icon: LucideIcon }> = [
-  { id: 'select', label: 'Select', key: 'Q', icon: MousePointer2 },
-  { id: 'translate', label: 'Move', key: 'W', icon: Move },
-  { id: 'rotate', label: 'Rotate', key: 'E', icon: RotateCw },
-  { id: 'scale', label: 'Scale', key: 'R', icon: Scaling },
+const secondaryCards: ReadonlyArray<{ id: CardId; label: string; icon: LucideIcon }> = [
+  { id: 'project', label: 'Assets', icon: FolderOpen },
+  { id: 'console', label: 'Console', icon: Terminal },
+  { id: 'review', label: 'Review', icon: GitCompareArrows },
+  { id: 'agents', label: 'Agents', icon: Bot },
+  { id: 'stats', label: 'Stats', icon: Activity },
+  { id: 'composer', label: 'Conversation', icon: Sparkles },
 ];
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
-}
-
-const isLeft = (group: GroupId): boolean => group === 'topLeft' || group === 'bottomLeft';
-const isTop = (group: GroupId): boolean => group === 'topLeft' || group === 'topRight';
-const pct = (value: number): string => `${(value * 100).toFixed(3)}%`;
-
-// Group rectangles are percentages of the dock area, so panels never need measuring to be placed.
-function groupBox(layout: LayoutState, group: GroupId): { left: string; top: string; width: string; height: string } {
-  const col = layout.columns;
-  const row = isLeft(group) ? layout.leftRows : layout.rightRows;
-  const half = gap / 2;
-  return {
-    left: isLeft(group) ? '0px' : `calc(${pct(col)} + ${half}px)`,
-    width: `calc(${pct(isLeft(group) ? col : 1 - col)} - ${half}px)`,
-    top: isTop(group) ? '0px' : `calc(${pct(row)} + ${half}px)`,
-    height: `calc(${pct(isTop(group) ? row : 1 - row)} - ${half}px)`,
-  };
-}
-
-function panelBox(layout: LayoutState, panel: PanelId): CSSProperties {
-  const group = groupOf(layout, panel);
-  if (group === null) return { left: 0, top: 0, width: 0, height: 0 };
-  const box = groupBox(layout, group);
-  return { left: box.left, width: box.width, top: `calc(${box.top} + ${tabStripHeight}px)`, height: `calc(${box.height} - ${tabStripHeight}px)` };
-}
-
-type SplitKey = 'columns' | 'leftRows' | 'rightRows';
-
-function SplitHandle({ split, layout, area, onChange }: {
-  split: SplitKey;
-  layout: LayoutState;
-  area: { current: HTMLDivElement | null };
-  onChange(value: number): void;
-}) {
-  const dragging = useRef(false);
-  const value = layout[split];
-  const vertical = split === 'columns';
-  const col = pct(layout.columns);
-  const style: CSSProperties = split === 'columns'
-    ? { left: `calc(${col} - ${gap / 2}px)`, top: 0, bottom: 0, width: gap }
-    : split === 'leftRows'
-      ? { left: 0, width: `calc(${col} - ${gap / 2}px)`, top: `calc(${pct(value)} - ${gap / 2}px)`, height: gap }
-      : { left: `calc(${col} + ${gap / 2}px)`, right: 0, top: `calc(${pct(value)} - ${gap / 2}px)`, height: gap };
-  const label = split === 'columns' ? 'Resize columns' : split === 'leftRows' ? 'Resize left column groups' : 'Resize right column groups';
-  const move = (event: ReactPointerEvent<HTMLDivElement>): void => {
-    const rect = area.current?.getBoundingClientRect();
-    if (!dragging.current || !rect || rect.width === 0 || rect.height === 0) return;
-    const next = vertical ? (event.clientX - rect.left) / rect.width : (event.clientY - rect.top) / rect.height;
-    onChange(Math.round(Math.min(splitLimits[1], Math.max(splitLimits[0], next)) * 1000) / 1000);
-  };
-  const end = (event: ReactPointerEvent<HTMLDivElement>): void => {
-    dragging.current = false;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-  };
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
-    const owned = vertical ? ['ArrowLeft', 'ArrowRight', 'Home', 'End'] : ['ArrowUp', 'ArrowDown', 'Home', 'End'];
-    if (!owned.includes(event.key)) return;
-    const next = keyboardSplit(value, event.key, event);
-    if (next === null) return;
-    event.preventDefault();
-    onChange(next);
-  };
-  return (
-    <div
-      role="separator"
-      aria-orientation={vertical ? 'vertical' : 'horizontal'}
-      aria-label={label}
-      aria-valuemin={Math.round(splitLimits[0] * 100)}
-      aria-valuemax={Math.round(splitLimits[1] * 100)}
-      aria-valuenow={Math.round(value * 100)}
-      tabIndex={0}
-      className={cx('fg-split', vertical ? 'fg-split-vertical' : 'fg-split-horizontal')}
-      style={style}
-      onPointerDown={event => { dragging.current = true; event.currentTarget.setPointerCapture(event.pointerId); }}
-      onPointerMove={move}
-      onPointerUp={end}
-      onPointerCancel={end}
-      onKeyDown={onKeyDown}
-    />
-  );
-}
-
-function AddPanelMenu({ group, layout, onPick, onClose }: {
-  group: GroupId;
-  layout: LayoutState;
-  onPick(panel: PanelId): void;
-  onClose(restoreFocus: boolean): void;
-}) {
-  const menuRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    menuRef.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
-    const outside = (event: PointerEvent): void => {
-      const target = event.target as Node | null;
-      if (target && !menuRef.current?.contains(target) && !(target instanceof Element && target.closest(`[data-add-panel="${group}"]`))) onClose(false);
-    };
-    globalThis.document?.addEventListener('pointerdown', outside);
-    return () => globalThis.document?.removeEventListener('pointerdown', outside);
-  }, [group, onClose]);
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
-    const items = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") ?? []);
-    const index = items.indexOf(globalThis.document?.activeElement as HTMLButtonElement);
-    let next: number | null = null;
-    if (event.key === 'ArrowDown') next = (index + 1) % items.length;
-    if (event.key === 'ArrowUp') next = (index - 1 + items.length) % items.length;
-    if (event.key === 'Home') next = 0;
-    if (event.key === 'End') next = items.length - 1;
-    if (event.key === 'Escape') { event.preventDefault(); onClose(true); return; }
-    if (event.key === 'Tab') { onClose(false); return; }
-    if (next === null) return;
-    event.preventDefault();
-    items[next]?.focus();
-  };
-  return (
-    <div ref={menuRef} className="fg-menu" role="menu" aria-label="Add panel" onKeyDown={onKeyDown}>
-      {panelIds.map(panel => {
-        const { label, icon: Icon } = panelMeta[panel];
-        const where = groupOf(layout, panel);
-        return (
-          <button key={panel} type="button" role="menuitem" className="fg-menu-item" onClick={() => onPick(panel)}>
-            <Icon {...iconProps} />
-            <span>{label}</span>
-            <span className="fg-menu-hint">{where === group ? 'Here' : where !== null ? 'Move here' : ''}</span>
-          </button>
-        );
-      })}
-      <div className="fg-menu-sep" role="separator" />
-      {plannedPanels.map(({ label, icon: Icon }) => (
-        <button key={label} type="button" role="menuitem" className="fg-menu-item" disabled aria-disabled="true" title={`${label} is planned and not built yet.`}>
-          <Icon {...iconProps} />
-          <span>{label}</span>
-          <span className="fg-menu-hint">Planned</span>
-        </button>
-      ))}
-    </div>
-  );
 }
 
 export function Workspace(props: WorkspaceProps) {
@@ -253,10 +94,8 @@ export function Workspace(props: WorkspaceProps) {
   const [tool, setTool] = useState<ViewportTool>('select');
   const [pendingScene, setPendingScene] = useState<string | null>(null);
   const [switchError, setSwitchError] = useState<string | null>(null);
-  const [menuGroup, setMenuGroup] = useState<GroupId | null>(null);
-  const [dropGroup, setDropGroup] = useState<GroupId | null>(null);
+  const [space, setSpace] = useState<'local' | 'world'>('world');
   const [view_, setView] = useState<'editor' | 'settings'>('editor');
-  const areaRef = useRef<HTMLDivElement>(null);
   const pendingFocus = useRef<string | null>(null);
   const primary = scene.entities.find(entity => entity.id === selection.primaryId) ?? null;
   const conflict = snapshot.conflict;
@@ -273,7 +112,23 @@ export function Workspace(props: WorkspaceProps) {
 
   useEffect(() => {
     handle?.setTool?.(canEdit ? tool : 'select');
-  }, [handle, tool, canEdit]);
+  }, [handle, canEdit]);
+
+  useEffect(() => { handle?.setSpace?.(space); }, [handle]);
+  const addChip = agent?.addChip;
+  const removeChip = agent?.removeChip;
+  const selectionChip = useRef<string | null>(null);
+  useEffect(() => {
+    if (selectionChip.current) removeChip?.(selectionChip.current);
+    selectionChip.current = primary && addChip ? `selection:${primary.id}` : null;
+    if (primary && addChip) addChip({ id: `selection:${primary.id}`, kind: 'entity', ref: primary.id, label: primary.name });
+  }, [primary?.id, addChip, removeChip]);
+  const running = !!agent?.activeThread && (agent.activeThread.starting || agent.activeThread.activeRunId !== null);
+  const wasRunning = useRef(false);
+  useEffect(() => {
+    if (running && !wasRunning.current) props.onLayoutChange({ ...layout, expandedCard: 'composer' });
+    wasRunning.current = running;
+  }, [running]);
 
   useEffect(() => {
     const guard = (event: BeforeUnloadEvent): void => {
@@ -283,7 +138,7 @@ export function Workspace(props: WorkspaceProps) {
     return () => globalThis.removeEventListener?.('beforeunload', guard);
   }, [snapshot.dirty, props.saveStatus]);
 
-  // Keyboard tab moves re-render the strip; focus follows the moved or activated element.
+  // Closing a card returns keyboard focus to its command or visibility toggle.
   useEffect(() => {
     const id = pendingFocus.current;
     if (id === null) return;
@@ -292,7 +147,11 @@ export function Workspace(props: WorkspaceProps) {
   });
 
   const setLayout = (next: LayoutState): void => props.onLayoutChange(next);
-  const show = (panel: PanelId): void => setLayout(showPanel(layout, panel));
+  const show = (card: CardId): void => setLayout({ ...layout, expandedCard: card });
+  const collapse = (): void => {
+    pendingFocus.current = `command-${layout.expandedCard ?? 'composer'}`;
+    setLayout({ ...layout, expandedCard: null });
+  };
 
   const execute = (command: SceneCommand): boolean => {
     if (!canEdit) return false;
@@ -322,6 +181,7 @@ export function Workspace(props: WorkspaceProps) {
   };
 
   const openComposer = (): void => {
+    setView('editor');
     show('composer');
     setFocusToken(token => token + 1);
   };
@@ -399,7 +259,20 @@ export function Workspace(props: WorkspaceProps) {
       void props.onSave();
       return;
     }
+    if (event.key === 'Escape' && layout.expandedCard !== null) { event.preventDefault(); collapse(); return; }
+    if (mod && ((key === 'k') || (key === 'l' && !event.shiftKey))) { event.preventDefault(); openComposer(); return; }
+    if (mod && (key === '1' || key === '2')) {
+      event.preventDefault();
+      const panel = key === '1' ? 'hierarchy' : 'inspector';
+      pendingFocus.current = layout[panel] ? `toggle-${panel}` : `panel-${panel}`;
+      setLayout({ ...layout, [panel]: !layout[panel] }); return;
+    }
+    if (mod && key === '`') { event.preventDefault(); setLayout(toggleCard(layout, 'console')); return; }
+    if (mod && key === '.' && agent) { event.preventDefault(); agent.cancel(); return; }
+    if (mod && event.shiftKey && key === 'r') { event.preventDefault(); show('review'); return; }
+    if (key === 'f5') { event.preventDefault(); (playing ? stop : play)(); return; }
     if (isEditableTarget(event.target)) return;
+    if (key === '/' && !event.ctrlKey && !event.altKey && !event.metaKey) { event.preventDefault(); openComposer(); return; }
     if (mod && key === 'z' && !event.shiftKey) {
       event.preventDefault();
       if (canEdit && snapshot.canUndo) props.onUndo();
@@ -414,73 +287,18 @@ export function Workspace(props: WorkspaceProps) {
       openComposer();
     } else if (mod && key === 'i') {
       event.preventDefault();
-      show('inspector');
-      pendingFocus.current = 'tab-inspector';
+      setLayout({ ...layout, inspector: true });
+      pendingFocus.current = 'panel-inspector';
     } else if (!event.ctrlKey && !event.altKey && !event.metaKey) {
       const shortcut = toolButtons.find(item => item.key.toLowerCase() === key);
       if (shortcut && !playing) {
         event.preventDefault();
-        setTool(shortcut.id);
+        if (canTool) { handle?.setTool?.(shortcut.id); setTool(shortcut.id); }
       } else if (key === 'f' && canFrame) {
         event.preventDefault();
         handle?.frameSelection?.();
       }
     }
-  };
-
-  const onTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, group: GroupId, panel: PanelId): void => {
-    const tabs = layout.groups[group].tabs;
-    const index = tabs.indexOf(panel);
-    if (event.altKey && !event.ctrlKey && !event.metaKey) {
-      const target = neighbourGroup(group, event.key);
-      if (target === null) return;
-      event.preventDefault();
-      pendingFocus.current = `tab-${panel}`;
-      setLayout(movePanel(layout, panel, target));
-      return;
-    }
-    let next: PanelId | undefined;
-    if (event.key === 'ArrowRight') next = tabs[(index + 1) % tabs.length];
-    if (event.key === 'ArrowLeft') next = tabs[(index - 1 + tabs.length) % tabs.length];
-    if (event.key === 'Home') next = tabs[0];
-    if (event.key === 'End') next = tabs[tabs.length - 1];
-    if (event.key === 'Delete') {
-      event.preventDefault();
-      const after = closePanel(layout, panel);
-      const active = after.groups[group].active;
-      pendingFocus.current = active === null ? `add-${group}` : `tab-${active}`;
-      setLayout(after);
-      return;
-    }
-    if (next === undefined) return;
-    event.preventDefault();
-    pendingFocus.current = `tab-${next}`;
-    setLayout(activatePanel(layout, next));
-  };
-
-  // Tabs drop anywhere on a group: the group under the pointer receives it, before the hovered tab.
-  const dragTarget = (event: DragEvent<HTMLDivElement>): GroupId | null => {
-    if (!event.dataTransfer.types.includes(panelMime)) return null;
-    const rect = areaRef.current?.getBoundingClientRect();
-    if (!rect || rect.width === 0 || rect.height === 0) return null;
-    return groupAt(layout, (event.clientX - rect.left) / rect.width, (event.clientY - rect.top) / rect.height);
-  };
-  const onDragOver = (event: DragEvent<HTMLDivElement>): void => {
-    const target = dragTarget(event);
-    if (target === null) return;
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
-    if (target !== dropGroup) setDropGroup(target);
-  };
-  const onDrop = (event: DragEvent<HTMLDivElement>): void => {
-    const target = dragTarget(event);
-    setDropGroup(null);
-    if (target === null) return;
-    const panel = event.dataTransfer.getData(panelMime);
-    if (!(panelIds as readonly string[]).includes(panel)) return;
-    event.preventDefault();
-    const before = (event.target as Element).closest?.('[data-panel-tab]')?.getAttribute('data-panel-tab') ?? null;
-    setLayout(movePanel(layout, panel as PanelId, target, (panelIds as readonly string[]).includes(before ?? '') ? before as PanelId : null));
   };
 
   const saveLabel: { label: string; tone: Tone } = props.source === 'sample'
@@ -497,42 +315,20 @@ export function Workspace(props: WorkspaceProps) {
   const agentLabel = agent === null ? 'Agent not connected' : activeThread ? `${agent.activeProvider?.name ?? 'Agent'} · ${threadStatusLabels[threadStatus(activeThread)]}` : agent.activeProvider?.name ?? 'Agent';
   const saveDisabled = props.saveDisabledReason !== null || !snapshot.dirty || props.saveStatus === 'saving';
 
-  const panelContent: Record<PanelId, ReactElement> = {
+  const panelContent: Record<string, ReactElement> = {
     viewport: (
       <ViewportSlot
         mount={props.viewport}
         view={view}
         updatesEnabled={!playing}
-        visible={isPanelVisible(layout, 'viewport')}
+        visible={true}
         onPick={entityId => props.onSelect(entityId === null ? noSelection : selectOne(entityId))}
         onFault={message => props.onLog({ source: 'editor', severity: 'error', message })}
         onTransform={transformObject}
         onTransforms={transformObjects}
         onHandle={setHandle}
       >
-        <div className="fg-viewport-toolbar fg-float" role="toolbar" aria-label="Viewport tools">
-          {toolButtons.map(item => (
-            <IconButton
-              key={item.id}
-              label={item.label}
-              aria-pressed={tool === item.id}
-              disabled={!canTool}
-              title={canTool ? `${item.label} (${item.key})` : 'Gizmos need the viewport runtime, which is not connected in this build.'}
-              onClick={() => setTool(item.id)}
-            >
-              <item.icon {...iconProps} size={16} />
-            </IconButton>
-          ))}
-          <span className="fg-toolbar-sep" aria-hidden="true" />
-          <IconButton
-            label="Frame"
-            disabled={!canFrame}
-            title={canFrame ? 'Frame selection (F)' : 'Select an object and connect the viewport runtime to frame it.'}
-            onClick={() => handle?.frameSelection?.()}
-          >
-            <Focus {...iconProps} size={16} />
-          </IconButton>
-        </div>
+        <ViewportTools tool={tool} space={space} handle={handle} canEdit={canEdit} canFrame={canFrame} onTool={setTool} onSpace={setSpace} />
         <div className="fg-viewport-banners">
           {props.saveError ? <Banner tone="danger">{props.saveError}</Banner> : null}
           {pendingScene !== null ? (
@@ -580,18 +376,6 @@ export function Workspace(props: WorkspaceProps) {
         </div>
       </ViewportSlot>
     ),
-    game: (
-      <section className="fg-dock-panel fg-game" aria-label="Game">
-        <div className="fg-game-card">
-          <Gamepad2 size={20} strokeWidth={1.75} aria-hidden="true" />
-          <StatusText tone={playing ? 'success' : 'neutral'}>{playing ? 'Playing a snapshot' : 'Not running'}</StatusText>
-          <p className="fg-muted" title="A separate device-size game view is not built yet.">Play runs in the Viewport for now.</p>
-          <Button variant="primary" disabled={!playing && !handle?.play} onClick={() => { (playing ? stop : play)(); show('viewport'); }}>
-            {playing ? <Square {...iconProps} /> : <Play {...iconProps} />}{playing ? 'Stop' : 'Play'}
-          </Button>
-        </div>
-      </section>
-    ),
     hierarchy: (
       <Hierarchy
         sceneName={scene.name}
@@ -618,15 +402,15 @@ export function Workspace(props: WorkspaceProps) {
         onAddToAgent={agent ? addToAgent : null}
       />
     ),
-    composer: <AgentDock agent={agent} scene={scene} assets={props.assets} projectOpen={props.source === 'project'} focusToken={focusToken} />,
     agents: <AgentsPanel agent={agent} onOpenThread={openComposer} onOpenSettings={() => setView('settings')} />,
     project: <AssetsPanel assets={props.assets} projectOpen={props.source === 'project'} onRefresh={props.onRefreshAssets} onImport={props.onImportAsset} />,
     console: <ConsolePanel log={log} />,
     review: <ReviewPanel threadTitle={activeThread?.title ?? null} changedPaths={reviewPaths} />,
+    stats: <dl className="fg-stats"><div><dt>Entities</dt><dd>{scene.entities.length}</dd></div><div><dt>Selected</dt><dd>{selection.entityIds.length}</dd></div><div><dt>Diagnostics</dt><dd>{counts.errors + counts.warnings}</dd></div></dl>,
   };
 
   return (
-    <div className="fg-workspace" data-layout="dock" onKeyDown={onKeyDown}>
+    <div className="fg-workspace" data-layout="floating" onKeyDown={onKeyDown}>
       <nav className="fg-rail" aria-label="Main">
         <span className="fg-logo" aria-hidden="true"><Diamond size={16} strokeWidth={2} /></span>
         <IconButton className={cx('fg-rail-item', view_ === 'editor' && 'is-active')} label="Editor" aria-current={view_ === 'editor' ? 'page' : undefined} onClick={() => setView('editor')}><LayoutDashboard {...iconProps} size={18} /></IconButton>
@@ -656,6 +440,8 @@ export function Workspace(props: WorkspaceProps) {
           )}
         </div>
         <span className="fg-topbar-spacer" />
+        <IconButton id="toggle-hierarchy" label="Toggle Hierarchy" title="Hierarchy (Ctrl+1)" aria-pressed={layout.hierarchy} onClick={() => setLayout({ ...layout, hierarchy: !layout.hierarchy })}><ListTree {...iconProps} /></IconButton>
+        <IconButton id="toggle-inspector" label="Toggle Inspector" title="Inspector (Ctrl+2)" aria-pressed={layout.inspector} onClick={() => setLayout({ ...layout, inspector: !layout.inspector })}><SlidersHorizontal {...iconProps} /></IconButton>
         <div className="fg-pill fg-play-pill" role="group" aria-label="Mode">
           <span className={cx('fg-mode', playing && 'is-playing')}>{playing ? 'Playing' : 'Edit'}</span>
           <button
@@ -663,7 +449,7 @@ export function Workspace(props: WorkspaceProps) {
             className="fg-play"
             aria-pressed={playing}
             disabled={!playing && !handle?.play}
-            title={handle?.play ? 'Play a snapshot of the scene' : 'Play needs the viewport runtime, which is not connected in this build.'}
+            title={handle?.play ? 'Play a snapshot of the scene (F5)' : 'Play needs the viewport runtime, which is not connected in this build.'}
             onClick={playing ? stop : play}
           >
             <span className="fg-play-icon">{playing ? <Square {...iconProps} /> : <Play {...iconProps} />}</span>
@@ -684,101 +470,36 @@ export function Workspace(props: WorkspaceProps) {
         ) : null}
       </header>
 
-      <div
-        ref={areaRef}
-        className="fg-dock-area"
-        inert={view_ === 'settings'}
-        onDragOver={onDragOver}
-        onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropGroup(null); }}
-        onDrop={onDrop}
-      >
-        {groupIds.map(group => {
-          const { tabs, active } = layout.groups[group];
-          return (
-            <section key={group} className={cx('fg-group', dropGroup === group && 'is-drop-target')} style={groupBox(layout, group)} aria-label={`${tabs.map(tab => panelMeta[tab].label).join(', ') || 'Empty'} group`}>
-              <div className="fg-tabstrip">
-                <div role="tablist" aria-label="Panels" className="fg-tabs">
-                  {tabs.map(panel => {
-                    const { label, icon: Icon } = panelMeta[panel];
-                    const selected = panel === active;
-                    const badge = panel === 'review' && reviewPaths.length > 0 ? reviewPaths.length : null;
-                    return (
-                      <div key={panel} className={cx('fg-tab', selected && 'is-selected')} draggable data-panel-tab={panel}
-                        onDragStart={event => { event.dataTransfer.setData(panelMime, panel); event.dataTransfer.effectAllowed = 'move'; }}
-                        onDragEnd={() => setDropGroup(null)}
-                      >
-                        <button
-                          type="button"
-                          role="tab"
-                          id={`tab-${panel}`}
-                          aria-selected={selected}
-                          aria-controls={`panel-${panel}`}
-                          tabIndex={selected ? 0 : -1}
-                          title={`${label}. Drag to another group, or Alt+Arrow to move.`}
-                          className="fg-tab-main"
-                          onClick={() => setLayout(activatePanel(layout, panel))}
-                          onKeyDown={event => onTabKeyDown(event, group, panel)}
-                        >
-                          <Icon {...iconProps} />
-                          <span>{label}</span>
-                          {badge !== null ? <span className="fg-tab-badge" aria-label={`${badge} changed files`}>{badge}</span> : null}
-                        </button>
-                        <button type="button" className="fg-tab-close" tabIndex={-1} aria-label={`Close ${label}`} title={`Close ${label} (Delete)`} onClick={() => setLayout(closePanel(layout, panel))}>
-                          <X size={12} strokeWidth={2} aria-hidden="true" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-                <span className="fg-tabstrip-spacer" />
-                <IconButton
-                  id={`add-${group}`}
-                  data-add-panel={group}
-                  label="Add panel"
-                  aria-haspopup="menu"
-                  aria-expanded={menuGroup === group}
-                  onClick={() => setMenuGroup(open => (open === group ? null : group))}
-                >
-                  <Plus {...iconProps} />
-                </IconButton>
-                {menuGroup === group ? (
-                  <AddPanelMenu
-                    group={group}
-                    layout={layout}
-                    onPick={panel => { setMenuGroup(null); pendingFocus.current = `tab-${panel}`; setLayout(movePanel(layout, panel, group)); }}
-                    onClose={restore => { setMenuGroup(null); if (restore) pendingFocus.current = `add-${group}`; }}
-                  />
-                ) : null}
-              </div>
-              {tabs.length === 0 ? (
-                <div className="fg-group-empty"><Plus size={20} strokeWidth={1.75} aria-hidden="true" /><span>Drop a tab here or press + to add a panel</span></div>
-              ) : null}
+      <main className="fg-floating-stage" inert={view_ === 'settings'} aria-label="Scene workspace">
+        {panelContent['viewport']}
+        {(['hierarchy', 'inspector'] as const).map(panel => (
+          <section key={panel} id={`panel-${panel}`} tabIndex={-1} aria-label={`${panel === 'hierarchy' ? 'Hierarchy' : 'Inspector'} card`}
+            className={`fg-floating-card fg-floating-${panel}`} hidden={!layout[panel]} inert={!layout[panel]}>
+            <IconButton className="fg-card-close" label={`Hide ${panel === 'hierarchy' ? 'Hierarchy' : 'Inspector'}`}
+              title={`Hide ${panel} (Ctrl+${panel === 'hierarchy' ? '1' : '2'})`}
+              onClick={() => { pendingFocus.current = `toggle-${panel}`; setLayout({ ...layout, [panel]: false }); }}><X {...iconProps} /></IconButton>
+            {panelContent[panel]}
+          </section>
+        ))}
+        <div className="fg-command-home">
+          {secondaryCards.filter(card => card.id !== 'composer').map(card => (
+            <section key={card.id} id={`card-${card.id}`} role="region" aria-label={card.label}
+              className="fg-expanded-card fg-floating-card" hidden={layout.expandedCard !== card.id} inert={layout.expandedCard !== card.id}>
+              <header className="fg-expanded-head"><h2>{card.label}</h2><IconButton label={`Close ${card.label}`} title="Close (Escape)" onClick={collapse}><X {...iconProps} /></IconButton></header>
+              {panelContent[card.id]}
             </section>
-          );
-        })}
-
-        {/* Panels keep one stable tree position for the life of the workspace; only their box moves. */}
-        {panelIds.map(panel => {
-          const visible = isPanelVisible(layout, panel);
-          return (
-            <div
-              key={panel}
-              role="tabpanel"
-              id={`panel-${panel}`}
-              aria-labelledby={groupOf(layout, panel) === null ? undefined : `tab-${panel}`}
-              className={cx('fg-panel-host', `fg-panel-host-${panel}`, !visible && 'is-hidden')}
-              style={panelBox(layout, panel)}
-              inert={!visible}
-            >
-              {panelContent[panel]}
-            </div>
-          );
-        })}
-
-        <SplitHandle split="columns" layout={layout} area={areaRef} onChange={columns => setLayout({ ...layout, columns })} />
-        <SplitHandle split="leftRows" layout={layout} area={areaRef} onChange={leftRows => setLayout({ ...layout, leftRows })} />
-        <SplitHandle split="rightRows" layout={layout} area={areaRef} onChange={rightRows => setLayout({ ...layout, rightRows })} />
-      </div>
+          ))}
+          <nav className="fg-command-bar" aria-label="Workspace panels">
+            {secondaryCards.map(({ id, label, icon: Icon }) => (
+              <button key={id} id={`command-${id}`} type="button" aria-expanded={layout.expandedCard === id}
+                aria-controls={id === 'composer' ? 'agent-conversation' : `card-${id}`} title={id === 'console' ? 'Console (Ctrl+`)' : id === 'composer' ? 'Conversation ? focus prompt (Ctrl+K or /)' : label}
+                onClick={() => setLayout(toggleCard(layout, id))}><Icon {...iconProps} /><span>{label}</span></button>
+            ))}
+          </nav>
+          <AgentDock agent={agent} scene={scene} assets={props.assets} projectOpen={props.source === 'project'} focusToken={focusToken}
+            transcriptOpen={layout.expandedCard === 'composer'} onCloseTranscript={collapse} />
+        </div>
+      </main>
 
       {view_ === 'settings' ? (
         <Settings

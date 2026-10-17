@@ -57,7 +57,10 @@ test('real web artifact includes exact assets, catalog snapshots, independent ru
   }
   const js = await readFile(join(output, 'game.js'), 'utf8');
   assert.doesNotMatch(js, /@forgon\/|@tauri-apps|__vite-browser-external|UNTRUSTED SCRIPT EXECUTED|editor-viewport/);
-  assert.ok(js.length > 100_000, 'Actual PlayCanvas engine is bundled');
+  assert.ok(js.length > 100_000, 'Actual Three.js renderer is bundled');
+  assert.equal(manifest.toolchain.three, '0.186.1');
+  assert.equal(manifest.toolchain.playcanvas, undefined);
+  assert.match(await readFile(join(output, 'licenses/three.txt'), 'utf8'), /MIT License/);
   const wasm = /data:application\/wasm;base64,([A-Za-z0-9+/=]+)/.exec(js);
   assert.ok(wasm, 'Standalone artifact includes its physics WASM without a CDN or node_modules');
   assert.deepEqual(Buffer.from(wasm[1]!, 'base64'), await readFile(new URL('../../game-runtime/vendor/ammo.wasm.wasm', import.meta.url)));
@@ -75,7 +78,9 @@ test('real web artifact includes exact assets, catalog snapshots, independent ru
 test('unsupported required components and scripts fail before creating an output', async t => {
   for (const type of ['script', 'rigidbody', 'unknownComponent']) {
     const fixture = createEmpty3dFixture();
-    fixture.scenes[0]!.entities[0]!.components.push({ id: 'unsupported_component', type, enabled: true, properties: {}, entityRefs: [], assetRefs: [] });
+    // A script needs schema-valid properties so the build reaches its own unsupported-component check.
+    const properties = type === 'script' ? { src: 'scripts/brain.ts', params: {} } : {};
+    fixture.scenes[0]!.entities[0]!.components.push({ id: 'unsupported_component', type, enabled: true, properties, entityRefs: [], assetRefs: [] });
     fixture.files['scenes/main.scene.json'] = JSON.stringify(fixture.scenes[0]);
     const { root, parent } = await setup(t, fixture);
     const result = await run(['build', root, '--target', 'web', '--out', join(parent, 'game')]);

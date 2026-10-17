@@ -1,5 +1,7 @@
-import { Color, Entity, StandardMaterial, Vec3 } from 'playcanvas';
-import type { Application } from 'playcanvas';
+import { Color, Group, MeshStandardMaterial, Vector3 } from 'three';
+import type { Object3D, PerspectiveCamera } from 'three';
+import { SceneNode, disposeGraph, rotationDegrees, setRotationDegrees, setWorldPosition, setWorldRotationDegrees, isVisible } from '../core/projection.js';
+import { createPhysicsWorld, type PhysicsWorld } from './physics.js';
 import type { SceneDocument, ValidationContext } from '@forgon/project-schema';
 import { projectScene } from '../core/reconcile.js';
 import type { MaterialCache } from '../core/projection.js';
@@ -18,12 +20,12 @@ interface AudioChannel {
   entityId: string; buffer: AudioBuffer | null; volume: number; loop: boolean; autoplay: boolean; playing: boolean;
 }
 interface Pulse {
-  entityId: string; entity: Entity; baseline: Vec3; duration: number; elapsed: number;
-  material: StandardMaterial; color: Color;
+  entityId: string; entity: SceneNode; baseline: Vector3; duration: number; elapsed: number;
+  material: MeshStandardMaterial; color: Color;
 }
-interface RigPart { entity: Entity; basePosition: SimpleVec; baseRotation: SimpleVec }
+interface RigPart { entity: SceneNode; basePosition: SimpleVec; baseRotation: SimpleVec }
 interface PlayerRig {
-  root: Entity;
+  root: SceneNode;
   baseScale: SimpleVec;
   legsLeft: RigPart[];
   legsRight: RigPart[];
@@ -36,10 +38,10 @@ interface SimpleVec { x: number; y: number; z: number }
 interface ParkourRuntime {
   level: ParkourLevel;
   state: ParkourState;
-  playerEntity: Entity;
+  playerEntity: SceneNode;
   rig: PlayerRig;
-  platformEntities: Entity[];
-  cameraEntity: Entity | null;
+  platformEntities: SceneNode[];
+  cameraEntity: SceneNode | null;
   cameraDef: CameraDef;
   cameraState: CameraState | null;
   cameraYaw: number;
@@ -56,6 +58,8 @@ export interface PlaySession {
   update(dt: number): void;
   /** Latest parkour HUD numbers, or null for a non-parkour scene. */
   getHud(): HudSnapshot | null;
+  getCamera(): PerspectiveCamera | null;
+  getPhysics(): PhysicsWorld | null;
   dispose(): void;
 }
 
@@ -65,22 +69,24 @@ const MAX_STEPS = 12;
 
 /** All state belongs to a detached play graph; stop destroys it, never writes authoring data. */
 export function createPlaySession(deps: {
-  app: Application; editRoot: Entity; context?: ValidationContext | undefined;
+  world: Object3D; editRoot: Object3D; context?: ValidationContext | undefined;
   loadAssetBytes?: AssetBytesResolver | undefined;
   audioContext?: AudioContext | null;
   input?: { sample(dt: number): InputSample } | undefined;
   onRuntimeEvent(event: RuntimeEvent): void;
 }): PlaySession {
-  const { app, editRoot, loadAssetBytes, onRuntimeEvent: emit } = deps;
-  let root: Entity | null = null;
+  const { world, editRoot, loadAssetBytes, onRuntimeEvent: emit } = deps;
+  let root: Group | null = null;
+  let physics: PhysicsWorld | null = null;
   let materials: MaterialCache | undefined;
-  let movers: { entityId: string; entity: Entity; state: GuestMoverState; definition: GuestQueueDefinition }[] = [];
+  let movers: { entityId: string; entity: SceneNode; state: GuestMoverState; definition: GuestQueueDefinition }[] = [];
   let channels: AudioChannel[] = [];
   let pulses: Pulse[] = [];
   let context: AudioContext | null = null;
   let generation = 0;
   let parkour: ParkourRuntime | null = null;
   let hud: HudSnapshot | null = null;
+  let activeCamera: PerspectiveCamera | null = null;
   const sources = new Set<AudioBufferSourceNode>();
 
   const playAudio = (channel: AudioChannel): void => {
@@ -151,15 +157,15 @@ export function createPlaySession(deps: {
     const { state, rig } = runtime;
     const stretch = state.visual.stretch;
     const squash = 1 / Math.sqrt(Math.max(0.5, stretch));
-    rig.root.setEulerAngles(state.visual.lean * 16, state.facing * 180 / Math.PI, state.visual.roll * 180 / Math.PI);
-    rig.root.setLocalScale(rig.baseScale.x * squash, rig.baseScale.y * stretch, rig.baseScale.z * squash);
-    rig.root.setPosition(state.position.x, state.position.y, state.position.z);
+    setWorldRotationDegrees(rig.root, state.visual.lean * 16, state.facing * 180 / Math.PI, state.visual.roll * 180 / Math.PI);
+    rig.root.scale.set(rig.baseScale.x * squash, rig.baseScale.y * stretch, rig.baseScale.z * squash);
+    setWorldPosition(rig.root, state.position.x, state.position.y, state.position.z);
 
     const run = Math.sin(state.visual.runPhase);
     const crouch = 1 - state.visual.stance;
     const airborne = !state.grounded;
     const swing = airborne ? 0.45 : 1;
-    const rot = (part: RigPart, x: number): void => part.entity.setLocalEulerAngles(part.baseRotation.x + x * 180 / Math.PI, part.baseRotation.y, part.baseRotation.z);
+    const rot = (part: RigPart, x: number): void => setRotationDegrees(part.entity, part.baseRotation.x + x * 180 / Math.PI, part.baseRotation.y, part.baseRotation.z);
     for (const part of rig.legsLeft) rot(part, run * 0.95 * swing - crouch * 1.1);
     for (const part of rig.legsRight) rot(part, -run * 0.95 * swing - crouch * 1.1);
     for (const part of rig.armsLeft) rot(part, -run * 1.0 * swing - (airborne ? 0.9 : 0));
@@ -178,9 +184,9 @@ export function createPlaySession(deps: {
       position: runtime.state.position, velocity: runtime.state.velocity, headHeight: runtime.level.config.height,
     }, { yaw: runtime.cameraYaw, pitch: runtime.cameraPitch, speed: runtime.state.speed, roll: runtime.state.visual.roll * 0.5, baseFov: runtime.baseFov }, dt);
     const view = cameraView(runtime.cameraState);
-    camera.setPosition(view.position.x, view.position.y, view.position.z);
-    camera.setEulerAngles(view.rotationEuler[0], view.rotationEuler[1], view.rotationEuler[2]);
-    if (camera.camera) camera.camera.fov = view.fov;
+    setWorldPosition(camera, view.position.x, view.position.y, view.position.z);
+    setWorldRotationDegrees(camera, view.rotationEuler[0], view.rotationEuler[1], view.rotationEuler[2]);
+    if (camera.camera) { camera.camera.fov = view.fov; camera.camera.updateProjectionMatrix(); }
   };
 
   const updateHud = (runtime: ParkourRuntime, dt: number): void => {
@@ -198,41 +204,46 @@ export function createPlaySession(deps: {
   const session: PlaySession = {
     get isPlaying() { return root !== null; },
     getHud: () => hud,
+    getCamera: () => activeCamera,
+    getPhysics: () => physics,
     start(scene): void {
       const snapshot = validatePlayableScene(scene, deps.context);
       session.stop();
       const token = ++generation;
-      const nextRoot = new Entity('Forgon Play Snapshot', app);
-      app.root.addChild(nextRoot);
+      const nextRoot = new Group();
+      nextRoot.name = 'Forgon Play Snapshot';
+      world.add(nextRoot);
       try {
-        const projection = projectScene(nextRoot, snapshot, true, app);
+        const projection = projectScene(nextRoot, snapshot, true);
         materials = projection.materials;
         root = nextRoot;
         const registry = projection.registry;
-        editRoot.enabled = false;
+        physics = createPhysicsWorld(nextRoot);
+        activeCamera = [...registry.byId.values()].find(node => node.camera && isVisible(node) && node.camera.visible)?.camera ?? null;
+        editRoot.visible = false;
         const hasAudio = snapshot.entities.some(e => e.components.some(c => c.type === 'audio' && c.enabled));
         context = hasAudio ? deps.audioContext ?? (typeof AudioContext === 'undefined' ? null : new AudioContext()) : null;
         if (context?.state === 'suspended') void context.resume().catch(error => emit({ type: 'fault', message: `Audio resume failed: ${String(error)}` }));
         const level = buildParkourLevel(snapshot);
         for (const definition of snapshot.entities) {
           const entity = registry.byId.get(definition.id)!;
-          if (!entity.enabled) continue;
+          if (!isVisible(entity)) continue;
           for (const component of definition.components) {
             if (!component.enabled) continue;
             const p = component.properties;
             if (component.type === 'guestQueue') {
               const queue = guestQueueDefinition(p, id => {
-                const point = registry.byId.get(id)!.getPosition();
+                const point = registry.byId.get(id)!.getWorldPosition(new Vector3());
                 return { x: point.x, y: point.y, z: point.z };
               })!;
-              movers.push({ entityId: definition.id, entity, definition: queue, state: createGuestMover(queue, entity.getPosition()) });
+              movers.push({ entityId: definition.id, entity, definition: queue, state: createGuestMover(queue, entity.getWorldPosition(new Vector3())) });
             }
             if (component.type === 'vfx' && entity.render) {
-              const material = (entity.render.material as StandardMaterial).clone();
+              const material = (entity.render.material as MeshStandardMaterial).clone();
               entity.render.material = material;
               const color = p.color as number[] | undefined;
               const pulse: Pulse = { entityId: definition.id, entity, material, color: new Color(...(color ?? [1, 0.75, 0.3]) as [number, number, number]),
-                baseline: entity.getLocalScale().clone(), duration: Number(p.duration ?? 0.5), elapsed: Infinity };
+                baseline: entity.scale.clone(), duration: Number(p.duration ?? 0.5), elapsed: Infinity };
               pulses.push(pulse);
               if (p.autoplay === true) triggerPulse(pulse, definition.id);
             }
@@ -260,11 +271,8 @@ export function createPlaySession(deps: {
         if (level) {
           const definition = snapshot.entities.find(entity => entity.id === level.playerId)!;
           const playerEntity = registry.byId.get(level.playerId)!;
-          const cameraComponent = snapshot.entities
-            .flatMap(entity => entity.components)
-            .find(component => component.type === 'camera' && component.enabled);
-          const cameraEntity = snapshot.entities
-            .find(entity => entity.components.some(component => component.type === 'camera' && component.enabled));
+          const cameraEntity = snapshot.entities.find(entity => registry.byId.get(entity.id)?.camera === activeCamera);
+          const cameraComponent = cameraEntity?.components.find(component => component.type === 'camera' && component.enabled);
           const runtime: ParkourRuntime = {
             level, state: createParkourState(level), playerEntity,
             rig: captureRig(playerEntity, definition.transform.scale),
@@ -276,7 +284,7 @@ export function createPlaySession(deps: {
             accumulator: 0, hudTimer: 0,
           };
           if (runtime.cameraEntity) {
-            const position = runtime.cameraEntity.getPosition();
+            const position = runtime.cameraEntity.getWorldPosition(new Vector3());
             runtime.cameraState = createCameraState(
               { x: position.x, y: position.y, z: position.z },
               { x: runtime.state.position.x, y: runtime.state.position.y + 1, z: runtime.state.position.z },
@@ -287,7 +295,7 @@ export function createPlaySession(deps: {
           updateHud(runtime, 0);
         }
         emit({ type: 'play-started' });
-      } catch (error) { nextRoot.destroy(); session.stop(); throw error; }
+      } catch (error) { disposeGraph(nextRoot); session.stop(); throw error; }
     },
     update(dt): void {
       if (!root || !Number.isFinite(dt) || dt <= 0) return;
@@ -295,8 +303,7 @@ export function createPlaySession(deps: {
         const events: GuestStepEvent[] = [];
         stepGuestMover(mover.state, mover.definition, dt, events);
         const p = mover.state.position;
-        if (mover.entity.rigidbody) mover.entity.rigidbody.teleport(p.x, p.y, p.z);
-        else mover.entity.setPosition(p.x, p.y, p.z);
+        setWorldPosition(mover.entity, p.x, p.y, p.z);
         for (const event of events) {
           if (event.type !== 'arrival') continue;
           const waypointEntityId = mover.definition.waypointIds[event.waypointIndex]!;
@@ -309,10 +316,11 @@ export function createPlaySession(deps: {
         if (pulse.elapsed >= pulse.duration) continue;
         pulse.elapsed = Math.min(pulse.duration, pulse.elapsed + dt);
         const strength = Math.sin(Math.PI * pulse.elapsed / pulse.duration);
-        pulse.entity.setLocalScale(pulse.baseline.clone().mulScalar(1 + strength * 0.25));
-        pulse.material.emissive.copy(pulse.color).mulScalar(strength);
-        pulse.material.update();
+        pulse.entity.scale.copy(pulse.baseline).multiplyScalar(1 + strength * 0.25);
+        pulse.material.emissive.copy(pulse.color).multiplyScalar(strength);
+
       }
+      physics?.sync();
       if (!parkour) return;
       const frame: InputSample = deps.input
         ? deps.input.sample(dt)
@@ -328,8 +336,9 @@ export function createPlaySession(deps: {
       driveCamera(parkour, frame, dt);
       for (const [index, entity] of parkour.platformEntities.entries()) {
         const motion = parkour.state.platforms[index]!;
-        entity.setPosition(motion.position.x, motion.position.y, motion.position.z);
+        setWorldPosition(entity, motion.position.x, motion.position.y, motion.position.z);
       }
+      physics?.sync();
       updateHud(parkour, dt);
     },
     stop(): void {
@@ -339,11 +348,12 @@ export function createPlaySession(deps: {
       sources.clear();
       if (context && context.state !== 'closed') void context.close().catch(() => undefined);
       context = null;
-      root?.destroy(); root = null;
-      for (const pulse of pulses) pulse.material.destroy();
+      physics?.dispose(); physics = null;
+      if (root) disposeGraph(root); root = null; activeCamera = null;
+      for (const pulse of pulses) pulse.material.dispose();
       materials?.dispose(); materials = undefined;
       movers = []; channels = []; pulses = []; parkour = null; hud = null;
-      editRoot.enabled = true;
+      editRoot.visible = true;
       if (wasPlaying) emit({ type: 'play-stopped' });
     },
     dispose(): void { session.stop(); },
@@ -352,15 +362,15 @@ export function createPlaySession(deps: {
 }
 
 /** Captures the authored pose of the player's limb children so animation can offset from it. */
-function captureRig(root: Entity, authoredScale: readonly [number, number, number]): PlayerRig {
+function captureRig(root: SceneNode, authoredScale: readonly [number, number, number]): PlayerRig {
   const legsLeft: RigPart[] = []; const legsRight: RigPart[] = [];
   const armsLeft: RigPart[] = []; const armsRight: RigPart[] = [];
   const head: RigPart[] = []; const torso: RigPart[] = [];
-  for (const child of root.children as unknown as Entity[]) {
+  for (const child of root.children.filter((child): child is SceneNode => child instanceof SceneNode)) {
     const part: RigPart = {
       entity: child,
-      basePosition: vecOf(child.getLocalPosition()),
-      baseRotation: vecOf(child.getLocalEulerAngles()),
+      basePosition: vecOf(child.position),
+      baseRotation: vecOf(rotationDegrees(child)),
     };
     const name = child.name.toLowerCase();
     const isLeft = /(^|[^a-z])l([^a-z]|$)/.test(name) || name.includes('left');

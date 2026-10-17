@@ -1,147 +1,145 @@
-import { TransformGizmo, Gizmo, RotateGizmo, ScaleGizmo, TranslateGizmo } from 'playcanvas';
-import type { Application, CameraComponent, Entity, Layer } from 'playcanvas';
+import { EdgesGeometry, Group, LineBasicMaterial, LineSegments, Matrix4, Mesh, Quaternion, Vector3 } from 'three';
+import type { Object3D, PerspectiveCamera } from 'three';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import type { Transform } from '@forgon/project-schema';
 import type { ViewportTool } from './types.js';
-
-// Engine gizmo editing. All three transform gizmos share one Gizmo layer created with
-// Gizmo.createLayer; only the active tool is attached to the current selection. The gizmos
-// mutate engine node local transforms directly during a drag, so the gesture is bracketed:
-// gesture start locks camera input and captures the node/id pairing, gesture end reads back
-// local transforms and emits onTransform per entity so the host routes the change through
-// the store. Reconcile skips transform patches for dragging ids while a gesture runs.
+import { isVisible, rotationDegrees } from './projection.js';
 
 export interface GizmoController {
-  readonly layer: Layer;
   setActiveTool(tool: ViewportTool): void;
-  /** Re-targets the active tool at these engine entities; ids run parallel to entities. */
-  setSelection(entities: readonly Entity[], ids: readonly string[]): void;
-  /** Swaps the gesture commit path (play sessions set null while the edit graph is hidden). */
+  setSpace(space: 'local' | 'world'): void;
+  setSelection(entities: readonly Object3D[], ids: readonly string[]): void;
   setGestureHandler(handler: ((entityId: string, transform: Transform) => void) | null): void;
   setLocked(locked: boolean): void;
-  /** True between transform:start and transform:end. */
   readonly isGestureActive: boolean;
-  /** Date.now() of the most recent gesture end; pick handlers drop clicks that were drags. */
   readonly lastGestureEndedAt: number;
+  update(): void;
   destroy(): void;
 }
-
-export function createGizmoController(
-  app: Application,
-  camera: CameraComponent,
-  onTransformCommit: (entityId: string, transform: Transform) => void,
-  gestures?: {
-    /** Runs on transform:start, before any node moves. */
-    start(): void;
-    /** Runs on transform:end after transform commits are emitted. */
-    end(): void;
-  },
-): GizmoController {
-  const layer = Gizmo.createLayer(app, 'Forgon Gizmo');
-  const translate = new TranslateGizmo(camera, layer);
-  const rotate = new RotateGizmo(camera, layer);
-  const scale = new ScaleGizmo(camera, layer);
-  const all: Array<TranslateGizmo | RotateGizmo | ScaleGizmo> = [translate, rotate, scale];
-
-  let active: TranslateGizmo | RotateGizmo | ScaleGizmo | null = null;
-  let gestureHandler: ((entityId: string, transform: Transform) => void) | null = onTransformCommit;
-  let gestureActive = false;
-  let lastGestureEndedAt = 0;
-  /** Ids parallel to the selection the gizmo was attached to (set by setSelection). */
-  let selectionIds: readonly string[] = [];
-  /** Last selection seen, so a tool switch re-attaches the same nodes immediately. */
-  let lastEntities: readonly Entity[] = [];
-  /** Ids captured at gesture start; the gizmo nodes array is parallel to these. */
-  let gestureIds: readonly string[] = [];
-  let beforeTransforms: string[] = [];
-
-  const readTransform = (entity: Entity): Transform => {
-    const position = entity.getLocalPosition();
-    const rotationEuler = entity.getLocalEulerAngles();
-    const scaleVec = entity.getLocalScale();
-    return {
-      position: [position.x, position.y, position.z],
-      rotationEuler: [rotationEuler.x, rotationEuler.y, rotationEuler.z],
-      scale: [scaleVec.x, scaleVec.y, scaleVec.z],
-    };
+export function readTransform(entity: Object3D): Transform {
+  return {
+    position: entity.position.toArray(),
+    rotationEuler: rotationDegrees(entity).toArray(),
+    scale: entity.scale.toArray(),
   };
-
-  const onTransformStart = (): void => {
-    gestureActive = true;
-    // Gizmo.attach stores the array we passed (attach(nodes) sets this.nodes = nodes), so
-    // gizmo.nodes stays parallel to selectionIds as long as they were set together.
-    gestureIds = selectionIds.slice();
-    beforeTransforms = (active?.nodes ?? []).map(node => JSON.stringify(readTransform(node as Entity)));
+}
+export function captureSelection(entities: readonly Object3D[]) {
+  const selected = new Set(entities);
+  return entities.map(entity => {
+    entity.updateWorldMatrix(true, false);
+    let parentMoves = false;
+    for (let parent = entity.parent; parent; parent = parent.parent) if (selected.has(parent)) parentMoves = true;
+    return { entity, world: entity.matrixWorld.clone(), parent: entity.parent?.matrixWorld.clone() ?? new Matrix4(), parentMoves };
+  });
+}
+/** Apply one world-space pivot delta, including selections that contain both parent and child. */
+export function applySelectionDelta(selection: ReturnType<typeof captureSelection>, delta: Matrix4): void {
+  for (const item of selection) {
+    const parent = item.parentMoves ? delta.clone().multiply(item.parent) : item.parent;
+    const local = parent.clone().invert().multiply(delta).multiply(item.world);
+    local.decompose(item.entity.position, item.entity.quaternion, item.entity.scale);
+    item.entity.updateMatrix();
+  }
+}
+export function createGizmoController(
+  root: Object3D,
+  camera: PerspectiveCamera,
+  canvas: HTMLCanvasElement,
+  onTransformCommit: (entityId: string, transform: Transform) => void,
+  gestures?: { start(): void; end(): void },
+): GizmoController {
+  const controls = new TransformControls(camera, canvas);
+  const helper = controls.getHelper();
+  const pivot = new Group();
+  const outlines = new Group();
+  const outlineMaterial = new LineBasicMaterial({ color: 0xf5aa62, depthTest: true, toneMapped: false });
+  root.add(pivot, helper, outlines);
+  let links: { source: Mesh; outline: LineSegments }[] = [];
+  let entities: readonly Object3D[] = [];
+  let ids: readonly string[] = [];
+  let tool: ViewportTool = 'select';
+  let locked = false;
+  let active = false;
+  let ended = 0;
+  let handler: ((entityId: string, transform: Transform) => void) | null = onTransformCommit;
+  let selection: ReturnType<typeof captureSelection> = [];
+  let gestureIds: readonly string[] = [];
+  let before: string[] = [];
+  let pivotStart = new Matrix4();
+  const resetPivot = (): void => {
+    if (active) return;
+    pivot.position.set(0, 0, 0);
+    for (const entity of entities) pivot.position.add(entity.getWorldPosition(new Vector3()));
+    if (entities.length) pivot.position.divideScalar(entities.length);
+    pivot.quaternion.copy(controls.space === 'local' && entities[0] ? entities[0].getWorldQuaternion(new Quaternion()) : new Quaternion());
+    pivot.scale.set(1, 1, 1);
+    pivot.updateMatrixWorld();
+  };
+  const attach = (): void => {
+    if (!locked && tool !== 'select' && entities.length) { controls.setMode(tool); resetPivot(); controls.attach(pivot); }
+    else controls.detach();
+  };
+  const clearOutlines = (): void => {
+    for (const { outline } of links) outline.geometry.dispose();
+    links = []; outlines.clear();
+  };
+  const start = (): void => {
+    active = true;
+    selection = captureSelection(entities); gestureIds = [...ids];
+    before = entities.map(entity => JSON.stringify(readTransform(entity)));
+    pivot.updateMatrixWorld(); pivotStart.copy(pivot.matrixWorld);
     gestures?.start();
   };
-  const onTransformMove = (): void => {
-    gestureActive = true;
+  const change = (): void => {
+    if (!active) return;
+    pivot.updateMatrixWorld();
+    applySelectionDelta(selection, pivot.matrixWorld.clone().multiply(pivotStart.clone().invert()));
   };
-  const onTransformEnd = (): void => {
-    gestureActive = false;
-    lastGestureEndedAt = Date.now();
-    const nodes = active?.nodes ?? [];
-    const ids = gestureIds;
-    if (gestureHandler) {
-      nodes.forEach((node, index) => {
-        const entityId = ids[index];
-        if (entityId === undefined) return;
-        const transform = readTransform(node as Entity);
-        if (JSON.stringify(transform) !== beforeTransforms[index]) gestureHandler?.(entityId, transform);
+  const end = (): void => {
+    if (!active) return;
+    active = false; ended = Date.now();
+    // An unchanged pivot is a click; avoid floating-point-only undo entries.
+    const moved = pivot.matrixWorld.elements.some((value, index) => Math.abs(value - pivotStart.elements[index]!) > 1e-9);
+    if (moved && handler) selection.forEach(({ entity }, index) => {
+      const transform = readTransform(entity);
+      if (JSON.stringify(transform) !== before[index]) handler?.(gestureIds[index]!, transform);
+    });
+    gestures?.end(); resetPivot();
+  };
+  controls.addEventListener('mouseDown', start);
+  controls.addEventListener('objectChange', change);
+  controls.addEventListener('mouseUp', end);
+  return {
+    setActiveTool(value) { if (active) return; tool = value; attach(); },
+    setSpace(value) { if (active) return; controls.setSpace(value); resetPivot(); },
+    setSelection(next, nextIds) {
+      if (active) return;
+      entities = [...next]; ids = [...nextIds];
+      clearOutlines();
+      const seen = new Set<Mesh>();
+      for (const entity of entities) entity.traverse(node => {
+        if (!(node instanceof Mesh) || seen.has(node)) return;
+        seen.add(node);
+        const outline = new LineSegments(new EdgesGeometry(node.geometry), outlineMaterial);
+        outline.matrixAutoUpdate = false;
+        outlines.add(outline); links.push({ source: node, outline });
       });
-    }
-    gestureIds = [];
-    gestures?.end();
-  };
-  for (const gizmo of all) {
-    gizmo.on(TransformGizmo.EVENT_TRANSFORMSTART, onTransformStart);
-    gizmo.on(TransformGizmo.EVENT_TRANSFORMMOVE, onTransformMove);
-    gizmo.on(TransformGizmo.EVENT_TRANSFORMEND, onTransformEnd);
-  }
-
-  const controller: GizmoController = {
-    layer,
-    setActiveTool(tool: ViewportTool): void {
-      active = tool === 'translate' ? translate : tool === 'rotate' ? rotate : tool === 'scale' ? scale : null;
-      for (const gizmo of all) {
-        if (gizmo === active) continue;
-        gizmo.detach();
-      }
-      if (active && lastEntities.length > 0) active.attach(lastEntities.slice());
+      attach();
     },
-    setSelection(entities: readonly Entity[], ids: readonly string[]): void {
-      selectionIds = ids;
-      lastEntities = entities;
-      gestureIds = [];
-      if (active) {
-        if (entities.length > 0) active.attach(entities.slice());
-        else active.detach();
+    setGestureHandler(value) { handler = value; },
+    setLocked(value) { if (active) end(); locked = value; controls.enabled = !value; outlines.visible = !value; attach(); },
+    get isGestureActive() { return active; },
+    get lastGestureEndedAt() { return ended; },
+    update() {
+      for (const { source, outline } of links) {
+        source.updateWorldMatrix(true, false);
+        outline.matrix.copy(source.matrixWorld); outline.visible = isVisible(source);
       }
     },
-    setGestureHandler(handler: ((entityId: string, transform: Transform) => void) | null): void {
-      gestureHandler = handler;
-    },
-    setLocked(locked: boolean): void {
-      if (locked) {
-        for (const gizmo of all) gizmo.enabled = false;
-      } else if (active && active.nodes.length > 0) {
-        active.enabled = true;
-      }
-    },    get isGestureActive(): boolean {
-      return gestureActive;
-    },
-    get lastGestureEndedAt(): number {
-      return lastGestureEndedAt;
-    },
-    destroy(): void {
-      for (const gizmo of all) {
-        gizmo.off(TransformGizmo.EVENT_TRANSFORMSTART, onTransformStart);
-        gizmo.off(TransformGizmo.EVENT_TRANSFORMMOVE, onTransformMove);
-        gizmo.off(TransformGizmo.EVENT_TRANSFORMEND, onTransformEnd);
-        gizmo.destroy();
-      }
-      active = null;
+    destroy() {
+      controls.removeEventListener('mouseDown', start); controls.removeEventListener('objectChange', change); controls.removeEventListener('mouseUp', end);
+      controls.dispose(); clearOutlines(); outlineMaterial.dispose();
+      helper.removeFromParent(); pivot.removeFromParent(); outlines.removeFromParent();
     },
   };
-
-  return controller;
 }

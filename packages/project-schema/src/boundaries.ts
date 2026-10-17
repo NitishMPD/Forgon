@@ -1,7 +1,7 @@
 import type { SceneDocument } from './documents.js';
 
 export type Revision = string;
-export interface Diagnostic { path: string; message: string }
+export interface Diagnostic { path: string; message: string; line?: number; column?: number }
 export interface SceneRead { document: SceneDocument; revision: Revision }
 export interface SaveSnapshot { document: SceneDocument; expectedRevision: Revision | null }
 export interface SaveSceneRequest extends SaveSnapshot { path: string }

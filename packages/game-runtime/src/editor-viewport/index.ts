@@ -1,12 +1,12 @@
-import { Application, Entity, FILLMODE_NONE, RESOLUTION_AUTO } from 'playcanvas';
-import type { Layer } from 'playcanvas';
+import { Group, Scene } from 'three';
+import { createRenderSurface } from '../core/renderer.js';
 import type { SceneDocument } from '@forgon/project-schema';
 import { boundsOfEntities, createEditorCamera, type EditorCameraController } from '../core/editor-camera.js';
 import { createGizmoController, type GizmoController } from '../core/gizmos.js';
 import { createGridEntity } from '../core/grid.js';
-import { createMaterialCache, createSceneRegistry, type MaterialCache, type ProjectionDiagnostics, type SceneRegistry } from '../core/projection.js';
+import { createMaterialCache, createSceneRegistry, SceneNode, disposeGraph, type MaterialCache, type ProjectionDiagnostics, type SceneRegistry } from '../core/projection.js';
 import { createPickingSession, type PickingSession } from '../core/picking.js';
-import { reconcileScene, type ReconcileStats } from '../core/reconcile.js';
+import { reconcileScene } from '../core/reconcile.js';
 import { faultMessage, validateScene } from '../core/validate.js';
 import type { ViewportCallbacks, ViewportHandle, ViewportMountOptions, ViewportTool } from '../core/types.js';
 import { loadPhysics, physicsReady } from '../runtime/physics.js';
@@ -14,7 +14,7 @@ import { createPlaySession, type PlaySession } from '../runtime/play-session.js'
 import { createInputSource, type InputSource } from '../runtime/input.js';
 import { createHud, type Hud } from '../runtime/hud.js';
 
-// The editor viewport mount: a PlayCanvas Application bound to a canvas inside the given
+// The editor viewport mount: a Three.js renderer bound to a canvas inside the given
 // container, an editor-owned camera/grid/gizmo/picking stack for edit mode, and a detached
 // play session over authored snapshots. The host (editor UI or the standalone preview page)
 // supplies documents through update() and play(); validation runs here before any engine
@@ -38,25 +38,12 @@ export const mountEditorViewport = (
   canvas.tabIndex = 0;
   container.appendChild(canvas);
 
-  let app: Application;
-  try { app = new Application(canvas, { devtools: false }); }
-  catch (error) { canvas.remove(); throw error; }
-  app.setCanvasFillMode(FILLMODE_NONE);
-  app.setCanvasResolution(RESOLUTION_AUTO);
-
-  // Edit-mode graph layout under the scene root:
-  //   editRoot (toggled off during play)
-  //     worldRoot    - reconciled scene entities keyed by stable id
-  //     grid         - reference grid
-  //     editorCamera - viewport navigation camera
-  const editRoot = new Entity('Forgon Edit Root', app);
-  app.root.addChild(editRoot);
-  const worldRoot = new Entity('Forgon World Root', app);
-  editRoot.addChild(worldRoot);
-  const grid = createGridEntity(app);
-  editRoot.addChild(grid);
-  const editorCamera = createEditorCamera(app);
-  editRoot.addChild(editorCamera.entity);
+  const world = new Scene();
+  const editRoot = new Group(); editRoot.name = 'Forgon Edit Root';
+  world.add(editRoot);
+  const worldRoot = new Group(); editRoot.add(worldRoot);
+  const grid = createGridEntity(); editRoot.add(grid);
+  const editorCamera = createEditorCamera(canvas); editRoot.add(editorCamera.entity);
 
   const registry: SceneRegistry = createSceneRegistry();
   const materials: MaterialCache = createMaterialCache();
@@ -65,8 +52,9 @@ export const mountEditorViewport = (
   const gestureChanges: { entityId: string; transform: import('@forgon/project-schema').Transform }[] = [];
   let draggingIds: Set<string> = new Set();
   const gizmoController = createGizmoController(
-    app,
+    world,
     editorCamera.camera,
+    canvas,
     (entityId, transform) => gestureChanges.push({ entityId, transform }),
     {
       start: () => {
@@ -86,19 +74,13 @@ export const mountEditorViewport = (
   );
   editorCamera.attach();
 
-  let picker: PickingSession | null = null;
-  {
-    const layers: Layer[] = [];
-    const worldLayer = app.scene.layers.getLayerByName('World');
-    if (worldLayer) layers.push(worldLayer);
-    picker = createPickingSession(app, registry, layers);
-  }
+  const picker = createPickingSession(canvas, worldRoot, registry);
 
   // Play reads `deps.input` every frame, so a live holder lets Play attach the browser controls
   // without rebuilding the session. Without it a parkour course would run on empty input: the
   // editor has no keyboard mapping of its own, so WASD/jump/slide would do nothing.
   const playDeps = {
-    app,
+    world,
     editRoot,
     context: options.context,
     loadAssetBytes: options.loadAssetBytes,
@@ -118,22 +100,10 @@ export const mountEditorViewport = (
   };
 
   let lastView: { scene: SceneDocument; selectedIds: readonly string[] } | null = null;
-  let lastStats: ReconcileStats = { added: [], removed: [], patched: [] };
   let currentSelectionIds: readonly string[] = [];
   let disposed = false;
   let hasSeenScene = false;
-  let started = false;
 
-  const resize = (): void => {
-    if (disposed) return;
-    const width = Math.max(container.clientWidth, 1);
-    const height = Math.max(container.clientHeight, 1);
-    app.resizeCanvas(width, height);
-    // Resizing clears the canvas; draw now so the cleared buffer is never painted (panel-drag flicker).
-    if (started) app.render();
-  };
-  const resizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(resize);
-  resizeObserver?.observe(container);
 
   let downAt: { x: number; y: number; time: number } | null = null;
   const onPointerDown = (event: PointerEvent): void => {
@@ -163,7 +133,7 @@ export const mountEditorViewport = (
   const applySelection = (): void => {
     const view = lastView;
     if (!view) return;
-    const entities: Entity[] = [];
+    const entities: SceneNode[] = [];
     const ids: string[] = [];
     for (const id of view.selectedIds) {
       const entity = registry.byId.get(id);
@@ -181,16 +151,22 @@ export const mountEditorViewport = (
     if (!view) return;
     try {
       const scene = validateScene(view.scene, options.context);
-      lastStats = reconcileScene({ app, root: worldRoot, registry, materials, diagnostics, draggingIds }, scene);
+      reconcileScene({ root: worldRoot, registry, materials, diagnostics, draggingIds }, scene);
       applySelection();
     } catch (error) {
       callbacks.onFault(faultMessage(error));
     }
   };
 
-  app.on('update', (dt: unknown) => {
-    if (!disposed) playSession.update(dt as number);
-  });
+  let surface: ReturnType<typeof createRenderSurface>;
+  try {
+    surface = createRenderSurface(canvas, container, world,
+      () => playSession.isPlaying ? playSession.getCamera() : editorCamera.camera,
+      dt => { playSession.update(dt); const numbers = playSession.getHud(); if (numbers) playHud?.update(numbers); gizmoController.update(); },
+      error => callbacks.onFault(faultMessage(error)));
+  } catch (error) {
+    gizmoController.destroy(); editorCamera.detach(); grid.geometry.dispose(); grid.material.dispose(); canvas.remove(); throw error;
+  }
 
   const handle: ViewportHandle = {
     update(view): void {
@@ -215,7 +191,7 @@ export const mountEditorViewport = (
           if (disposed) return;
           const entities = view.scene.entities
             .map(entity => registry.byId.get(entity.id))
-            .filter((entity): entity is Entity => entity !== undefined);
+            .filter((entity): entity is SceneNode => entity !== undefined);
           editorCamera.frameBox(boundsOfEntities(entities));
         });
       }
@@ -225,13 +201,14 @@ export const mountEditorViewport = (
       gizmoController.setActiveTool(tool);
       applySelection();
     },
+    setSpace(space): void { if (!disposed) gizmoController.setSpace(space); },
     frameSelection(): void {
       if (disposed) return;
       const view = lastView;
       if (!view) return;
       const entities = view.selectedIds
         .map(id => registry.byId.get(id))
-        .filter((entity): entity is Entity => entity !== undefined);
+        .filter((entity): entity is SceneNode => entity !== undefined);
       editorCamera.frameBox(boundsOfEntities(entities));
     },
     play(scene: SceneDocument): void {
@@ -250,10 +227,12 @@ export const mountEditorViewport = (
           if (!playHud) playHud = createHud(container);
           playHud.showOpening(scene.name.toUpperCase(), 'reach the uplink');
         }
-        editorCamera.setLocked(true);
         gizmoController.setLocked(true);
+        editorCamera.setLocked(true);
       } catch (error) {
+        playSession.stop();
         releasePlaySurface();
+        gizmoController.setLocked(false);
         editorCamera.setLocked(false);
         callbacks.onFault(`Play failed: ${faultMessage(error)}`);
         throw error;
@@ -273,7 +252,7 @@ export const mountEditorViewport = (
     dispose(): void {
       if (disposed) return;
       disposed = true;
-      resizeObserver?.disconnect();
+      surface.dispose();
       playSession.dispose();
       releasePlaySurface();
       gizmoController.destroy();
@@ -282,17 +261,16 @@ export const mountEditorViewport = (
       canvas.removeEventListener('pointerdown', onPointerDown);
       canvas.removeEventListener('pointerup', onPointerUp);
       materials.dispose();
-      app.destroy();
+      disposeGraph(worldRoot);
+      registry.byId.clear(); registry.idByNode.clear();
+      grid.geometry.dispose(); grid.material.dispose();
+      world.clear();
       canvas.remove();
     },
   };
 
-  void loadPhysics().then(() => {
-    if (!disposed) app.systems.rigidbody?.onLibraryLoaded();
-  }).catch(error => { if (!disposed) callbacks.onFault(`Physics initialization failed: ${faultMessage(error)}`); });
-  resize();
-  app.start();
-  started = true;
+  void loadPhysics().catch(error => { if (!disposed) callbacks.onFault(`Physics initialization failed: ${faultMessage(error)}`); });
+  try { surface.start(); } catch (error) { handle.dispose(); throw error; }
 
   return handle;
 };

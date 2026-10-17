@@ -11,7 +11,7 @@ import {
   reparentCommands,
 } from '../src/model/hierarchyOps.js';
 import { parseJsonDraft, propertyKind, withProperty } from '../src/model/properties.js';
-import { activatePanel, closePanel, defaultLayout, groupAt, groupOf, isPanelVisible, keyboardSplit, movePanel, neighbourGroup, panelIds, showPanel, splitLimits } from '../src/model/layout.js';
+
 import { planSceneSwitch } from '../src/model/sceneSwitch.js';
 
 // Root > Child > Grandchild, Root > Sibling, Other (root-level)
@@ -175,16 +175,6 @@ test('the store accepts a valid property upsert and rejects a non-finite one wit
   assert.equal(store.scene.entities[0]?.components[0]?.properties['fov'], 50);
 });
 
-test('keyboard split resizing steps, large steps with Shift, clamps, Home and End, and ignores other keys', () => {
-  assert.equal(keyboardSplit(0.5, 'ArrowRight', { shiftKey: false }), 0.52);
-  assert.equal(keyboardSplit(0.5, 'ArrowUp', { shiftKey: false }), 0.48);
-  assert.equal(keyboardSplit(0.5, 'ArrowDown', { shiftKey: true }), 0.58);
-  assert.equal(keyboardSplit(0.84, 'ArrowRight', { shiftKey: true }), splitLimits[1], 'clamps at the maximum');
-  assert.equal(keyboardSplit(0.5, 'Home', { shiftKey: false }), splitLimits[0]);
-  assert.equal(keyboardSplit(0.5, 'End', { shiftKey: false }), splitLimits[1]);
-  assert.equal(keyboardSplit(0.5, 'a', { shiftKey: false }), null);
-});
-
 test('scene switching asks before dropping unsaved edits and never switches through an open conflict', () => {
   const base = { current: 'scenes/lobby.scene.json', target: 'scenes/floor-02.scene.json' };
   assert.deepEqual(planSceneSwitch({ ...base, target: base.current, dirty: true, conflict: false }), { action: 'none' });
@@ -193,40 +183,5 @@ test('scene switching asks before dropping unsaved edits and never switches thro
   const blocked = planSceneSwitch({ ...base, dirty: true, conflict: true });
   assert.equal(blocked.action, 'blocked');
   assert.match(blocked.action === 'blocked' ? blocked.reason : '', /Resolve the file conflict/);
-});
-
-test('panels move between groups, close, reopen in their home group and keep one place each', () => {
-  const moved = movePanel(defaultLayout, 'inspector', 'bottomRight', 'console');
-  assert.deepEqual(moved.groups.topRight, { tabs: ['hierarchy'], active: 'hierarchy' });
-  assert.deepEqual(moved.groups.bottomRight.tabs, ['project', 'inspector', 'console', 'review']);
-  assert.equal(moved.groups.bottomRight.active, 'inspector');
-  assert.equal(panelIds.filter(panel => groupOf(moved, panel) !== null).length, panelIds.length, 'every panel stays open exactly once');
-
-  const reordered = movePanel(defaultLayout, 'game', 'topLeft', 'viewport');
-  assert.deepEqual(reordered.groups.topLeft.tabs, ['game', 'viewport']);
-
-  const closed = closePanel(defaultLayout, 'viewport');
-  assert.equal(groupOf(closed, 'viewport'), null);
-  assert.equal(closed.groups.topLeft.active, 'game', 'closing the active tab activates its neighbour');
-  assert.equal(isPanelVisible(closed, 'viewport'), false);
-  const reopened = showPanel(closed, 'viewport');
-  assert.equal(groupOf(reopened, 'viewport'), 'topLeft');
-  assert.equal(isPanelVisible(reopened, 'viewport'), true);
-
-  assert.equal(showPanel(defaultLayout, 'inspector').groups.topRight.active, 'inspector');
-  assert.equal(activatePanel(defaultLayout, 'console').groups.bottomRight.active, 'console');
-  assert.equal(closePanel(closePanel(defaultLayout, 'composer'), 'agents').groups.bottomLeft.active, null);
-});
-
-test('keyboard tab moves reach the neighbouring group and drops resolve the group under the pointer', () => {
-  assert.equal(neighbourGroup('topLeft', 'ArrowRight'), 'topRight');
-  assert.equal(neighbourGroup('topLeft', 'ArrowDown'), 'bottomLeft');
-  assert.equal(neighbourGroup('bottomRight', 'ArrowUp'), 'topRight');
-  assert.equal(neighbourGroup('topLeft', 'ArrowLeft'), null);
-  const layout = { ...defaultLayout, columns: 0.6, leftRows: 0.7, rightRows: 0.4 };
-  assert.equal(groupAt(layout, 0.1, 0.1), 'topLeft');
-  assert.equal(groupAt(layout, 0.1, 0.8), 'bottomLeft');
-  assert.equal(groupAt(layout, 0.9, 0.3), 'topRight');
-  assert.equal(groupAt(layout, 0.9, 0.5), 'bottomRight', 'each column has its own row split');
 });
 

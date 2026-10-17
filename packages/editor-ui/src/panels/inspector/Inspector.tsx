@@ -1,6 +1,6 @@
 import { useEffect, useState, type KeyboardEvent } from 'react';
 import type { SceneConflict, SceneCommand } from '@forgon/editor-core';
-import type { Component, Entity, JsonValue, SceneDocument, Transform } from '@forgon/project-schema';
+import { createId, type Component, type Entity, type JsonValue, type SceneDocument, type Transform } from '@forgon/project-schema';
 import { ConflictCard } from '../../conflict/ConflictCard.js';
 import { formatNumber, parseFiniteNumber } from '../../model/numbers.js';
 import { parseJsonDraft, propertyKind, withProperty } from '../../model/properties.js';
@@ -140,7 +140,7 @@ function ComponentRow({ component, entityId, disabled, onCommand }: {
   onCommand(command: SceneCommand): boolean;
 }) {
   return (
-    <li className="fg-component">
+    <li className="fg-component"><details open><summary className="fg-component-summary">{component.type}</summary>
       <div className="fg-component-head">
         <label className="fg-check">
           <input
@@ -150,7 +150,7 @@ function ComponentRow({ component, entityId, disabled, onCommand }: {
             aria-label={`Enabled: ${component.type}`}
             onChange={event => onCommand({ type: 'component', entityId, component: { ...component, enabled: event.currentTarget.checked } })}
           />
-          <span>{component.type}</span>
+          <span>Enabled</span>
         </label>
         <span className="fg-mono fg-muted">{component.id}</span>
         <Button
@@ -191,7 +191,7 @@ function ComponentRow({ component, entityId, disabled, onCommand }: {
       ) : (
         <p className="fg-muted fg-small">No properties.</p>
       )}
-    </li>
+    </details></li>
   );
 }
 
@@ -321,6 +321,9 @@ export function Inspector({ scene, selection, sourcePath, readOnlyReason, confli
   const locked = readOnlyReason !== null || conflict !== null;
   const lockReason = conflict !== null ? 'Resolve the file conflict first. Edits are paused.' : readOnlyReason;
   const [copied, setCopied] = useState(false);
+  const [search, setSearch] = useState('');
+  const [componentType, setComponentType] = useState('');
+  const [componentError, setComponentError] = useState<string | null>(null);
 
   const copyId = (id: string): void => {
     globalThis.navigator?.clipboard?.writeText(id).then(
@@ -337,6 +340,7 @@ export function Inspector({ scene, selection, sourcePath, readOnlyReason, confli
           {sourcePath ? <p className="fg-panel-subtitle fg-mono" title={sourcePath}>{sourcePath}</p> : null}
         </div>
       </header>
+      <input type="search" className="fg-input fg-panel-search" aria-label="Search inspector" placeholder="Search components" value={search} onChange={event => setSearch(event.currentTarget.value)} />
       <div className="fg-panel-body">
         {conflict ? <ConflictCard conflict={conflict} onResolve={onResolveConflict} /> : null}
         {lockReason && !conflict ? <Banner tone="warning">{lockReason}</Banner> : null}
@@ -373,8 +377,8 @@ export function Inspector({ scene, selection, sourcePath, readOnlyReason, confli
                 ) : null}
               </dl>
             </section>
-            <section className="fg-section" aria-label="Transform">
-              <h3 className="fg-section-title">Transform</h3>
+            <details className="fg-section" aria-label="Transform" open hidden={!!search && !'transform position rotation scale'.includes(search.toLowerCase())}>
+              <summary className="fg-section-title">Transform</summary>
               <VectorRow
                 title="Position"
                 idPrefix="position"
@@ -396,18 +400,32 @@ export function Inspector({ scene, selection, sourcePath, readOnlyReason, confli
                 disabled={locked}
                 onCommit={scale => onCommand({ type: 'transform', entityId: entity.id, transform: { ...entity.transform, scale } })}
               />
-            </section>
+            </details>
             <section className="fg-section" aria-label="Components">
               <h3 className="fg-section-title">Components</h3>
               {entity.components.length === 0 ? (
                 <p className="fg-muted">No components on this object.</p>
               ) : (
                 <ul className="fg-list-plain">
-                  {entity.components.map(component => (
+                  {entity.components.filter(component => !search || component.type.toLowerCase().includes(search.toLowerCase()) || Object.keys(component.properties).some(name => name.toLowerCase().includes(search.toLowerCase()))).map(component => (
                     <ComponentRow key={component.id} component={component} entityId={entity.id} disabled={locked} onCommand={onCommand} />
                   ))}
                 </ul>
               )}
+              <details className="fg-add-component"><summary>+ component</summary>
+                <form onSubmit={event => {
+                  event.preventDefault();
+                  const type = componentType.trim();
+                  if (!type || !entity) return;
+                  const ok = onCommand({ type: 'component', entityId: entity.id, component: { id: createId('component'), type, enabled: true, properties: {}, entityRefs: [], assetRefs: [] } });
+                  setComponentError(ok ? null : 'Component rejected. See Console.');
+                  if (ok) setComponentType('');
+                }}>
+                  <label className="fg-field">Component type<input className="fg-input" aria-label="Component type" value={componentType} disabled={locked} onChange={event => setComponentType(event.currentTarget.value)} required /></label>
+                  <Button type="submit" disabled={locked || !componentType.trim()}>Add component</Button>
+                  {componentError ? <p role="alert">{componentError}</p> : null}
+                </form>
+              </details>
             </section>
           </>
         )}

@@ -40,10 +40,11 @@ export interface AgentState {
   activeThreadId: string | null;
 }
 
-export type ThreadStatus = 'idle' | 'starting' | 'running' | 'awaiting_approval' | 'failed' | 'stopped' | 'changes';
+export type ThreadStatus = 'idle' | 'done' | 'starting' | 'running' | 'awaiting_approval' | 'failed' | 'stopped' | 'changes';
 
 export const threadStatusLabels: Record<ThreadStatus, string> = {
   idle: 'Idle',
+  done: 'Done',
   starting: 'Starting',
   running: 'Running',
   awaiting_approval: 'Waiting for approval',
@@ -90,6 +91,7 @@ export function threadStatus(thread: AgentThread): ThreadStatus {
   if (thread.outcome === 'failed') return 'failed';
   if (thread.outcome === 'cancelled') return 'stopped';
   if (thread.changedPaths.length > 0) return 'changes';
+  if (thread.outcome === 'succeeded') return 'done';
   return 'idle';
 }
 

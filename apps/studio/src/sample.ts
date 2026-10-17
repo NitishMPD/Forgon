@@ -12,7 +12,7 @@ function entity(id: string, name: string, parentId: string | null, position: [nu
   };
 }
 
-function component(id: string, type: string, properties: Record<string, number | string>): Entity['components'][number] {
+function component(id: string, type: string, properties: Entity['components'][number]['properties']): Entity['components'][number] {
   return { id, type, enabled: true, properties, entityRefs: [], assetRefs: [] };
 }
 
@@ -27,7 +27,7 @@ export function sampleScene(): SceneDocument {
       entity('entity_sample_light', 'Key light', 'entity_sample_lobby', [2, 4, 2], [component('component_sample_light', 'light', { intensity: 1.2 })]),
       entity('entity_sample_reception', 'Reception desk', 'entity_sample_lobby', [2, 0, 4], [component('component_sample_render', 'render', { mesh: 'box' })]),
       entity('entity_sample_queue', 'Guest queue', 'entity_sample_lobby', [-2, 0, 1], [component('component_sample_queue', 'queue', { capacity: 5, serviceSeconds: 3 })]),
-      entity('entity_sample_guest', 'Guest', 'entity_sample_queue', [0, 0, 0.5], [component('component_sample_script', 'script', { script: 'GuestBrain' })]),
+      entity('entity_sample_guest', 'Guest', 'entity_sample_queue', [0, 0, 0.5], [component('component_sample_script', 'script', { src: 'scripts/GuestBrain.ts', params: {} })]),
     ],
   });
 }

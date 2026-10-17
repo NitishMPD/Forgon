@@ -1,4 +1,5 @@
-import { Application, AmmoPhysicsWorld, Entity, FILLMODE_NONE, RESOLUTION_AUTO } from 'playcanvas';
+import { Group, Scene } from 'three';
+import { createRenderSurface } from '../core/renderer.js';
 import type { AssetRecord, PrefabDocument, SceneDocument } from '@forgon/project-schema';
 import type { AssetBytesResolver, HudNumbers, RuntimeEvent } from '../core/types.js';
 import { createPlaySession } from './play-session.js';
@@ -52,52 +53,40 @@ export async function mountGame(container: HTMLElement, options: GameOptions): P
   canvas.tabIndex = 0;
   canvas.setAttribute('aria-label', 'Game viewport');
   container.appendChild(canvas);
-  let app: Application | undefined;
-  let observer: ResizeObserver | undefined;
+  const world = new Scene();
+  let surface: ReturnType<typeof createRenderSurface> | undefined;
   let session: ReturnType<typeof createPlaySession> | undefined;
   let input: InputSource | null = null;
   let hud: Hud | null = null;
   try {
-    app = new Application(canvas, { devtools: false, physicsWorld: new AmmoPhysicsWorld() });
-    app.setCanvasFillMode(FILLMODE_NONE);
-    app.setCanvasResolution(RESOLUTION_AUTO);
+    const editRoot = new Group(); world.add(editRoot);
+    const deps = { world, editRoot, audioContext, loadAssetBytes: options.loadAssetBytes,
+      context: { assets: options.assets ?? [], prefabs: options.prefabs ?? [] }, input: undefined as InputSource | undefined,
+      onRuntimeEvent: options.onRuntimeEvent ?? (() => undefined) };
+    session = createPlaySession(deps);
+    // Allocate the GPU before creating DOM input/HUD resources.
+    surface = createRenderSurface(canvas, container, world, () => session!.getCamera(), dt => {
+      session!.update(dt); const numbers = session!.getHud(); if (numbers) hud?.update(numbers);
+    }, error => options.onRuntimeEvent?.({ type: 'fault', message: String(error) }));
     input = options.input === undefined ? createInputSource(canvas) : options.input;
+    deps.input = input ?? undefined;
     if (options.hud !== false) hud = createHud(container);
-    const editRoot = new Entity('Unused authoring root', app);
-    app.root.addChild(editRoot);
-    session = createPlaySession({ app, editRoot, audioContext, loadAssetBytes: options.loadAssetBytes,
-      context: { assets: options.assets ?? [], prefabs: options.prefabs ?? [] },
-      input: input ?? undefined,
-      onRuntimeEvent: options.onRuntimeEvent ?? (() => undefined) });
-    // Resizing clears the canvas; draw now so the cleared buffer is never painted.
-    let started = false;
-    const resize = (): void => { app!.resizeCanvas(Math.max(container.clientWidth, 1), Math.max(container.clientHeight, 1)); if (started) app!.render(); };
-    observer = new ResizeObserver(resize);
-    observer.observe(container);
-    resize();
-    app.on('update', (dt: number) => {
-      session!.update(dt);
-      const numbers = session!.getHud();
-      if (hud && numbers) hud.update(numbers);
-    });
     session.start(snapshot);
     const isParkour = session.getHud() !== null;
     if (hud && isParkour) hud.showOpening(options.title ?? snapshot.name.toUpperCase(), options.subtitle ?? 'run the sector');
-    app.start();
-    started = true;
+    surface.start();
     let disposed = false;
     return {
       parkour: isParkour,
       getHud: () => session!.getHud(),
       dispose(): void {
-        if (disposed) return;
-        disposed = true;
-        observer!.disconnect(); input?.dispose(); hud?.dispose(); session!.dispose(); app!.destroy(); canvas.remove();
+        if (disposed) return; disposed = true;
+        surface!.dispose(); input?.dispose(); hud?.dispose(); session!.dispose(); world.clear(); canvas.remove();
       },
     };
   } catch (error) {
-    observer?.disconnect(); input?.dispose(); hud?.dispose(); session?.dispose();
+    surface?.dispose(); input?.dispose(); hud?.dispose(); session?.dispose();
     if (audioContext && audioContext.state !== 'closed') void audioContext.close();
-    app?.destroy(); canvas.remove(); throw error;
+    world.clear(); canvas.remove(); throw error;
   }
 }

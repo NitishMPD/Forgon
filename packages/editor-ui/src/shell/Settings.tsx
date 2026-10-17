@@ -23,12 +23,16 @@ export const shortcuts: ReadonlyArray<[string, string]> = [
   ['Ctrl+Z / Ctrl+Shift+Z', 'Undo / redo'],
   ['Q W E R', 'Select, move, rotate, scale'],
   ['F', 'Frame selection'],
-  ['Ctrl+L', 'Focus composer'],
+  ['Ctrl+K / Ctrl+L / /', 'Focus prompt'],
+  ['Ctrl+1 / Ctrl+2', 'Toggle Hierarchy / Inspector'],
+  ['Ctrl+`', 'Toggle Console'],
+  ['Escape', 'Collapse expanded card'],
+  ['Ctrl+Shift+R', 'Review'],
+  ['Ctrl+.', 'Stop agent'],
+  ['F5', 'Play / Stop'],
   ['Ctrl+Shift+L', 'Add selection to message'],
   ['Ctrl+I', 'Inspector'],
   ['Ctrl+Enter', 'Send message'],
-  ['Alt+Arrow', 'Move tab to next group'],
-  ['Delete', 'Close focused tab'],
 ];
 
 type Section = 'providers' | 'layout' | 'shortcuts';

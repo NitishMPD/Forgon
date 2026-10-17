@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./editor-viewport": "./src/editor-viewport/index.ts",
-    "./runtime": "./src/runtime/index.ts"
+    "./runtime": "./src/runtime/index.ts",
+    "./scripting": "./src/scripting/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -14,9 +15,10 @@
   },
   "dependencies": {
     "@forgon/project-schema": "workspace:*",
-    "playcanvas": "2.23.3"
+    "three": "0.186.1"
   },
   "devDependencies": {
-    "@types/node": "24.10.1"
+    "@types/node": "24.10.1",
+    "@types/three": "0.186.0"
   }
 }

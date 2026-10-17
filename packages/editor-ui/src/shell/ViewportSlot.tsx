@@ -58,7 +58,7 @@ export function ViewportSlot({ mount, view, updatesEnabled, visible, onPick, onF
 
   return (
     <div className="fg-viewport" style={{ visibility: visible ? 'visible' : 'hidden' }}>
-      <div ref={containerRef} className="fg-viewport-canvas" data-slot="playcanvas" />
+      <div ref={containerRef} className="fg-viewport-canvas" data-slot="scene-viewport" />
       {children}
     </div>
   );

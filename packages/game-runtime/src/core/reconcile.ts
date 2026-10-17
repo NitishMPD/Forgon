@@ -1,7 +1,9 @@
-import { Entity } from 'playcanvas';
-import type { Application } from 'playcanvas';
+import type { Object3D } from 'three';
 import type { SceneDocument } from '@forgon/project-schema';
 import {
+  SceneNode,
+  disposeGraph,
+  removeEngineComponent,
   applyComponent,
   applyNameAndTransform,
   createDiagnostics,
@@ -20,9 +22,8 @@ export interface ReconcileStats {
 }
 
 export interface ReconcileTarget {
-  app: Application;
   /** Node under which root-level (parentId null) entities live. */
-  root: Entity;
+  root: Object3D;
   registry: SceneRegistry;
   materials: MaterialCache;
   diagnostics: ProjectionDiagnostics;
@@ -30,7 +31,7 @@ export interface ReconcileTarget {
   draggingIds?: ReadonlySet<string>;
 }
 
-const previousComponents = new WeakMap<Entity, SceneDocument['entities'][number]['components']>();
+const previousComponents = new WeakMap<SceneNode, SceneDocument['entities'][number]['components']>();
 
 /** Reconcile in two passes: document order never determines hierarchy correctness. */
 export function reconcileScene(target: ReconcileTarget, scene: SceneDocument): ReconcileStats {
@@ -39,8 +40,8 @@ export function reconcileScene(target: ReconcileTarget, scene: SceneDocument): R
   const ids = new Set(scene.entities.map(entity => entity.id));
   for (const definition of scene.entities) {
     if (!registry.byId.has(definition.id)) {
-      const entity = createEntityFromDefinition(definition, registry, target.materials, target.diagnostics, false, target.app);
-      root.addChild(entity);
+      const entity = createEntityFromDefinition(definition, registry, target.materials, target.diagnostics, false);
+      root.add(entity);
       previousComponents.set(entity, structuredClone(definition.components));
       stats.added.push(definition.id);
     }
@@ -49,16 +50,16 @@ export function reconcileScene(target: ReconcileTarget, scene: SceneDocument): R
   for (const definition of scene.entities) {
     const entity = registry.byId.get(definition.id)!;
     const parent = definition.parentId === null ? root : registry.byId.get(definition.parentId)!;
-    if (entity.parent !== parent) entity.reparent(root);
+    if (entity.parent !== parent) root.add(entity);
   }
   for (const definition of scene.entities) {
     const entity = registry.byId.get(definition.id)!;
     const parent = definition.parentId === null ? root : registry.byId.get(definition.parentId)!;
-    if (entity.parent !== parent) entity.reparent(parent);
+    if (entity.parent !== parent) parent.add(entity);
   }
   for (const [id, entity] of registry.byId) {
     if (ids.has(id)) continue;
-    entity.destroy();
+    disposeGraph(entity);
     registry.byId.delete(id);
     registry.idByNode.delete(entity);
     stats.removed.push(id);
@@ -66,7 +67,7 @@ export function reconcileScene(target: ReconcileTarget, scene: SceneDocument): R
   for (const definition of scene.entities) {
     const entity = registry.byId.get(definition.id)!;
     if (!target.draggingIds?.has(definition.id)) applyNameAndTransform(entity, definition);
-    else { entity.name = definition.name; entity.enabled = definition.enabled; }
+    else { entity.name = definition.name; entity.visible = definition.enabled; }
     const before = previousComponents.get(entity) ?? [];
     const next = definition.components;
     if (JSON.stringify(before) !== JSON.stringify(next)) {
@@ -81,41 +82,36 @@ export function reconcileScene(target: ReconcileTarget, scene: SceneDocument): R
   return stats;
 }
 
-function removeEngineComponent(entity: Entity, type: string): void {
-  if (type !== 'render' && type !== 'camera' && type !== 'light' && type !== 'collision') return;
-  if (entity[type]) entity.removeComponent(type);
-}
-
 /** Projects a complete scene into a fresh root; used for play sessions and initial mount. */
 export function projectScene(
-  root: Entity,
+  root: Object3D,
   scene: SceneDocument,
   play: boolean,
-  app: Application,
 ): { registry: SceneRegistry; materials: MaterialCache; diagnostics: ProjectionDiagnostics } {
   const registry = createSceneRegistry();
   const materials = createMaterialCache();
   const diagnostics = createDiagnostics();
 
   // Create flat first (validation guarantees unique ids), then parent, then transforms.
-  const created = new Map<string, Entity>();
+  const created = new Map<string, SceneNode>();
   for (const definition of scene.entities) {
-    const entity = new Entity(definition.name, app);
+    const entity = new SceneNode();
     applyNameAndTransform(entity, definition);
     registry.byId.set(definition.id, entity);
     registry.idByNode.set(entity, definition.id);
     created.set(definition.id, entity);
+    previousComponents.set(entity, structuredClone(definition.components));
   }
   for (const definition of scene.entities) {
     const entity = created.get(definition.id)!;
     const parent = definition.parentId === null ? root : created.get(definition.parentId);
-    if (parent) parent.addChild(entity);
+    if (parent) parent.add(entity);
   }
   // Physics dimensions and body poses depend on the complete world hierarchy.
   for (const definition of scene.entities) {
     const entity = created.get(definition.id)!;
     for (const component of definition.components) applyComponent(entity, component, materials, play, diagnostics);
-    if (play && entity.rigidbody && definition.components.some(c => c.type === 'guestQueue' && c.enabled)) entity.rigidbody.type = 'kinematic';
+    if (entity.collision) entity.collision.kinematic = definition.components.some(c => (c.type === 'guestQueue' || c.type === 'movingPlatform') && c.enabled);
   }
   return { registry, materials, diagnostics };
 }

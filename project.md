@@ -7,7 +7,7 @@ Author: Nitish
 **Date:** 16 October 2026  
 **Primary development platform:** Windows desktop  
 **Game targets:** Web, Windows, Android, iOS  
-**Primary engine:** PlayCanvas Engine  
+**Primary engine:** Three.js (r186), with Forgon's own engine layer on top (switched from PlayCanvas on 17 October 2026; see 0.1)  
 **Desktop stack:** Tauri 2 + Rust + React/TypeScript  
 **AI foundation:** Adapted components and concepts from T3 Code  
 **Project model:** Local-first, agent-readable, file-based; no mandatory MCP protocol  
@@ -17,7 +17,7 @@ Author: Nitish
 
 ## 0. Executive summary
 
-Build a **Windows-first, local-first game development studio** in which people and AI coding agents edit the **same on-disk game project**. It should combine the structured scene authoring of Godot, the runtime and visual editing capabilities of PlayCanvas, and the multi-provider, multi-thread coding experience of T3 Code.
+Build a **Windows-first, local-first game development studio** in which people and AI coding agents edit the **same on-disk game project**. It should combine the structured scene authoring of Godot, the visual level-editing experience of Unity/Godot, and the multi-provider, multi-thread coding experience of T3 Code.
 
 The platform must do considerably more than prompt-to-prototype. Its long-term goal is **end-to-end hypercasual/hybrid-casual game production**, including asset generation/import, visual scene and level editing, physics, animations, VFX, audio, UI, progression, economy simulation, automated tests, build/export, mobile monetization integration, analytics, LiveOps, and post-launch operations.
 
@@ -26,6 +26,16 @@ The platform must do considerably more than prompt-to-prototype. Its long-term g
 **Recommended implementation:** Use PlayCanvas Engine directly and reuse selected PlayCanvas editor frontend components and PCUI where practical. Do **not** make the proprietary PlayCanvas hosted editor backend a dependency. Build our own local project document model, file watcher, importer, asset registry, editor state, and serializer. Adapt T3 Code's orchestration, provider adapters, composer patterns, diff/checkpoint flow, and thread management as a distinct local agent service. Ship the studio in Tauri 2; keep agents and JavaScript tooling in a Node/Bun-based sidecar rather than rewriting their ecosystem in Rust.
 
 **Core principle:** **Files are the source of truth; the editor is a visual projection of those files; agents are first-class project contributors.**
+
+### 0.1 Engine decision: Three.js (17 October 2026)
+
+This supersedes the PlayCanvas choice above and wherever later sections name PlayCanvas as the runtime. Later references to PlayCanvas Engine, its Editor frontend, PCUI and the PlayCanvas extraction spike are historical planning context, not the current direction.
+
+- **Runtime:** `packages/game-runtime` is built on Three.js, pinned with the rest of the toolchain. Three.js is a renderer, not an engine, so Forgon owns the engine layer: scene projection with stable IDs, editor camera/gizmos/picking, play sessions, scripting, physics integration (vendored Ammo), input, audio, UI and export.
+- **Why:** the owner's existing games (for example Kenzi) are Three.js, coding agents write Three.js far more reliably than PlayCanvas, the web is the primary target, and the PlayCanvas dependency was confined to the runtime package. Three.js is MIT, so exported games record its license instead of PlayCanvas's.
+- **Scope target:** "everything a Kenzi-class game needs", grown in the order real games need it (scripting, animation/skinning, physics, audio, UI, build/export), not parity with Unity's full feature list.
+- **Scripting:** games ship their own TypeScript scripts in `scripts/`, attached to entities through a `script` component. Scripts declare typed properties that the Inspector edits without code. Scripts run only in Play, inside the preview/runtime context; opening a project never executes them.
+- **Designer-first priority:** the biggest pain when building games on Zibpo was that level and game designers could not visualize or handcraft levels. Visual, hand-crafted level design is therefore the top editor priority after the runtime swap: what-you-see-is-what-plays rendering in the viewport, snapping, fast place/duplicate/align, prefabs placed from the asset panel, material and lighting preview, and tuning script properties live.
 
 ### Non-negotiable acceptance demo
 
@@ -90,7 +100,7 @@ Performance budgets must later be defined per target phone/device and genre rath
 ### P0: Foundation (must exist before alpha)
 
 - Windows Tauri shell and file-system project management.
-- PlayCanvas runtime embedded in live editor viewport.
+- Three.js runtime embedded in live editor viewport (originally planned as PlayCanvas; see 0.1).
 - Local scene/prefab/entity representation; stable IDs; schema validation.
 - Hierarchy, inspector, transform gizmos, material/light/camera editing.
 - Bidirectional on-disk synchronization, import/reload, undo/redo.
@@ -197,7 +207,7 @@ Performance budgets must later be defined per target phone/device and genre rath
 - **React editor frontend:** document-driven UI, PlayCanvas canvas, selections, gizmos, panels, timeline, diff views.
 - **Project model package:** shared schemas, commands, validation, deterministic serialization, migrations.
 - **Agent sidecar:** T3-derived orchestration and provider adapters; runs only with project-level scoped permissions.
-- **Game runtime:** PlayCanvas Engine and reusable game components; independent of editor and agents.
+- **Game runtime:** Three.js plus Forgon's engine layer and reusable game components; independent of editor and agents.
 - **CLI:** headless project validation/import/bake/scene capture/tests/build; same implementation as editor where feasible.
 - **Production backend (later):** analytics ingestion, remote config, account/save, purchases, LiveOps, experiments.
 
@@ -222,7 +232,7 @@ forge-studio/
 │   ├── game-preview/          # Isolated local play/preview page
 │   └── docs/                  # Product and developer documentation
 ├── packages/
-│   ├── game-runtime/          # PlayCanvas game framework and components
+│   ├── game-runtime/          # Three.js game framework, engine layer and components
 │   ├── editor-core/           # Scene graph, selection, undo, commands
 │   ├── editor-ui/             # Panels, PCUI adapters, shortcuts
 │   ├── project-schema/        # Scene/prefab/material/economy schemas
@@ -374,7 +384,7 @@ Each command has validation, inverse/undo behavior, audit metadata and file patc
 Not every arbitrary TypeScript function can be automatically converted into a visual editor scene. Instead provide **two supported modes**:
 
 - **Structured authoring mode (preferred):** agent writes scene/prefab JSON or calls a design-time SDK that emits typed, stable-ID entities; all output is selectable and editable.
-- **Raw runtime code mode:** agent writes unrestricted PlayCanvas TypeScript for special mechanics; it can run/preview, but only entities explicitly registered through the authoring SDK are guaranteed to be editable in the scene hierarchy.
+- **Raw runtime code mode:** agent writes unrestricted Three.js TypeScript for special mechanics; it can run/preview, but only entities explicitly registered through the authoring SDK are guaranteed to be editable in the scene hierarchy.
 
 Design-time generators operate under a controlled environment and output a generated scene artifact. Supported operations include `authoring.entity()`, `authoring.mesh()`, `authoring.material()`, `authoring.prefabInstance()`, and `authoring.emitScene()`; implementation and final naming to be defined. Deterministic seed inputs, generator version, stable IDs, diffable bake results, and supported overrides are mandatory.
 
@@ -386,26 +396,13 @@ Design-time generators operate under a controlled environment and output a gener
 
 ### 7.1 Main UI layout
 
-Every panel is a movable, closable, resizable tab inside a dock. Default arrangement:
+The workspace uses a full-bleed viewport that remains mounted through layout changes. Hierarchy floats top-left and Inspector top-right as independently hideable, searchable cards with internal scrolling and bounded heights. Hierarchy retains object count, selection, keyboard tree navigation and drag-reparenting; Inspector retains validated editing, undo, conflicts and component controls.
 
-```text
-+----------------------------------------------------------------------------------+
-| Forgon | project / scene | Edit Play Pause Stop | Search | Layout | Provider       |
-+---------------------------------------------------+------------------------------+
-| [Viewport] [Game] [+]                             | [Hierarchy] [Inspector] [+]  |
-|                                                   |                              |
-|  edit viewport: camera, grid, gizmos, overlays    |  scene tree / selected       |
-|  game view: play snapshot at target device size   |  entity properties           |
-|                                                   |                              |
-+---------------------------------------------------+------------------------------+
-| [AI Composer] [Agents] [+]                        | [Project] [Console] [+]      |
-|  thread transcript, approvals, composer           |  files/assets, diagnostics   |
-+----------------------------------------------------------------------------------+
-| status: save state, watcher, diagnostics, drafts, branch, fps                    |
-+----------------------------------------------------------------------------------+
-```
+A top-centre tool pill provides Select, Move, Rotate, Scale, Local/World space (only when the runtime exposes `setSpace`) and Frame selection. The minimal top strip retains project/scene, Edit/Play, undo/redo, save and visibility toggles. Play runs a detached snapshot in the viewport; there is no separate Game tab. The existing rail keeps Editor, Settings and Close project. The status bar retains real save/watch/error/selection/agent state.
 
-Audio, Animation, Timeline, Profiler, Assets and Review (diff/history) are slottable tabs that can be added to any group. Layout persists per project, with a reset to default.
+The centred bottom command bar opens Assets, Console, Review, Agents, Stats or Conversation in one card above the bar. Only one secondary card opens at a time; choosing it again or Escape collapses it. The persistent prompt beneath the bar is the AI composer: growing single-line input, removable context chips, compact provider/model/permission disclosure, context JSON disclosure and Send/Stop/Queue. Transcript, thread controls, provider readiness, approvals, permission explanations and existing diff/review capability limits are preserved. New agent activity opens Conversation; users can collapse it. Stats reports entity count, selection count and logged errors/warnings, with no estimated fps/GPU values.
+
+Floating visibility/expanded-card state persists per project as a version 3 payload in the existing `forgon.layout.v2:<project>` storage key; old dock layouts or invalid storage reset safely to floating defaults. Studio persists the recovered default. Viewport and hidden panel state stay mounted. The dock tab groups, splitters, tab moving and add-panel menus are replaced by the floating layout. Layout reset remains in Settings. Keyboard bindings and visual details are recorded in design.md.
 
 ### 7.2 Must-have panels
 
@@ -555,7 +552,7 @@ Use filesystem allowlists, deny traversal/symlink escapes, visible process audit
 
 ### 9.1 Runtime framework
 
-Build a thin but consistent game framework on top of PlayCanvas Engine:
+Build a thin but consistent game framework on top of Three.js:
 
 - Application lifecycle: preload → loading → initialize → play/pause → dispose.
 - Components: transforms/render/camera/light, collider, physics body, animation, script, audio, interaction, tags, game state.
@@ -566,7 +563,7 @@ Build a thin but consistent game framework on top of PlayCanvas Engine:
 - Runtime profiling/telemetry hooks, error boundary and reload.
 - Platform bridge for ads, IAP, vibration, notifications, accounts, safe-area, files.
 
-PlayCanvas already supplies important engine-level systems. Build only missing authoring/gameplay conventions rather than duplicating core APIs.
+Three.js supplies rendering, scene graph, math, loaders and animation mixing only. Forgon owns the engine-level systems above; reuse Three.js addons (loaders, controls, post-processing) wherever they fit rather than reimplementing them.
 
 ### 9.2 Physics
 
@@ -714,7 +711,7 @@ The **studio** is Windows-first. The **generated game** is multi-platform. Treat
 
 ### 13.1 Web (P0)
 
-- Bundle PlayCanvas runtime + project code/assets with Vite or equivalent.
+- Bundle the Three.js runtime + project code/assets with Vite or equivalent.
 - Code splitting/preload manifest, compressed textures/models, service worker optional.
 - Generate versioned static build with HTML/JS/WASM/assets.
 - Validate performance/compatibility in Chromium, Firefox and Safari target matrix.

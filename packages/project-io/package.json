@@ -1,6 +1,21 @@
 {
-  "name": "@forgon/project-io", "version": "0.0.0", "private": true, "type": "module",
-  "exports": { ".": "./src/types.ts", "./node": "./src/index.ts" },
-  "scripts": { "typecheck": "tsc --noEmit", "test": "tsx --test test/*.test.ts" },
-  "dependencies": { "@forgon/project-schema": "workspace:*", "@forgon/procedural-authoring": "workspace:*", "@forgon/test-fixtures": "workspace:*" }
+  "name": "@forgon/project-io",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/types.ts",
+    "./node": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@forgon/procedural-authoring": "workspace:*",
+    "@forgon/project-schema": "workspace:*",
+    "@forgon/test-fixtures": "workspace:*",
+    "esbuild": "0.28.2",
+    "typescript": "5.9.3"
+  }
 }

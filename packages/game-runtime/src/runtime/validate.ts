@@ -72,7 +72,7 @@ export function validatePlayableScene(input: unknown, context: ValidationContext
           if (component.enabled && active(entity.id)) cameras++;
           break;
         case 'light':
-          choice('kind', ['directional', 'omni']); vector('color', 0, 1); number('intensity', 0); number('range', 0.001); break;
+          choice('kind', ['directional', 'omni', 'spot']); vector('color', 0, 1); number('intensity', 0); number('range', 0.001); break;
         case 'collision':
           choice('shape', ['box']); vector('halfExtents', 0.000001); number('surface', 0, 1);
           if (p.isTrigger === true && entity.components.some(c => c.type === 'guestQueue' && c.enabled)) fail('moving queue triggers are not implemented');

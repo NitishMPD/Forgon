@@ -156,13 +156,17 @@ function ReadyWorkspace({ target, session, store, notice, onDismissNotice, servi
   }), [catalog, project]);
   const [selection, setSelection] = useState<Selection>(noSelection);
   const projectId = target.kind === 'project' ? target.session.manifest.projectId : 'sample';
+  // Keep the storage key so the v3 reader can recover old dock layouts in place.
   const storageKey = `forgon.layout.v2:${projectId}`;
   const [storage] = useState(browserStorage);
   const [layoutRead] = useState(() => readLayout(storage, storageKey));
   const [layout, setLayout] = useState<LayoutState>(layoutRead.layout);
 
   useEffect(() => {
-    if (layoutRead.recovered) addLog({ source: 'editor', severity: 'info', message: 'Saved layout was not valid. Default layout restored.' });
+    if (layoutRead.recovered) {
+      writeLayout(storage, storageKey, layoutRead.layout);
+      addLog({ source: 'editor', severity: 'info', message: 'Saved layout was not valid. Default layout restored.' });
+    }
   }, []);
 
   // Selection belongs to one scene. A different store means different objects, so it is cleared.

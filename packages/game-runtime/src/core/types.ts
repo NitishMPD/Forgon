@@ -63,6 +63,7 @@ export interface ViewportMountOptions {
 export interface ViewportHandle {
   update(view: ViewportView): void;
   setTool?(tool: ViewportTool): void;
+  setSpace?(space: 'local' | 'world'): void;
   frameSelection?(): void;
   play?(scene: SceneDocument): void;
   stop?(): void;

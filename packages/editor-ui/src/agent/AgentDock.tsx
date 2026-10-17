@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { ArrowUp, Braces, Plus, Square, TriangleAlert, X } from 'lucide-react';
+import { ArrowUp, Braces, ChevronDown, Plus, Square, TriangleAlert, X } from 'lucide-react';
 import type { AssetRecord, PermissionMode, SceneDocument } from '@forgon/project-schema';
 import { Banner, Button, IconButton, StatusText, cx, type Tone } from '../primitives/primitives.js';
 import { buildContext, chipStatus, isSendKey } from './composerModel.js';
@@ -13,10 +13,13 @@ export interface AgentDockProps {
   assets: readonly AssetRecord[];
   projectOpen: boolean;
   focusToken: number;
+  transcriptOpen?: boolean;
+  onCloseTranscript?(): void;
 }
 
 export const statusTone: Record<ThreadStatus, Tone> = {
   idle: 'neutral',
+  done: 'success',
   starting: 'info',
   running: 'info',
   awaiting_approval: 'warning',
@@ -26,7 +29,7 @@ export const statusTone: Record<ThreadStatus, Tone> = {
 };
 
 function Transcript({ thread, onApprove }: { thread: AgentThread; onApprove(runId: string, requestId: string, allow: boolean): void }) {
-  const endRef = useRef<HTMLDivElement>(null);
+  const endRef = useRef<HTMLLIElement>(null);
   useEffect(() => {
     endRef.current?.scrollIntoView?.({ block: 'end' });
   }, [thread.transcript.length]);
@@ -36,7 +39,7 @@ function Transcript({ thread, onApprove }: { thread: AgentThread; onApprove(runI
   return (
     <ol className="fg-transcript" aria-label="Transcript" aria-live="polite">
       {thread.transcript.map(item => <TranscriptRow key={item.id} item={item} mode={thread.permissionMode} onApprove={onApprove} />)}
-      <div ref={endRef} />
+      <li ref={endRef} aria-hidden="true" />
     </ol>
   );
 }
@@ -58,7 +61,7 @@ function TranscriptRow({ item, mode, onApprove }: {
           <StatusText tone={item.state === 'failed' ? 'danger' : item.state === 'completed' ? 'success' : 'info'}>
             {item.state === 'started' ? 'Started' : item.state === 'completed' ? 'Completed' : 'Failed'}
           </StatusText>
-          {item.text ? <span className="fg-muted">{item.text}</span> : null}
+          {item.text ? <details><summary>Details</summary><pre className="fg-code">{item.text}</pre></details> : null}
         </li>
       );
     case 'diagnostic':
@@ -114,6 +117,13 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
     if (focusToken > 0) inputRef.current?.focus();
   }, [focusToken]);
 
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    input.style.height = 'auto';
+    input.style.height = `${Math.min(input.scrollHeight, 120)}px`;
+  }, [agent.draft]);
+
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>): void => {
     if (!isSendKey(event.nativeEvent)) return;
     event.preventDefault();
@@ -146,7 +156,7 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
         id="agent-composer"
         ref={inputRef}
         className="fg-textarea"
-        rows={2}
+        rows={Math.min(5, Math.max(1, agent.draft.split("\n").length))}
         value={agent.draft}
         disabled={!projectOpen || thread === null}
         aria-describedby="agent-composer-help agent-composer-blockers"
@@ -156,38 +166,49 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
       />
       <p id="agent-composer-help" className="fg-sr-only">Press Control and Enter to send. Enter inserts a new line.</p>
       <div className="fg-composer-footer">
-        <select
-          className="fg-select fg-select-quiet"
-          aria-label="Provider"
-          value={thread?.provider ?? ''}
-          disabled={running || thread === null}
-          onChange={event => agent.setProvider(event.currentTarget.value as AgentThread['provider'])}
-        >
-          {agent.connection.providers.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-        </select>
-        {provider && provider.models.length > 0 ? (
-          <select
-            className="fg-select fg-select-quiet"
-            aria-label="Model"
-            value={thread?.model ?? ''}
-            disabled={running || thread === null}
-            onChange={event => agent.setModel(event.currentTarget.value === '' ? null : event.currentTarget.value)}
-          >
-            <option value="">Default model</option>
-            {provider.models.map(model => <option key={model} value={model}>{model}</option>)}
-          </select>
-        ) : null}
-        <select
-          className="fg-select fg-select-quiet"
-          aria-label="Permission mode"
-          title={modeNote}
-          value={thread?.permissionMode ?? ''}
-          disabled={running || !provider || provider.permissionModes.length === 0}
-          onChange={event => agent.setPermissionMode(event.currentTarget.value as PermissionMode)}
-        >
-          {thread?.permissionMode === null || thread?.permissionMode === undefined ? <option value="" disabled>Mode</option> : null}
-          {provider?.permissionModes.map(mode => <option key={mode} value={mode}>{permissionLabels[mode]}</option>)}
-        </select>
+        <details className="fg-agent-options" onKeyDown={event => {
+          if (event.key === 'Escape') {
+            event.preventDefault(); event.stopPropagation(); event.currentTarget.open = false;
+            event.currentTarget.querySelector('summary')?.focus();
+          }
+        }}>
+          <summary aria-label="Agent settings" title="Provider, model and permissions">{provider?.name ?? 'Provider'}<ChevronDown size={12} aria-hidden="true" /></summary>
+          <div className="fg-agent-options-popover">
+            <select
+              className="fg-select fg-select-quiet"
+              aria-label="Provider"
+              value={thread?.provider ?? ''}
+              disabled={running || thread === null}
+              onChange={event => agent.setProvider(event.currentTarget.value as AgentThread['provider'])}
+            >
+              {agent.connection.providers.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+            {provider && provider.models.length > 0 ? (
+              <select
+                className="fg-select fg-select-quiet"
+                aria-label="Model"
+                value={thread?.model ?? ''}
+                disabled={running || thread === null}
+                onChange={event => agent.setModel(event.currentTarget.value === '' ? null : event.currentTarget.value)}
+              >
+                <option value="">Default model</option>
+                {provider.models.map(model => <option key={model} value={model}>{model}</option>)}
+              </select>
+            ) : null}
+            <select
+              className="fg-select fg-select-quiet"
+              aria-label="Permission mode"
+              title={modeNote}
+              value={thread?.permissionMode ?? ''}
+              disabled={running || !provider || provider.permissionModes.length === 0}
+              onChange={event => agent.setPermissionMode(event.currentTarget.value as PermissionMode)}
+            >
+              {thread?.permissionMode === null || thread?.permissionMode === undefined ? <option value="" disabled>Mode</option> : null}
+              {provider?.permissionModes.map(mode => <option key={mode} value={mode}>{permissionLabels[mode]}</option>)}
+            </select>
+            <p className="fg-small fg-muted">{modeNote}</p>
+          </div>
+        </details>
         <IconButton label="What will be sent" aria-expanded={showContext} onClick={() => setShowContext(open => !open)}>
           <Braces size={14} strokeWidth={1.75} aria-hidden="true" />
         </IconButton>
@@ -202,8 +223,8 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
         <span className="fg-sr-only">{thread ? threadStatusLabels[status] : 'No thread'}</span>
         {running ? (
           <>
-            <Button onClick={agent.send} disabled={!agent.canSend}>Queue</Button>
-            <IconButton label="Stop" className="fg-send fg-send-stop" disabled={!thread?.activeRunId} onClick={agent.cancel}>
+            <Button title="Queue message (Ctrl+Enter)" onClick={agent.send} disabled={!agent.canSend}>Queue</Button>
+            <IconButton label="Stop" title="Stop agent (Ctrl+.)" className="fg-send fg-send-stop" disabled={!thread?.activeRunId} onClick={agent.cancel}>
               <Square size={12} strokeWidth={2} fill="currentColor" aria-hidden="true" />
             </IconButton>
           </>
@@ -217,13 +238,18 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
   );
 }
 
-export function AgentDock({ agent, scene, assets, projectOpen, focusToken }: AgentDockProps) {
+export function AgentDock({ agent, scene, assets, projectOpen, focusToken, transcriptOpen = true, onCloseTranscript }: AgentDockProps) {
   if (!agent) {
     return (
       <section className="fg-dock-panel" aria-label="Agent">
-        <Banner tone="neutral">Agent service not connected</Banner>
+        <section id="agent-conversation" className="fg-conversation fg-floating-card" aria-label="Conversation" hidden={!transcriptOpen} inert={!transcriptOpen}>
+          <header className="fg-agent-head"><span className="fg-agent-title">Conversation</span>
+            {onCloseTranscript ? <IconButton label="Close conversation" title="Close (Escape)" onClick={onCloseTranscript}><X size={14} aria-hidden="true" /></IconButton> : null}
+          </header>
+          <Banner tone="neutral">Agent service not connected</Banner>
+        </section>
         <div className="fg-composer">
-          <textarea className="fg-textarea" rows={3} disabled aria-label="Message to the agent (unavailable)" value="" readOnly />
+          <textarea id="agent-composer" className="fg-textarea" rows={1} disabled aria-label="Message to the agent (unavailable)" placeholder="Agent service not connected" value="" readOnly />
         </div>
       </section>
     );
@@ -231,11 +257,15 @@ export function AgentDock({ agent, scene, assets, projectOpen, focusToken }: Age
   const thread = agent.activeThread;
   return (
     <section className="fg-dock-panel fg-agent" aria-label="Agent">
-      <header className="fg-agent-head">
-        <span className="fg-agent-title">{thread ? thread.title : 'No thread'}</span>
-        <IconButton label="New thread" className="fg-agent-new" onClick={agent.newThread}><Plus size={14} strokeWidth={1.75} aria-hidden="true" /></IconButton>
-      </header>
-      {thread ? <Transcript thread={thread} onApprove={(runId, requestId, allow) => agent.approve(thread.id, runId, requestId, allow)} /> : null}
+      <section id="agent-conversation" className="fg-conversation fg-floating-card" aria-label="Conversation" hidden={!transcriptOpen} inert={!transcriptOpen}>
+        <header className="fg-agent-head">
+          <span className="fg-agent-title">{thread ? thread.title : 'No thread'}</span>
+          {thread ? <StatusText tone={statusTone[threadStatus(thread)]}>{threadStatusLabels[threadStatus(thread)]}</StatusText> : null}
+          <IconButton label="New thread" className="fg-agent-new" onClick={agent.newThread}><Plus size={14} strokeWidth={1.75} aria-hidden="true" /></IconButton>
+          {onCloseTranscript ? <IconButton label="Close conversation" title="Close (Escape)" onClick={onCloseTranscript}><X size={14} aria-hidden="true" /></IconButton> : null}
+        </header>
+        {thread ? <Transcript thread={thread} onApprove={(runId, requestId, allow) => agent.approve(thread.id, runId, requestId, allow)} /> : null}
+      </section>
       <Composer agent={agent} scene={scene} assets={assets} projectOpen={projectOpen} focusToken={focusToken} />
     </section>
   );

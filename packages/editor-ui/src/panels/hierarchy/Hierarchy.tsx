@@ -63,6 +63,7 @@ function entityIcon(entity: Entity | undefined, hasChildren: boolean): LucideIco
 }
 
 export function Hierarchy({ sceneName, entities, selection, locked, onSelect, onCreate, onDelete, onRename, onCommand, onNotice }: HierarchyProps) {
+  const [search, setSearch] = useState('');
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [dropRow, setDropRow] = useState<string | null>(null);
@@ -71,7 +72,7 @@ export function Hierarchy({ sceneName, entities, selection, locked, onSelect, on
   const pendingFocus = useRef<string | null>(null);
   const dragging = useRef<readonly string[] | null>(null);
   const byId = new Map(entities.map(entity => [entity.id, entity] as const));
-  const rows = buildRows(entities, collapsed);
+  const rows = buildRows(entities, collapsed, search);
   const ids = rows.map(row => row.id);
   const primary = selection.primaryId !== null && ids.includes(selection.primaryId) ? selection.primaryId : null;
   const focusId = primary ?? ids[0] ?? null;
@@ -294,6 +295,7 @@ export function Hierarchy({ sceneName, entities, selection, locked, onSelect, on
           <ListPlus size={16} strokeWidth={1.75} aria-hidden="true" />
         </IconButton>
       </header>
+      <input type="search" className="fg-input fg-panel-search" aria-label="Search hierarchy" placeholder="Search objects" value={search} onChange={event => setSearch(event.currentTarget.value)} />
       {entities.length === 0 ? (
         <EmptyState title="No objects" />
       ) : (

@@ -87,25 +87,12 @@ test('scene diff reports per-property and per-object differences by stable ID', 
   assert.ok(root);
 });
 
-test('layout parsing falls back on corrupt or older input, clamps splits and repairs groups', () => {
-  assert.deepEqual(parseLayout('nope'), { layout: defaultLayout, recovered: true });
-  assert.equal(parseLayout({ hierarchyWidth: 264, dockMode: 'bottom' }).recovered, true, 'version 1 layouts fall back');
-  const repaired = parseLayout({
-    version: 2, columns: 9, leftRows: -1, rightRows: Number.NaN,
-    groups: {
-      topLeft: { tabs: ['viewport', 'viewport', 'nonsense'], active: 'game' },
-      topRight: { tabs: ['viewport', 'inspector'], active: 'inspector' },
-      bottomLeft: 'broken',
-    },
-  });
-  assert.equal(repaired.recovered, false);
-  assert.equal(repaired.layout.columns, 0.85);
-  assert.equal(repaired.layout.leftRows, 0.15);
-  assert.equal(repaired.layout.rightRows, defaultLayout.rightRows);
-  assert.deepEqual(repaired.layout.groups.topLeft, { tabs: ['viewport'], active: 'viewport' }, 'duplicates, unknown panels and a foreign active tab are dropped');
-  assert.deepEqual(repaired.layout.groups.topRight, { tabs: ['inspector'], active: 'inspector' }, 'a panel lives in one group only');
-  assert.deepEqual(repaired.layout.groups.bottomLeft, { tabs: [], active: null });
-  assert.deepEqual(parseLayout(JSON.parse(JSON.stringify(defaultLayout))), { layout: defaultLayout, recovered: false });
+test('floating layout resets old dock formats and rejects invalid state', () => {
+  for (const input of ['nope', { hierarchyWidth: 264 }, { version: 2, groups: {} }, { ...defaultLayout, expandedCard: 'unknown' }, { ...defaultLayout, inspector: 1 }]) {
+    assert.deepEqual(parseLayout(input), { layout: defaultLayout, recovered: true });
+  }
+  const layout = { ...defaultLayout, hierarchy: false, expandedCard: 'console' };
+  assert.deepEqual(parseLayout(JSON.parse(JSON.stringify(layout))), { layout, recovered: false });
 });
 
 test('stored layout that is not JSON recovers silently and writes survive a failing storage', () => {
@@ -132,4 +119,16 @@ test('console log keeps the newest entries up to the cap and reports dropped lin
   assert.equal(log.droppedCount, 5);
   assert.equal(log.entries[0]?.message, 'line 5');
   assert.deepEqual(countBySeverity(log.entries.slice(0, 2)), { errors: 1, warnings: 1 });
+});
+
+test('hierarchy search reveals matching descendants and ancestors without changing collapse state', () => {
+  const root = createEntity('Lobby');
+  const child = createEntity('Reception', root.id);
+  const unrelated = createEntity('Garden');
+  const collapsed = new Set([root.id]);
+  assert.deepEqual(buildRows([root, child, unrelated], collapsed, '  RECEPT  ').map(row => row.id), [root.id, child.id]);
+  assert.deepEqual(buildRows([root, child, unrelated], collapsed, child.id).map(row => row.id), [root.id, child.id]);
+  assert.deepEqual(buildRows([root, child, unrelated], collapsed, 'missing'), []);
+  assert.deepEqual(buildRows([root, child, unrelated], collapsed).map(row => row.id), [root.id, unrelated.id]);
+  assert.deepEqual([...collapsed], [root.id]);
 });

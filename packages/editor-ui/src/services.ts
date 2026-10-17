@@ -104,6 +104,7 @@ export interface ViewportHandle {
   update(view: ViewportView): void;
   // Optional: present only when the runtime supports gizmos and camera framing.
   setTool?(tool: ViewportTool): void;
+  setSpace?(space: 'local' | 'world'): void;
   frameSelection?(): void;
   play?(scene: SceneDocument): void;
   stop?(): void;

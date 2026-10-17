@@ -12,7 +12,7 @@ import { AgentDock } from '../src/agent/AgentDock.js';
 import { Workspace } from '../src/shell/Workspace.js';
 import { readEditorSnapshot } from '../src/hooks/useEditorSnapshot.js';
 import { emptyLog } from '../src/model/consoleLog.js';
-import { closePanel, defaultLayout } from '../src/model/layout.js';
+import { defaultLayout } from '../src/model/layout.js';
 import { noSelection, selectOne } from '../src/model/selection.js';
 
 function fixtureScene() {
@@ -141,11 +141,11 @@ test('workspace renders from a real store with the viewport slot, honest capabil
     />,
   );
   assert.match(html, /Viewport not connected/);
-  assert.match(html, /data-slot="playcanvas"/);
+  assert.match(html, /data-slot="scene-viewport"/);
   assert.match(html, /Scripts do not run on open/);
   assert.match(html, /Saved/);
   assert.match(html, /Watching scenes\/lobby\.scene\.json/);
-  assert.match(html, /data-layout="dock"/);
+  assert.match(html, /data-layout="floating"/);
   assert.doesNotMatch(html, /Showing last valid scene/);
   assert.match(html, /aria-label="Scene"/);
   assert.match(html, /aria-label="Viewport tools"/);
@@ -153,7 +153,7 @@ test('workspace renders from a real store with the viewport slot, honest capabil
   assert.match(html, /<button(?=[^>]*aria-label="Frame")(?=[^>]*disabled="")/);
 });
 
-test('the default dock shows four tab groups with movable tabs, add-panel menus and split handles', () => {
+test('floating workspace keeps its viewport and panels mounted with named command controls', () => {
   const store = new EditorStore(fixtureScene(), 'r1');
   const html = renderToStaticMarkup(
     <Workspace
@@ -181,19 +181,22 @@ test('the default dock shows four tab groups with movable tabs, add-panel menus 
       onLog={() => {}}
       agent={null}
       viewport={null}
-      layout={closePanel(defaultLayout, 'game')}
+      layout={{ ...defaultLayout, hierarchy: false }}
       onLayoutChange={() => {}}
       onClose={() => {}}
     />,
   );
-  for (const label of ['Viewport', 'Hierarchy', 'Inspector', 'Composer', 'Agents', 'Project', 'Console', 'Review']) {
-    assert.match(html, new RegExp(`role="tab"[^>]*>(<svg[\\s\\S]*?</svg>)?<span>${label}</span>`), `${label} tab`);
+  for (const label of ['Assets', 'Console', 'Review', 'Agents', 'Stats', 'Conversation']) {
+    assert.match(html, new RegExp(`<span>${label}</span>`));
   }
-  assert.doesNotMatch(html, /<span>Game<\/span>/, 'a closed panel has no tab');
-  assert.match(html, /id="panel-game"[^>]*class="[^"]*is-hidden/, 'a closed panel stays mounted but hidden');
-  assert.equal(html.match(/aria-label="Add panel"/g)?.length, 4);
-  assert.equal(html.match(/role="separator"/g)?.length, 3);
-  assert.match(html, /draggable="true" data-panel-tab="viewport"/);
+  assert.match(html, /id="panel-hierarchy"[^>]*hidden=""/);
+  assert.match(html, /aria-label="Toggle Hierarchy"/);
+  assert.match(html, /aria-label="Toggle Inspector"/);
+  assert.match(html, /aria-label="Transform space"/);
+  assert.match(html, /aria-label="Search inspector"/);
+  assert.doesNotMatch(html, /role="tab"|Resize columns|Add panel/);
+  assert.equal(html.match(/data-slot="scene-viewport"/g)?.length, 1);
+
 });
 
 test('inspector renders typed editors for each property kind and a whole-component summary', () => {

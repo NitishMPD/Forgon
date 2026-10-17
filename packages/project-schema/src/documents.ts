@@ -11,10 +11,16 @@ export const relativePathSchema = z.string().min(1).refine(path =>
 const name = z.string().min(1).refine(value => value.trim().length > 0, 'Name cannot be blank');
 const vec3 = z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]);
 export const transformSchema = z.object({ position: vec3, rotationEuler: vec3, scale: vec3 }).strict();
+export const scriptPathSchema = relativePathSchema.refine(path => path.startsWith('scripts/') && path.endsWith('.ts'), 'Expected scripts/<name>.ts');
+export const scriptPropertiesSchema = z.object({ src: scriptPathSchema, params: z.record(jsonValueSchema) }).strict();
 export const componentSchema = z.object({
   id: idSchema, type: name, enabled: z.boolean(), properties: z.record(jsonValueSchema),
   entityRefs: z.array(idSchema), assetRefs: z.array(idSchema),
-}).strict();
+}).strict().superRefine((component, ctx) => {
+  if (component.type !== 'script') return;
+  const result = scriptPropertiesSchema.safeParse(component.properties);
+  if (!result.success) for (const issue of result.error.issues) ctx.addIssue({ ...issue, path: ['properties', ...issue.path] });
+});
 export const prefabInstanceSchema = z.object({
   prefabId: idSchema, instanceId: idSchema, sourceEntityId: idSchema,
 }).strict();

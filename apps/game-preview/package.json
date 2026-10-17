@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@forgon/game-runtime": "workspace:*",
-    "playcanvas": "2.23.3"
+    "three": "0.186.1"
   },
   "devDependencies": {
     "vite": "7.3.6"
