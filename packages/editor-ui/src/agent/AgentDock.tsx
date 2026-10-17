@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { ArrowUp, Braces, Plus, Square, TriangleAlert, X } from 'lucide-react';
+import { Archive, ArrowUp, Braces, Paperclip, Plus, RotateCcw, Square, TriangleAlert, X } from 'lucide-react';
 import type { AssetRecord, PermissionMode, SceneDocument } from '@forgon/project-schema';
 import { Banner, Button, IconButton, StatusText, cx, type Tone } from '../primitives/primitives.js';
 import { ModelPicker } from './ModelPicker.js';
-import { buildContext, chipStatus, isSendKey } from './composerModel.js';
+import { Markdown } from './Markdown.js';
+import { attachmentReferences, buildContext, chipStatus, clipboardFiles, insertMention, isSendKey, mentionOptions, mentionQuery, recallPrompt, swapStashedDraft, type ComposerDraft, type ContextChip, type HistoryRecall } from './composerModel.js';
 import type { AgentController } from './useAgentSessions.js';
 import { enforcementNote, permissionLabels, providerLimitsNote } from './permissions.js';
 import { threadStatus, threadStatusLabels, type AgentThread, type ThreadStatus, type TranscriptItem } from './threadState.js';
@@ -54,7 +55,7 @@ function TranscriptRow({ item, mode, onApprove }: {
     case 'user':
       return <li className="fg-message fg-message-user"><span className="fg-message-label">You</span><p>{item.text}</p></li>;
     case 'assistant':
-      return <li className="fg-message"><span className="fg-message-label">Agent</span><p>{item.text}</p></li>;
+      return <li className="fg-message"><span className="fg-message-label">Agent</span><Markdown text={item.text} /></li>;
     case 'tool':
       return (
         <li className="fg-tool-line">
@@ -108,11 +109,36 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
   focusToken: number;
 }) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const pendingCaret = useRef<number | null>(null);
+  const history = useRef<{ threadId: string; recall: HistoryRecall } | null>(null);
+  const [caret, setCaret] = useState<number | null>(null);
+  const [mentionDismissed, setMentionDismissed] = useState(false);
+  const [activeMention, setActiveMention] = useState(0);
+  const [attachmentNote, setAttachmentNote] = useState('');
+  const [stash, setStash] = useState<Record<string, ComposerDraft>>({});
   const thread = agent.activeThread;
   const status = thread ? threadStatus(thread) : 'idle';
   const running = thread !== null && (thread.starting || thread.activeRunId !== null);
   const provider = agent.activeProvider;
   const context = buildContext(agent.chips);
+  const query = mentionDismissed ? null : mentionQuery(agent.draft, Math.min(caret ?? agent.draft.length, agent.draft.length));
+  const matches = query ? mentionOptions(scene, assets, query.query) : [];
+  const suggestions = matches.slice(0, 30);
+  const highlighted = Math.min(activeMention, Math.max(0, suggestions.length - 1));
+  const stashed = thread ? stash[thread.id] : undefined;
+  const hasDraft = agent.draft !== '' || agent.chips.length > 0;
+
+  useEffect(() => {
+    history.current = null;
+    setCaret(null);
+    setMentionDismissed(true);
+    setAttachmentNote('');
+  }, [thread?.id]);
+
+  useEffect(() => {
+    if (query) document.getElementById(`agent-mention-${highlighted}`)?.scrollIntoView?.({ block: 'nearest' });
+  }, [highlighted, query?.query]);
 
   useEffect(() => {
     if (focusToken > 0) inputRef.current?.focus();
@@ -123,19 +149,84 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
     if (!input) return;
     input.style.height = 'auto';
     input.style.height = `${Math.min(input.scrollHeight, 120)}px`;
+    if (pendingCaret.current !== null) {
+      input.setSelectionRange(pendingCaret.current, pendingCaret.current);
+      pendingCaret.current = null;
+    }
   }, [agent.draft]);
 
+  const chooseMention = (chip: ContextChip): void => {
+    if (!query) return;
+    const inserted = insertMention(agent.draft, query);
+    agent.addChip(chip);
+    agent.setDraft(inserted.text);
+    pendingCaret.current = inserted.caret;
+    setCaret(inserted.caret);
+    setMentionDismissed(true);
+    inputRef.current?.focus();
+  };
+
+  const addFiles = (files: readonly File[]): void => {
+    if (!projectOpen || !thread) return;
+    const { chips, rejected } = attachmentReferences(files, assets);
+    chips.forEach(chip => agent.addChip(chip));
+    setAttachmentNote([
+      chips.length ? `Referenced ${chips.map(chip => chip.label).join(', ')} from the project. File contents are not uploaded.` : '',
+      rejected.length ? `Cannot reference ${rejected.join(', ')}: import it into project assets first, or use @ to choose an unambiguous file.` : '',
+    ].filter(Boolean).join(' '));
+  };
+
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>): void => {
-    if (!isSendKey(event.nativeEvent)) return;
+    const key = event.nativeEvent;
+    if (key.isComposing || key.keyCode === 229) return;
+    if (query && key.key === 'Escape') {
+      event.preventDefault(); event.stopPropagation(); setMentionDismissed(true); return;
+    }
+    if (query && suggestions.length && !key.ctrlKey && !key.altKey && !key.metaKey && !key.shiftKey) {
+      if (key.key === 'ArrowDown' || key.key === 'ArrowUp') {
+        event.preventDefault();
+        setActiveMention((highlighted + (key.key === 'ArrowDown' ? 1 : suggestions.length - 1)) % suggestions.length);
+        return;
+      }
+      if (key.key === 'Enter' || key.key === 'Tab') {
+        event.preventDefault(); chooseMention(suggestions[highlighted]!); return;
+      }
+    }
+    if (key.key === 'Enter' && key.ctrlKey && !key.altKey && !key.metaKey) {
+      event.preventDefault();
+      const start = event.currentTarget?.selectionStart ?? agent.draft.length;
+      const end = event.currentTarget?.selectionEnd ?? start;
+      agent.setDraft(`${agent.draft.slice(0, start)}\n${agent.draft.slice(end)}`);
+      pendingCaret.current = start + 1;
+      setCaret(start + 1);
+      setMentionDismissed(true);
+      history.current = null;
+      return;
+    }
+    if (thread && (key.key === 'ArrowUp' || key.key === 'ArrowDown') && !key.ctrlKey && !key.altKey && !key.metaKey && !key.shiftKey
+      && event.currentTarget?.selectionStart === event.currentTarget?.selectionEnd) {
+      const prompts = [...thread.transcript.flatMap(item => item.kind === 'user' ? [item.text] : []), ...thread.queue.map(item => item.text)];
+      const recalled = recallPrompt(prompts, agent.draft, history.current?.threadId === thread.id ? history.current.recall : null, key.key);
+      if (recalled) {
+        event.preventDefault(); history.current = { threadId: thread.id, recall: recalled };
+        agent.setDraft(recalled.text); pendingCaret.current = recalled.text.length; setCaret(null); setMentionDismissed(true); return;
+      }
+    }
+    if (!isSendKey(key)) return;
     event.preventDefault();
-    if (agent.canSend) agent.send();
+    if (agent.canSend && agent.draft.trim()) { history.current = null; agent.send(); setAttachmentNote(''); setCaret(null); setMentionDismissed(true); }
   };
 
   const [showContext, setShowContext] = useState(false);
   const modeNote = thread?.permissionMode ? `${enforcementNote(thread.permissionMode)}${provider ? ` ${providerLimitsNote(provider)}` : ''}` : 'Choose a permission mode before sending.';
 
   return (
-    <div className="fg-composer">
+    <div className="fg-composer" onDragOver={event => {
+      if (event.dataTransfer.types.includes('Files')) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; }
+    }} onDrop={event => {
+      if (!event.dataTransfer.files.length) return;
+      event.preventDefault(); event.stopPropagation(); addFiles(Array.from(event.dataTransfer.files));
+    }}>
       {showContext ? <pre className="fg-code" aria-label="What will be sent">{JSON.stringify(context, null, 2)}</pre> : null}
       {thread && thread.queue.length > 0 ? <p className="fg-small fg-muted" role="status">{thread.queue.length} queued</p> : null}
       {agent.chips.length > 0 ? (
@@ -152,6 +243,17 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
           })}
         </ul>
       ) : null}
+      {query ? <div className="fg-mention-popover">
+        <ul id="agent-mentions" role="listbox" aria-label="Context suggestions">
+          {suggestions.map((chip, index) => <li key={chip.id} role="presentation"><button type="button" role="option"
+            id={`agent-mention-${index}`} aria-selected={index === highlighted} tabIndex={-1}
+            onMouseDown={event => event.preventDefault()} onClick={() => chooseMention(chip)}>
+            <span>{chip.label}</span><span className="fg-muted fg-small">{chip.kind}</span>
+          </button></li>)}
+        </ul>
+        {!suggestions.length ? <p className="fg-small fg-muted" role="status">No matching context</p> : null}
+        {matches.length > suggestions.length ? <p className="fg-small fg-muted">{matches.length - suggestions.length} more — refine search</p> : null}
+      </div> : null}
       <label className="fg-sr-only" htmlFor="agent-composer">Message to the agent</label>
       <textarea
         id="agent-composer"
@@ -161,11 +263,31 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
         value={agent.draft}
         disabled={!projectOpen || thread === null}
         aria-describedby="agent-composer-help agent-composer-blockers"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={query !== null}
+        aria-controls={query ? 'agent-mentions' : undefined}
+        aria-activedescendant={query && suggestions.length ? `agent-mention-${highlighted}` : undefined}
         placeholder={projectOpen ? 'Ask for a change…' : 'Open a project to use agents'}
-        onChange={event => agent.setDraft(event.currentTarget.value)}
+        onChange={event => {
+          agent.setDraft(event.currentTarget.value); setCaret(event.currentTarget.selectionStart);
+          setMentionDismissed(false); setActiveMention(0); history.current = null;
+        }}
+        onSelect={event => setCaret(event.currentTarget.selectionStart)}
+        onBlur={() => setMentionDismissed(true)}
+        onPaste={event => {
+          const files = clipboardFiles(event.clipboardData);
+          if (!files.length) return;
+          event.preventDefault(); addFiles(files);
+        }}
         onKeyDown={onKeyDown}
       />
-      <p id="agent-composer-help" className="fg-sr-only">Press Control and Enter to send. Enter inserts a new line.</p>
+      {attachmentNote ? <p className="fg-small fg-muted fg-composer-note" role="status">{attachmentNote}</p> : null}
+      <div id="agent-composer-help" className="fg-composer-hint fg-small fg-muted">
+        <span>{agent.draft.length.toLocaleString()} characters</span>
+        <span aria-hidden="true">Enter to {running ? 'queue' : 'send'} · Ctrl/Shift+Enter newline · @ context · ↑/↓ history</span>
+        <span className="fg-sr-only">Press Enter to {running ? 'queue' : 'send'}. Control+Enter or Shift+Enter inserts a new line. Type @ to find context. ArrowUp and ArrowDown recall prompts in an empty or unedited recalled draft.</span>
+      </div>
       <div className="fg-composer-footer">
         {thread ? <ModelPicker key={thread.id} providers={agent.connection.providers} thread={thread} onSelect={agent.setModel}>
             <select
@@ -184,6 +306,29 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
         <IconButton label="What will be sent" aria-expanded={showContext} onClick={() => setShowContext(open => !open)}>
           <Braces size={14} strokeWidth={1.75} aria-hidden="true" />
         </IconButton>
+        <IconButton label="Reference project file" title="Reference a project asset file (no upload). Paste, drop, or choose a file." disabled={!projectOpen || !thread} onClick={() => fileRef.current?.click()}>
+          <Paperclip size={14} strokeWidth={1.75} aria-hidden="true" />
+        </IconButton>
+        <input ref={fileRef} type="file" multiple hidden onChange={event => { addFiles(Array.from(event.currentTarget.files ?? [])); event.currentTarget.value = ''; }} />
+        <IconButton label={stashed ? 'Restore stashed draft' : 'Stash draft'}
+          title={stashed && hasDraft ? 'Clear or send the current draft before restoring. One saved draft per thread, for this session.' : stashed ? 'Restore saved text and context' : 'Save draft and context for later in this thread'}
+          disabled={!thread || (stashed ? hasDraft : !hasDraft)} onClick={() => {
+            if (!thread) return;
+            const swapped = swapStashedDraft({ text: agent.draft, chips: agent.chips }, stashed);
+            if (!swapped) return;
+            setStash(current => {
+              const next = { ...current };
+              if (swapped.saved) next[thread.id] = swapped.saved;
+              else delete next[thread.id];
+              return next;
+            });
+            agent.setDraft(swapped.draft.text);
+            agent.chips.forEach(chip => agent.removeChip(chip.id));
+            swapped.draft.chips.forEach(chip => agent.addChip(chip));
+            history.current = null; setCaret(null); setMentionDismissed(true); inputRef.current?.focus();
+          }}>
+          {stashed ? <RotateCcw size={14} strokeWidth={1.75} aria-hidden="true" /> : <Archive size={14} strokeWidth={1.75} aria-hidden="true" />}
+        </IconButton>
         <span className="fg-composer-spacer" />
         {agent.blockers.length > 0 ? (
           <span id="agent-composer-blockers" className="fg-composer-blocker" role="status" title={agent.blockers.join('\n')}>
@@ -195,13 +340,14 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
         <span className="fg-sr-only">{thread ? threadStatusLabels[status] : 'No thread'}</span>
         {running ? (
           <>
-            <Button title="Queue message (Ctrl+Enter)" onClick={agent.send} disabled={!agent.canSend}>Queue</Button>
-            <IconButton label="Stop" title="Stop agent (Ctrl+.)" className="fg-send fg-send-stop" disabled={!thread?.activeRunId} onClick={agent.cancel}>
+            <Button title="Queue message (Enter)" onClick={agent.send} disabled={!agent.canSend}>Queue</Button>
+            <Button variant="danger" title={thread?.activeRunId ? 'Stop agent (Ctrl+.)' : 'Waiting for the agent to start before it can be stopped'} className="fg-send-stop" disabled={!thread?.activeRunId} onClick={agent.cancel} aria-label="Stop">
               <Square size={12} strokeWidth={2} fill="currentColor" aria-hidden="true" />
-            </IconButton>
+              Stop
+            </Button>
           </>
         ) : (
-          <IconButton label="Send" title="Send (Ctrl+Enter)" className="fg-send" onClick={agent.send} disabled={!agent.canSend}>
+          <IconButton label="Send" title="Send (Enter)" className="fg-send" onClick={agent.send} disabled={!agent.canSend}>
             <ArrowUp size={16} strokeWidth={2} aria-hidden="true" />
           </IconButton>
         )}

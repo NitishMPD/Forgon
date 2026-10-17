@@ -35,7 +35,15 @@ foreach ($size in $sizes) {
         # ICO stores a DIB without the BMP file header, followed by a padded transparency mask.
         $dib = $png.ToArray()[14..($png.Length - 1)]
         [BitConverter]::GetBytes([int]($size * 2)).CopyTo($dib, 8)
-        $mask = [byte[]]::new([int]([math]::Ceiling($size / 32.0) * 4 * $size))
+        $rows = [int][math]::Ceiling($size / 32.0)
+        $mask = [byte[]]::new($rows * 4 * $size)
+        for ($y = 0; $y -lt $size; $y++) {
+            for ($x = 0; $x -lt $size; $x++) {
+                if ($bitmap.GetPixel($x, $y).A -eq 0) {
+                    $mask[$y * $rows * 4 + [int][math]::Floor($x / 8)] = $mask[$y * $rows * 4 + [int][math]::Floor($x / 8)] -bor (1 -shl (7 - ($x % 8)))
+                }
+            }
+        }
         $frames += ,([byte[]]($dib + $mask))
     } finally {
         $png.Dispose(); $outline.Dispose(); $foreground.Dispose(); $background.Dispose(); $graphics.Dispose(); $bitmap.Dispose()

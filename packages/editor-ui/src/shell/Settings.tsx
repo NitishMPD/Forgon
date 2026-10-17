@@ -36,7 +36,11 @@ export const shortcuts: ReadonlyArray<[string, string]> = [
   ['F5', 'Play / Stop'],
   ['Ctrl+Shift+L', 'Add selection to message'],
   ['Ctrl+I', 'Inspector'],
-  ['Ctrl+Enter', 'Send message'],
+  ['Enter', 'Send message'],
+  ['Ctrl+Enter / Shift+Enter', 'Insert newline'],
+  ['↑ / ↓ in empty or recalled prompt', 'Prompt history'],
+  ['@', 'Find context references'],
+  ['↑ / ↓, Enter / Tab', 'Choose @ context'],
 ];
 
 type Section = 'providers' | 'appearance' | 'layout' | 'shortcuts';

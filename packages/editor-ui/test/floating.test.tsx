@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { Children, isValidElement, type ReactElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { EditorStore } from '@forgon/editor-core';
 import { createEntity, createScene } from '@forgon/project-schema';
 import { ViewportTools } from '../src/shell/ViewportTools.js';
 import { Workspace, type WorkspaceProps } from '../src/shell/Workspace.js';
-import { AgentDock } from '../src/agent/AgentDock.js';
+import { AgentDock, type AgentDockProps } from '../src/agent/AgentDock.js';
 import { ModelPicker } from '../src/agent/ModelPicker.js';
 import { newThread, threadStatus } from '../src/agent/threadState.js';
 import type { AgentController } from '../src/agent/useAgentSessions.js';
@@ -185,9 +186,9 @@ function agentFixture() {
   };
   return { agent, calls, thread };
 }
-function composer(agent: AgentController) {
+function composer(agent: AgentController, overrides: Partial<AgentDockProps> = {}) {
   return probe(() => {
-    const dock = AgentDock({ agent, scene: null, assets: [], projectOpen: true, focusToken: 0, transcriptOpen: true });
+    const dock = AgentDock({ agent, scene: null, assets: [], projectOpen: true, focusToken: 0, transcriptOpen: true, ...overrides });
     const child = find(dock, element => typeof element.type === 'function' && element.type.name === 'Composer');
     assert.ok(child);
     return (child.type as (props: any) => ReactElement)(child.props);
@@ -199,11 +200,11 @@ test('composer preserves Enter/IME rules, removable context, and provider/model/
   const { tree, html } = composer(agent);
   const input = control(tree, 'agent-composer');
   for (const nativeEvent of [
-    { key: 'Enter', ctrlKey: false }, { key: 'Enter', ctrlKey: true, isComposing: true },
-    { key: 'Enter', ctrlKey: true, keyCode: 229 }, { key: 'Enter', ctrlKey: true, shiftKey: true },
+    { key: 'Enter', isComposing: true },
+    { key: 'Enter', keyCode: 229 }, { key: 'Enter', shiftKey: true },
   ]) input.props.onKeyDown({ nativeEvent, preventDefault() { assert.fail('newline/IME must not be consumed'); } });
   let prevented = false;
-  input.props.onKeyDown({ nativeEvent: { key: 'Enter', ctrlKey: true }, preventDefault() { prevented = true; } });
+  input.props.onKeyDown({ nativeEvent: { key: 'Enter' }, preventDefault() { prevented = true; } });
   assert.equal(prevented, true);
   control(tree, 'Remove Cube').props.onClick();
   const picker = find(tree, element => element.type === ModelPicker);
@@ -214,6 +215,103 @@ test('composer preserves Enter/IME rules, removable context, and provider/model/
   assert.match(html, /aria-label="Model and agent settings"/);
   assert.match(html, /aria-label="Send"/);
   assert.match(html, /rows="1"/);
+});
+
+test('Ctrl+Enter inserts an actual newline at the selection without sending, and empty drafts never send', () => {
+  const { agent, calls } = agentFixture();
+  const input = control(composer(agent).tree, 'agent-composer');
+  let prevented = 0;
+  input.props.onKeyDown({ nativeEvent: { key: 'Enter', ctrlKey: true }, currentTarget: { selectionStart: 4, selectionEnd: 6 }, preventDefault() { prevented++; } });
+  assert.deepEqual(calls, [['draft', 'Make\n cube']]);
+  assert.equal(prevented, 1);
+  calls.length = 0;
+  for (const draft of ['', '  \n\t']) {
+    agent.draft = draft;
+    control(composer(agent).tree, 'agent-composer').props.onKeyDown({ nativeEvent: { key: 'Enter' }, preventDefault() {} });
+  }
+  assert.deepEqual(calls, []);
+});
+
+test('paste, drop and file picker add project file chips; chips are removable and plain text paste is untouched', () => {
+  const { agent, calls } = agentFixture();
+  const assets = [{ id: 'tex', name: 'Brick', kind: 'texture' as const, path: 'assets/brick.png' }];
+  const file = new File(['bytes are not uploaded'], 'brick.png', { type: 'image/png' });
+  const tree = composer(agent, { assets }).tree;
+  const input = control(tree, 'agent-composer');
+  let prevented = 0;
+  input.props.onPaste({ clipboardData: { files: [file], items: [] }, preventDefault() { prevented++; } });
+  const chip = { id: 'file:assets/brick.png', kind: 'file' as const, ref: 'assets/brick.png', label: 'assets/brick.png' };
+  assert.deepEqual(calls, [['add', chip]]);
+  assert.equal(prevented, 1);
+  input.props.onPaste({ clipboardData: { files: [], items: [] }, preventDefault() { assert.fail('keep native text paste'); } });
+  (tree as Element).props.onDrop({ dataTransfer: { files: [file] }, preventDefault() { prevented++; }, stopPropagation() {} });
+  const picker = find(tree, element => element.type === 'input' && element.props.type === 'file');
+  assert.ok(picker);
+  picker.props.onChange({ currentTarget: { files: [file], value: 'brick.png' } });
+  assert.equal(calls.filter(call => call[0] === 'add').length, 3);
+  agent.chips = [chip];
+  control(composer(agent, { assets }).tree, 'Remove assets/brick.png').props.onClick();
+  assert.deepEqual(calls.at(-1), ['remove', chip.id]);
+  calls.length = 0;
+  input.props.onPaste({ clipboardData: { files: [new File(['x'], 'outside.png')], items: [] }, preventDefault() {} });
+  assert.deepEqual(calls, [], 'unknown files are never represented as uploaded attachments');
+});
+
+test('@ context selection consumes only its query and inserts a chip via keyboard or click', () => {
+  const { agent, calls } = agentFixture();
+  const entity = createEntity('Cube');
+  const scene = { ...createScene('Test'), entities: [entity] };
+  agent.draft = 'Change @cub';
+  const { tree, html } = composer(agent, { scene });
+  const input = control(tree, 'agent-composer');
+  assert.equal(input.props['aria-expanded'], true);
+  assert.match(html, /role="listbox" aria-label="Context suggestions"/);
+  for (const nativeEvent of [{ key: 'Enter', isComposing: true }, { key: 'Enter', keyCode: 229 }]) {
+    input.props.onKeyDown({ nativeEvent, preventDefault() { assert.fail('IME must not choose a mention'); } });
+  }
+  assert.deepEqual(calls, []);
+  for (const key of ['Enter', 'Tab']) {
+    calls.length = 0;
+    input.props.onKeyDown({ nativeEvent: { key }, preventDefault() {} });
+    assert.deepEqual(calls, [['add', { id: `entity:${entity.id}`, kind: 'entity', ref: entity.id, label: 'Cube' }], ['draft', 'Change ']]);
+  }
+  calls.length = 0;
+  control(tree, 'agent-mention-0').props.onClick();
+  assert.equal(calls[0]?.[0], 'add');
+  assert.equal(calls.some(call => call[0] === 'send'), false);
+  let stopped = false;
+  input.props.onKeyDown({ nativeEvent: { key: 'Escape' }, preventDefault() {}, stopPropagation() { stopped = true; } });
+  assert.equal(stopped, true);
+});
+
+test('history recalls this thread including queued prompts and leaves edited drafts alone', () => {
+  const { agent, calls, thread } = agentFixture();
+  agent.draft = '';
+  thread.transcript = [{ id: 'u1', kind: 'user', text: 'First prompt' }, { id: 'a1', kind: 'assistant', runId: 'r', text: 'Reply' }];
+  const input = control(composer(agent).tree, 'agent-composer');
+  input.props.onKeyDown({ nativeEvent: { key: 'ArrowUp' }, currentTarget: { selectionStart: 0, selectionEnd: 0 }, preventDefault() {} });
+  assert.deepEqual(calls, [['draft', 'First prompt']]);
+  calls.length = 0; agent.draft = 'Editing my prompt';
+  control(composer(agent).tree, 'agent-composer').props.onKeyDown({ nativeEvent: { key: 'ArrowUp' }, currentTarget: { selectionStart: 0, selectionEnd: 0 }, preventDefault() { assert.fail('leave editing alone'); } });
+  assert.deepEqual(calls, []);
+});
+
+test('assistant messages render markdown while user messages remain plain text', () => {
+  const { agent, thread } = agentFixture();
+  thread.transcript = [{ id: 'u', kind: 'user', text: '**plain**' }, { id: 'a', kind: 'assistant', runId: 'r', text: '**formatted**\n\n- list' }];
+  const html = renderToStaticMarkup(<AgentDock agent={agent} scene={null} assets={[]} projectOpen focusToken={0} />);
+  assert.match(html, /<p>\*\*plain\*\*<\/p>/);
+  assert.match(html, /<strong>.*formatted.*<\/strong>/);
+  assert.match(html, /<ul><li>/);
+});
+
+test('command bar, composer and expanded cards inherit one responsive column width', () => {
+  const css = readFileSync(new URL('../src/theme/studio.css', import.meta.url), 'utf8');
+  assert.match(css, /--command-column-width: 680px/);
+  assert.match(css, /\.fg-command-home \{[^}]*width: min\(var\(--command-column-width\), calc\(100% - 32px\)\)/);
+  assert.match(css, /\.fg-command-bar, \.fg-command-home \.fg-composer, \.fg-expanded-card, \.fg-conversation \{ width: 100%; \}/);
+  assert.match(css, /\.fg-command-bar \{[^}]*grid-template-columns: repeat\(6, minmax\(0, 1fr\)\)/);
+  assert.doesNotMatch(css, /\.fg-command-bar \{[^}]*width: fit-content/);
 });
 
 test('running composer retains Queue/Stop, approvals stay inline, and completed runs say Done', () => {

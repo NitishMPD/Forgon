@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { AgentEvent } from '@forgon/project-schema';
 import { createEntity, createScene, parseScene } from '@forgon/project-schema';
-import { buildContext, chipStatus, isSendKey, sendBlockers, type ContextChip, type KeyLike } from '../src/agent/composerModel.js';
+import { attachmentReferences, buildContext, chipStatus, clipboardFiles, insertMention, isSendKey, mentionOptions, mentionQuery, recallPrompt, sendBlockers, swapStashedDraft, type ContextChip, type KeyLike } from '../src/agent/composerModel.js';
 import { defaultPermissionMode, enforcementNote, providerLimitsNote } from '../src/agent/permissions.js';
 import { agentReducer, newThread, threadStatus, type AgentState, type PendingRequest } from '../src/agent/threadState.js';
 import type { AgentProviderInfo } from '../src/services.js';
@@ -11,13 +11,16 @@ const key = (overrides: Partial<KeyLike>): KeyLike => ({
   key: 'Enter', ctrlKey: false, altKey: false, shiftKey: false, metaKey: false, isComposing: false, ...overrides,
 });
 
-test('Ctrl+Enter sends; plain Enter, Shift+Enter, and IME composition never send', () => {
-  assert.equal(isSendKey(key({ ctrlKey: true })), true);
-  assert.equal(isSendKey(key({})), false);
+test('Enter sends; modified Enter and IME composition never send', () => {
+  assert.equal(isSendKey(key({})), true);
+  assert.equal(isSendKey(key({ ctrlKey: true })), false);
+  assert.equal(isSendKey(key({ shiftKey: true })), false);
+  assert.equal(isSendKey(key({ altKey: true })), false);
+  assert.equal(isSendKey(key({ metaKey: true })), false);
   assert.equal(isSendKey(key({ shiftKey: true, ctrlKey: true })), false);
-  assert.equal(isSendKey(key({ ctrlKey: true, isComposing: true })), false);
-  assert.equal(isSendKey(key({ ctrlKey: true, keyCode: 229 })), false);
-  assert.equal(isSendKey(key({ ctrlKey: true, key: 'a' })), false);
+  assert.equal(isSendKey(key({ isComposing: true })), false);
+  assert.equal(isSendKey(key({ keyCode: 229 })), false);
+  assert.equal(isSendKey(key({ key: 'a' })), false);
 });
 
 const provider: AgentProviderInfo = { id: 'codex', name: 'Codex', readiness: 'ready', models: [], permissionModes: ['inspect', 'supervised'] };
@@ -58,6 +61,74 @@ test('context chips map only onto AgentContext v1 fields and report missing targ
   assert.equal(chipStatus(chips[0]!, doc, []), 'ok');
   assert.equal(chipStatus({ id: 'x', kind: 'entity', ref: 'entity_missing', label: 'x' }, doc, []), 'missing');
   assert.equal(chipStatus(chips[2]!, doc, []), 'missing');
+});
+
+test('file attachments reference only unique project assets, never guessed paths or uploaded bytes', () => {
+  const assets = [
+    { id: 'a1', name: 'Rock', kind: 'model' as const, path: 'assets/rock.glb' },
+    { id: 'a2', name: 'Brick', kind: 'texture' as const, path: 'assets/brick.png' },
+    { id: 'a3', name: 'Other brick', kind: 'texture' as const, path: 'other/brick.png' },
+  ];
+  const file = (name: string, webkitRelativePath = '') => ({ name, webkitRelativePath });
+  const { chips, rejected } = attachmentReferences([file('rock.glb'), file('rock.glb'), file('brick.png'), file('outside.txt'), file('../secret'), file('brick.png', 'assets/brick.png')], assets);
+  assert.deepEqual(chips.map(chip => chip.ref), ['assets/rock.glb', 'assets/brick.png']);
+  assert.deepEqual(rejected, ['brick.png', 'outside.txt', '../secret']);
+  assert.deepEqual(buildContext([...chips, chips[0]!]), { files: ['assets/rock.glb', 'assets/brick.png'], entityIds: [], assetIds: [] });
+  assert.equal(chipStatus(chips[0]!, null, assets), 'ok');
+  assert.equal(chipStatus(chips[0]!, null, []), 'missing');
+  assert.equal(attachmentReferences([file('rock.glb', '../assets/rock.glb')], assets).chips.length, 0);
+});
+
+test('paste reads files once and falls back to file items without swallowing ordinary text', () => {
+  const file = new File(['x'], 'image.png', { type: 'image/png' });
+  const item = { kind: 'file', getAsFile: () => file };
+  const data = (files: File[], items: unknown[]) => ({ files, items }) as unknown as Pick<DataTransfer, 'files' | 'items'>;
+  assert.deepEqual(clipboardFiles(data([file], [item])), [file]);
+  assert.deepEqual(clipboardFiles(data([], [item, { kind: 'string' }, { kind: 'file', getAsFile: () => null }])), [file]);
+  assert.deepEqual(clipboardFiles(data([], [{ kind: 'string' }])), []);
+});
+
+test('@ filtering finds entities, scenes, asset names and project paths; insertion preserves surrounding text', () => {
+  const { doc, entity } = scene();
+  const assets = [{ id: 'tex', name: 'Stone', kind: 'texture' as const, path: 'assets/wall.png' }];
+  assert.equal(mentionOptions(doc, assets, 'DESK')[0]?.ref, entity.id);
+  assert.equal(mentionOptions(doc, assets, 'lobby')[0]?.kind, 'scene');
+  assert.equal(mentionOptions(doc, assets, 'stone')[0]?.kind, 'asset');
+  assert.equal(mentionOptions(doc, assets, 'wall.png')[0]?.kind, 'file');
+  assert.deepEqual(mentionOptions(doc, assets, 'missing'), []);
+  assert.equal(mentionQuery('mail@example.com', 16), null);
+  assert.equal(mentionQuery('hello @', 7)?.query, '');
+  const query = mentionQuery('Change @desk tomorrow', 12);
+  assert.deepEqual(query, { start: 7, end: 12, query: 'desk' });
+  assert.deepEqual(insertMention('Change @desk tomorrow', query!), { text: 'Change  tomorrow', caret: 7 });
+});
+
+test('prompt history walks backward and forward to empty, clamps at oldest, and never overwrites edits', () => {
+  const prompts = ['First', 'Second'];
+  const latest = recallPrompt(prompts, '', null, 'ArrowUp');
+  assert.deepEqual(latest, { index: 1, text: 'Second' });
+  const oldest = recallPrompt(prompts, latest!.text, latest, 'ArrowUp');
+  assert.deepEqual(oldest, { index: 0, text: 'First' });
+  assert.deepEqual(recallPrompt(prompts, oldest!.text, oldest, 'ArrowUp'), oldest);
+  assert.deepEqual(recallPrompt(prompts, oldest!.text, oldest, 'ArrowDown'), latest);
+  assert.deepEqual(recallPrompt(prompts, latest!.text, latest, 'ArrowDown'), { index: 2, text: '' });
+  assert.equal(recallPrompt(prompts, 'Edited', latest, 'ArrowUp'), null);
+  assert.equal(recallPrompt(prompts, 'New draft', null, 'ArrowUp'), null);
+  assert.equal(recallPrompt(prompts, '', null, 'ArrowDown'), null);
+  assert.equal(recallPrompt([], '', null, 'ArrowUp'), null);
+});
+
+test('stash preserves text and context, consumes on restore, and never overwrites either draft', () => {
+  const empty = { text: '', chips: [] };
+  const draft = { text: 'Later', chips: [{ id: 'f', kind: 'file' as const, ref: 'assets/a.png', label: 'a.png' }] };
+  const saved = swapStashedDraft(draft, undefined);
+  assert.deepEqual(saved, { draft: empty, saved: draft });
+  assert.notEqual(saved!.saved!.chips, draft.chips, 'stash owns a snapshot of the chip list');
+  assert.deepEqual(swapStashedDraft(empty, saved!.saved!), { draft, saved: null });
+  assert.equal(swapStashedDraft({ text: 'Keep my work', chips: [] }, saved!.saved!), null);
+  assert.equal(swapStashedDraft({ text: '', chips: draft.chips }, saved!.saved!), null);
+  assert.equal(swapStashedDraft(empty, undefined), null);
+  assert.deepEqual(swapStashedDraft({ text: '', chips: draft.chips }, undefined)?.saved?.chips, draft.chips);
 });
 
 test('permission descriptions never claim operating-system confinement or blanket enforcement', () => {
