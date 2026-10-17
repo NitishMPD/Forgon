@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { Archive, ArrowUp, Braces, Paperclip, Plus, RotateCcw, Square, TriangleAlert, X } from 'lucide-react';
+import { ArrowUp, Braces, Paperclip, Plus, Square, TriangleAlert, X } from 'lucide-react';
 import type { AssetRecord, PermissionMode, SceneDocument } from '@forgon/project-schema';
 import { Banner, Button, IconButton, StatusText, cx, type Tone } from '../primitives/primitives.js';
 import { ModelPicker } from './ModelPicker.js';
 import { Markdown } from './Markdown.js';
-import { attachmentReferences, buildContext, chipStatus, clipboardFiles, insertMention, isSendKey, mentionOptions, mentionQuery, recallPrompt, swapStashedDraft, type ComposerDraft, type ContextChip, type HistoryRecall } from './composerModel.js';
+import { attachmentReferences, buildContext, chipStatus, clipboardFiles, insertMention, isSendKey, mentionOptions, mentionQuery, recallPrompt, type ContextChip, type HistoryRecall } from './composerModel.js';
 import type { AgentController } from './useAgentSessions.js';
 import { enforcementNote, permissionLabels, providerLimitsNote } from './permissions.js';
 import { threadStatus, threadStatusLabels, type AgentThread, type ThreadStatus, type TranscriptItem } from './threadState.js';
@@ -116,7 +116,6 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
   const [mentionDismissed, setMentionDismissed] = useState(false);
   const [activeMention, setActiveMention] = useState(0);
   const [attachmentNote, setAttachmentNote] = useState('');
-  const [stash, setStash] = useState<Record<string, ComposerDraft>>({});
   const thread = agent.activeThread;
   const status = thread ? threadStatus(thread) : 'idle';
   const running = thread !== null && (thread.starting || thread.activeRunId !== null);
@@ -126,8 +125,6 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
   const matches = query ? mentionOptions(scene, assets, query.query) : [];
   const suggestions = matches.slice(0, 30);
   const highlighted = Math.min(activeMention, Math.max(0, suggestions.length - 1));
-  const stashed = thread ? stash[thread.id] : undefined;
-  const hasDraft = agent.draft !== '' || agent.chips.length > 0;
 
   useEffect(() => {
     history.current = null;
@@ -283,11 +280,7 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
         onKeyDown={onKeyDown}
       />
       {attachmentNote ? <p className="fg-small fg-muted fg-composer-note" role="status">{attachmentNote}</p> : null}
-      <div id="agent-composer-help" className="fg-composer-hint fg-small fg-muted">
-        <span>{agent.draft.length.toLocaleString()} characters</span>
-        <span aria-hidden="true">Enter to {running ? 'queue' : 'send'} · Ctrl/Shift+Enter newline · @ context · ↑/↓ history</span>
-        <span className="fg-sr-only">Press Enter to {running ? 'queue' : 'send'}. Control+Enter or Shift+Enter inserts a new line. Type @ to find context. ArrowUp and ArrowDown recall prompts in an empty or unedited recalled draft.</span>
-      </div>
+      <div id="agent-composer-help" className="fg-sr-only">Press Enter to {running ? 'queue' : 'send'}. Control+Enter or Shift+Enter inserts a new line. Type @ to find context. ArrowUp and ArrowDown recall prompts in an empty or unedited recalled draft.</div>
       <div className="fg-composer-footer">
         {thread ? <ModelPicker key={thread.id} providers={agent.connection.providers} thread={thread} onSelect={agent.setModel}>
             <select
@@ -310,25 +303,6 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
           <Paperclip size={14} strokeWidth={1.75} aria-hidden="true" />
         </IconButton>
         <input ref={fileRef} type="file" multiple hidden onChange={event => { addFiles(Array.from(event.currentTarget.files ?? [])); event.currentTarget.value = ''; }} />
-        <IconButton label={stashed ? 'Restore stashed draft' : 'Stash draft'}
-          title={stashed && hasDraft ? 'Clear or send the current draft before restoring. One saved draft per thread, for this session.' : stashed ? 'Restore saved text and context' : 'Save draft and context for later in this thread'}
-          disabled={!thread || (stashed ? hasDraft : !hasDraft)} onClick={() => {
-            if (!thread) return;
-            const swapped = swapStashedDraft({ text: agent.draft, chips: agent.chips }, stashed);
-            if (!swapped) return;
-            setStash(current => {
-              const next = { ...current };
-              if (swapped.saved) next[thread.id] = swapped.saved;
-              else delete next[thread.id];
-              return next;
-            });
-            agent.setDraft(swapped.draft.text);
-            agent.chips.forEach(chip => agent.removeChip(chip.id));
-            swapped.draft.chips.forEach(chip => agent.addChip(chip));
-            history.current = null; setCaret(null); setMentionDismissed(true); inputRef.current?.focus();
-          }}>
-          {stashed ? <RotateCcw size={14} strokeWidth={1.75} aria-hidden="true" /> : <Archive size={14} strokeWidth={1.75} aria-hidden="true" />}
-        </IconButton>
         <span className="fg-composer-spacer" />
         {agent.blockers.length > 0 ? (
           <span id="agent-composer-blockers" className="fg-composer-blocker" role="status" title={agent.blockers.join('\n')}>

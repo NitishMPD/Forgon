@@ -340,7 +340,6 @@ svg { flex: none; }
 .fg-composer .fg-textarea { background: transparent; border: 0; padding: 4px 2px; resize: none; min-height: 40px; }
 .fg-composer .fg-textarea:focus-visible { outline: none; }
 .fg-composer-footer { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
-.fg-composer-hint { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 2px 8px; }
 .fg-composer-note { margin: 0; overflow-wrap: anywhere; }
 .fg-mention-popover { position: absolute; bottom: calc(100% + 6px); left: 0; right: 0; z-index: 8; padding: 6px; background: var(--surface-panel); border: 1px solid var(--border-strong); border-radius: var(--radius-popover); box-shadow: var(--shadow-float); }
 .fg-mention-popover ul { list-style: none; padding: 0; margin: 0; max-height: min(220px, 28vh); overflow-y: auto; }
@@ -499,11 +498,13 @@ svg { flex: none; }
 .fg-card-close { position: absolute; right: 6px; top: 7px; z-index: 1; }
 .fg-panel-search { margin: 4px 10px 10px; width: calc(100% - 20px); flex: none; }
 .fg-command-home { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); width: min(var(--command-column-width), calc(100% - 32px)); z-index: 4; }
-.fg-command-bar, .fg-command-home .fg-composer, .fg-expanded-card, .fg-conversation { width: 100%; }
-.fg-command-bar { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); align-items: center; margin: 0 0 6px; padding: 4px; gap: var(--space-1); border-radius: 12px; background: var(--surface-float); backdrop-filter: blur(10px); box-shadow: var(--shadow-float); }
+.fg-command-home .fg-composer, .fg-expanded-card, .fg-conversation { width: 100%; }
+/* Compact pill by default; it widens to the shared column only while one of its cards is open. */
+.fg-command-bar { display: flex; width: fit-content; max-width: 100%; align-items: center; margin: 0 auto 6px; padding: 4px; gap: var(--space-1); border-radius: 12px; background: var(--surface-float); backdrop-filter: blur(10px); box-shadow: var(--shadow-float); }
 .fg-command-bar button { min-width: 0; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; gap: var(--space-3); border-radius: 8px; padding: 7px 9px; white-space: nowrap; cursor: pointer; color: var(--text-secondary); }
 .fg-command-bar button:hover { background: var(--surface-hover); }
 .fg-command-bar button[aria-expanded="true"] { color: var(--accent); background: var(--surface-hover); }
+.fg-command-bar:has(button[aria-expanded="true"]) { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); width: 100%; }
 .fg-expanded-card, .fg-conversation { position: absolute; bottom: calc(100% + 10px); left: 0; right: 0; max-height: min(42vh, 420px); height: min(42vh, 420px); display: flex; flex-direction: column; overflow: hidden; padding: 10px; }
 .fg-expanded-head { display: flex; align-items: center; justify-content: space-between; flex: none; border-bottom: 1px solid var(--border-subtle); margin-bottom: 8px; }
 .fg-expanded-head h2 { margin: 0; font-size: var(--font-body); font-weight: 600; }

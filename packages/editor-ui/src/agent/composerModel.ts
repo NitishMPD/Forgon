@@ -103,13 +103,6 @@ export function insertMention(text: string, query: MentionQuery): { text: string
 
 export interface HistoryRecall { index: number; text: string }
 
-export interface ComposerDraft { text: string; chips: readonly ContextChip[] }
-
-export function swapStashedDraft(draft: ComposerDraft, saved: ComposerDraft | undefined): { draft: ComposerDraft; saved: ComposerDraft | null } | null {
-  const hasDraft = draft.text !== '' || draft.chips.length > 0;
-  if (saved) return hasDraft ? null : { draft: saved, saved: null };
-  return hasDraft ? { draft: { text: '', chips: [] }, saved: { text: draft.text, chips: [...draft.chips] } } : null;
-}
 
 export function recallPrompt(prompts: readonly string[], draft: string, previous: HistoryRecall | null, direction: 'ArrowUp' | 'ArrowDown'): HistoryRecall | null {
   if (!prompts.length || (draft !== '' && (!previous || draft !== previous.text))) return null;

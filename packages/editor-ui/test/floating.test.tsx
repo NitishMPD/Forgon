@@ -309,9 +309,10 @@ test('command bar, composer and expanded cards inherit one responsive column wid
   const css = readFileSync(new URL('../src/theme/studio.css', import.meta.url), 'utf8');
   assert.match(css, /--command-column-width: 680px/);
   assert.match(css, /\.fg-command-home \{[^}]*width: min\(var\(--command-column-width\), calc\(100% - 32px\)\)/);
-  assert.match(css, /\.fg-command-bar, \.fg-command-home \.fg-composer, \.fg-expanded-card, \.fg-conversation \{ width: 100%; \}/);
-  assert.match(css, /\.fg-command-bar \{[^}]*grid-template-columns: repeat\(6, minmax\(0, 1fr\)\)/);
-  assert.doesNotMatch(css, /\.fg-command-bar \{[^}]*width: fit-content/);
+  assert.match(css, /\.fg-command-home \.fg-composer, \.fg-expanded-card, \.fg-conversation \{ width: 100%; \}/);
+  // Closed: a compact pill. Open: the bar spans the shared column like the composer and card.
+  assert.match(css, /\.fg-command-bar \{[^}]*width: fit-content/);
+  assert.match(css, /\.fg-command-bar:has\(button\[aria-expanded="true"\]\) \{[^}]*grid-template-columns: repeat\(6, minmax\(0, 1fr\)\);[^}]*width: 100%/);
 });
 
 test('running composer retains Queue/Stop, approvals stay inline, and completed runs say Done', () => {

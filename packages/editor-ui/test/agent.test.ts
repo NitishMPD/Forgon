@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { AgentEvent } from '@forgon/project-schema';
 import { createEntity, createScene, parseScene } from '@forgon/project-schema';
-import { attachmentReferences, buildContext, chipStatus, clipboardFiles, insertMention, isSendKey, mentionOptions, mentionQuery, recallPrompt, sendBlockers, swapStashedDraft, type ContextChip, type KeyLike } from '../src/agent/composerModel.js';
+import { attachmentReferences, buildContext, chipStatus, clipboardFiles, insertMention, isSendKey, mentionOptions, mentionQuery, recallPrompt, sendBlockers, type ContextChip, type KeyLike } from '../src/agent/composerModel.js';
 import { defaultPermissionMode, enforcementNote, providerLimitsNote } from '../src/agent/permissions.js';
 import { agentReducer, newThread, threadStatus, type AgentState, type PendingRequest } from '../src/agent/threadState.js';
 import type { AgentProviderInfo } from '../src/services.js';
@@ -116,19 +116,6 @@ test('prompt history walks backward and forward to empty, clamps at oldest, and 
   assert.equal(recallPrompt(prompts, 'New draft', null, 'ArrowUp'), null);
   assert.equal(recallPrompt(prompts, '', null, 'ArrowDown'), null);
   assert.equal(recallPrompt([], '', null, 'ArrowUp'), null);
-});
-
-test('stash preserves text and context, consumes on restore, and never overwrites either draft', () => {
-  const empty = { text: '', chips: [] };
-  const draft = { text: 'Later', chips: [{ id: 'f', kind: 'file' as const, ref: 'assets/a.png', label: 'a.png' }] };
-  const saved = swapStashedDraft(draft, undefined);
-  assert.deepEqual(saved, { draft: empty, saved: draft });
-  assert.notEqual(saved!.saved!.chips, draft.chips, 'stash owns a snapshot of the chip list');
-  assert.deepEqual(swapStashedDraft(empty, saved!.saved!), { draft, saved: null });
-  assert.equal(swapStashedDraft({ text: 'Keep my work', chips: [] }, saved!.saved!), null);
-  assert.equal(swapStashedDraft({ text: '', chips: draft.chips }, saved!.saved!), null);
-  assert.equal(swapStashedDraft(empty, undefined), null);
-  assert.deepEqual(swapStashedDraft({ text: '', chips: draft.chips }, undefined)?.saved?.chips, draft.chips);
 });
 
 test('permission descriptions never claim operating-system confinement or blanket enforcement', () => {
