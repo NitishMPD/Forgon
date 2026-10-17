@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "id": "gen_a0b83360d406a42b",
+      "name": "Reception chime",
+      "kind": "audio",
+      "path": "assets/reception.wav",
+      "provenance": {
+        "source": "Original Forgon fixture artwork and synthesized audio; created for this repository",
+        "license": "CC0-1.0",
+        "generator": "forgon-hotel-1.0.0"
+      }
+    },
+    {
+      "id": "gen_e2a484e5ef625798",
+      "name": "Lantern House sign source",
+      "kind": "texture",
+      "path": "assets/lantern-house.svg",
+      "provenance": {
+        "source": "Original Forgon fixture artwork and synthesized audio; created for this repository",
+        "license": "CC0-1.0",
+        "generator": "forgon-hotel-1.0.0"
+      }
+    },
+    {
+      "id": "gen_2c57fe890718648a",
+      "name": "Lobby primitive palette",
+      "kind": "material",
+      "path": "assets/palette.json",
+      "provenance": {
+        "source": "Original Forgon fixture artwork and synthesized audio; created for this repository",
+        "license": "CC0-1.0",
+        "generator": "forgon-hotel-1.0.0"
+      }
+    }
+  ]
+}

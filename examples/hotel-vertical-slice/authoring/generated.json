@@ -1,0 +1,2458 @@
+{
+  "formatVersion": 1,
+  "generator": {
+    "id": "hotel",
+    "version": "1.0.0",
+    "seed": "forgon"
+  },
+  "base": {
+    "schemaVersion": 1,
+    "sceneId": "gen_4f9592ea7c001397",
+    "name": "Lantern House Hotel",
+    "entities": [
+      {
+        "id": "gen_1f23f385cb2ee577",
+        "name": "Lantern House lobby",
+        "parentId": null,
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": []
+      },
+      {
+        "id": "gen_2feb5aa1d3457f8c",
+        "name": "Lobby camera",
+        "parentId": null,
+        "enabled": true,
+        "transform": {
+          "position": [
+            12,
+            13,
+            16
+          ],
+          "rotationEuler": [
+            -32,
+            36,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_4b672018739736bf",
+            "type": "camera",
+            "enabled": true,
+            "properties": {
+              "fov": 50,
+              "nearClip": 0.1,
+              "farClip": 100,
+              "clearColor": [
+                0.07,
+                0.09,
+                0.13
+              ]
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_71d5a064bbeaa95d",
+        "name": "Warm daylight",
+        "parentId": null,
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotationEuler": [
+            -55,
+            25,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_0c31a491bccabf98",
+            "type": "light",
+            "enabled": true,
+            "properties": {
+              "kind": "directional",
+              "color": [
+                1,
+                0.93,
+                0.8
+              ],
+              "intensity": 1.5,
+              "castShadows": true,
+              "range": 30
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_3cf19a431600212e",
+        "name": "Reception fill",
+        "parentId": null,
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            4,
+            -3
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_325b1bc1de42ffc5",
+            "type": "light",
+            "enabled": true,
+            "properties": {
+              "kind": "omni",
+              "color": [
+                0.65,
+                0.8,
+                1
+              ],
+              "intensity": 1,
+              "castShadows": false,
+              "range": 18
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_d79be2784f59ee55",
+        "name": "Terrazzo floor",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            -0.15,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            18,
+            0.3,
+            16
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_74419f3f05d2a524",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.7,
+                0.73,
+                0.68
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_b2c59f4c827d9c92",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_072ca02c09fe2ed2",
+        "name": "Back wall",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.5,
+            -8
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            18,
+            3,
+            0.2
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_b61ee87760a8753d",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.84,
+                0.79,
+                0.68
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_c839ebf7bbde76c5",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_9510245f281c930c",
+        "name": "Left wall",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -9,
+            1.5,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.2,
+            3,
+            16
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_5ffb34530606630b",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.84,
+                0.79,
+                0.68
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_aa863c21200d2eef",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_ebb4bb11e4d12327",
+        "name": "Right wall",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            9,
+            1.5,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.2,
+            3,
+            16
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_ebc192ceab57b114",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.84,
+                0.79,
+                0.68
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_4f7dd4bb6ce64402",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_b5b1a1301d68c1db",
+        "name": "Entrance left wall",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -6,
+            1.5,
+            8
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            6,
+            3,
+            0.2
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_1964c9b035eff4b2",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.84,
+                0.79,
+                0.68
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_a6f1d214f9d6d704",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_8d3e99e1ac3fc16a",
+        "name": "Entrance right wall",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            6,
+            1.5,
+            8
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            6,
+            3,
+            0.2
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_c26da9d1b16b02cf",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.84,
+                0.79,
+                0.68
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_94fcd37b507afe73",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_7161f61420306d1a",
+        "name": "Reception desk",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0.6,
+            -4.5
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            5,
+            1.2,
+            1.4
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_cc4724983394c7d1",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.28,
+                0.38,
+                0.33
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_1b59be2f20115809",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_864ad92e7e30e2cf",
+            "type": "audio",
+            "enabled": true,
+            "properties": {
+              "assetId": "gen_a0b83360d406a42b",
+              "autoplay": false,
+              "loop": false,
+              "volume": 0.25
+            },
+            "entityRefs": [],
+            "assetRefs": [
+              "gen_a0b83360d406a42b"
+            ]
+          },
+          {
+            "id": "gen_9da83f1de40bbe45",
+            "type": "vfx",
+            "enabled": true,
+            "properties": {
+              "kind": "arrivalPulse",
+              "color": [
+                1,
+                0.75,
+                0.3
+              ],
+              "duration": 0.5,
+              "autoplay": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_e3f4e1f610da0867",
+        "name": "Reception counter",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.25,
+            -4.5
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            5.3,
+            0.15,
+            1.6
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_f3c1e779166f99ca",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.86,
+                0.67,
+                0.38
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_0bc0baaf5c681e0c",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_f18beeaf01febebe",
+        "name": "Lantern House sign",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            2.2,
+            -7.8
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            4,
+            0.8,
+            0.1
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_95fbe569548c1657",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.86,
+                0.67,
+                0.38
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_711f863fb344a518",
+        "name": "Lounge seat 1",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -6,
+            0.45,
+            -2
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1.2,
+            0.9,
+            1.2
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_278cc7ae31368965",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.31,
+                0.43,
+                0.5
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_b0e9676965caf81d",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_69429d3faf0b04e7",
+        "name": "Lounge seat 2",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -6,
+            0.45,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1.2,
+            0.9,
+            1.2
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_1371525eb7614fe4",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.31,
+                0.43,
+                0.5
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_6199682664dd7952",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_6098783faa21e55e",
+        "name": "Lounge seat 3",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -6,
+            0.45,
+            2
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1.2,
+            0.9,
+            1.2
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_8c3204d4ebed407f",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.31,
+                0.43,
+                0.5
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_4e53f7fdabecd3a3",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_57fd0f3fa54642a5",
+        "name": "Lounge seat 4",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            6,
+            0.45,
+            -2
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1.2,
+            0.9,
+            1.2
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_3fdda141c0c6b1e6",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.31,
+                0.43,
+                0.5
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_7aa31eafd4a9f508",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_4e7a223f9fa59184",
+        "name": "Lounge seat 5",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            6,
+            0.45,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1.2,
+            0.9,
+            1.2
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_0916b00e1b77f4c1",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.31,
+                0.43,
+                0.5
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_0f5ea7a5f0e73d39",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_45c2f93f9ab1e0d3",
+        "name": "Lounge seat 6",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            6,
+            0.45,
+            2
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1.2,
+            0.9,
+            1.2
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_c20c888d68cc6e40",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.31,
+                0.43,
+                0.5
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_565d3fc51529517e",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_21590aad4b39299e",
+        "name": "Planter 1",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -7,
+            0.35,
+            -6
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.8,
+            0.7,
+            0.8
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_6cacf23c425f71a1",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.51,
+                0.29,
+                0.2
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_2ba30dad07530499",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_3f3892e5c4e76b78",
+        "name": "Plant canopy 1",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -7,
+            1.1,
+            -6
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            0.9,
+            1
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_84d912e967bed41b",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.18,
+                0.4,
+                0.26
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_18bca1ad465bd3e5",
+        "name": "Planter 2",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            7,
+            0.35,
+            -6
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.8,
+            0.7,
+            0.8
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_d3e10290cb06a7a0",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.51,
+                0.29,
+                0.2
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_e8b184d5f5e4dfde",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_35a829e5bf3b5d47",
+        "name": "Plant canopy 2",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            7,
+            1.1,
+            -6
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            0.9,
+            1
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_b3d5aabc9719fdf2",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.18,
+                0.4,
+                0.26
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_31e018ad545be958",
+        "name": "Planter 3",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -7,
+            0.35,
+            6
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.8,
+            0.7,
+            0.8
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_38370cae7d5744fb",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.51,
+                0.29,
+                0.2
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_a7e0cf83fea4025f",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_2cff04e5ba53f0be",
+        "name": "Plant canopy 3",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -7,
+            1.1,
+            6
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            0.9,
+            1
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_ffa3e33a5b50b141",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.18,
+                0.4,
+                0.26
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_2a022fad50209627",
+        "name": "Planter 4",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            7,
+            0.35,
+            6
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.8,
+            0.7,
+            0.8
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_b03b7502a4391a52",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.51,
+                0.29,
+                0.2
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_5d839a40f22c7424",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_24631be5b5777485",
+        "name": "Plant canopy 4",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            7,
+            1.1,
+            6
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            0.9,
+            1
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_b899bbb9a8a52ac0",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.18,
+                0.4,
+                0.26
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_fef9aae10d9045e6",
+        "name": "Queue waypoint 1",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0.9,
+            5
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": []
+      },
+      {
+        "id": "gen_f65e81e108b50fed",
+        "name": "Queue waypoint 2",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0.9,
+            3.4
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": []
+      },
+      {
+        "id": "gen_0f8138e116b3df20",
+        "name": "Queue waypoint 3",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0.9,
+            1.7999999999999998
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": []
+      },
+      {
+        "id": "gen_06c9cfe111bfc1af",
+        "name": "Queue waypoint 4",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0.9,
+            0.1999999999999993
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": []
+      },
+      {
+        "id": "gen_db7a46e0f9378e92",
+        "name": "Queue waypoint 5",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0.9,
+            -1.4000000000000004
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": []
+      },
+      {
+        "id": "gen_123bca47ef2385d8",
+        "name": "Guest 1",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0.9,
+            5
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.6,
+            1.2,
+            0.5
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_cde02f45a930e0f0",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.5321191239497388,
+                0.3,
+                0.45
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_cebde8664654e181",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_93df2922c4eb795b",
+            "type": "guestQueue",
+            "enabled": true,
+            "properties": {
+              "waypoints": [
+                "gen_fef9aae10d9045e6",
+                "gen_f65e81e108b50fed",
+                "gen_0f8138e116b3df20",
+                "gen_06c9cfe111bfc1af",
+                "gen_db7a46e0f9378e92"
+              ],
+              "speed": 1.2,
+              "arrivalRadius": 0.15,
+              "loop": true,
+              "visualComponentId": "gen_cde02f45a930e0f0"
+            },
+            "entityRefs": [
+              "gen_fef9aae10d9045e6",
+              "gen_f65e81e108b50fed",
+              "gen_0f8138e116b3df20",
+              "gen_06c9cfe111bfc1af",
+              "gen_db7a46e0f9378e92"
+            ],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_e815b722e2fda7a3",
+          "instanceId": "gen_ccbee16f07d2b3bd",
+          "sourceEntityId": "gen_59fb0eb921b7c2a1"
+        }
+      },
+      {
+        "id": "gen_af419250fc69ba80",
+        "name": "Guest head",
+        "parentId": "gen_123bca47ef2385d8",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0.7,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.7,
+            0.4,
+            0.8
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_29cafcc699db66a6",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.78,
+                0.58,
+                0.41
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_e815b722e2fda7a3",
+          "instanceId": "gen_ccbee16f07d2b3bd",
+          "sourceEntityId": "gen_e865775bd4cb0753"
+        }
+      },
+      {
+        "id": "gen_64e90a8acd604d54",
+        "name": "Travel bag",
+        "parentId": "gen_123bca47ef2385d8",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0.8,
+            -0.2,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.4,
+            0.55,
+            0.5
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_c4e4ad0a340c6114",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.2,
+                0.24,
+                0.29
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_e815b722e2fda7a3",
+          "instanceId": "gen_ccbee16f07d2b3bd",
+          "sourceEntityId": "gen_975f1c980adfa5ff"
+        }
+      },
+      {
+        "id": "gen_b8c597653f1fbd78",
+        "name": "Guest 2",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0.9,
+            3.4
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.6,
+            1.2,
+            0.5
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_86451403b526a690",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.6031393055085081,
+                0.3,
+                0.45
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_f6b4cb8923b62d21",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_b2008909c9df267b",
+            "type": "guestQueue",
+            "enabled": true,
+            "properties": {
+              "waypoints": [
+                "gen_f65e81e108b50fed",
+                "gen_0f8138e116b3df20",
+                "gen_06c9cfe111bfc1af",
+                "gen_db7a46e0f9378e92",
+                "gen_fef9aae10d9045e6"
+              ],
+              "speed": 1.2,
+              "arrivalRadius": 0.15,
+              "loop": true,
+              "visualComponentId": "gen_86451403b526a690"
+            },
+            "entityRefs": [
+              "gen_fef9aae10d9045e6",
+              "gen_f65e81e108b50fed",
+              "gen_0f8138e116b3df20",
+              "gen_06c9cfe111bfc1af",
+              "gen_db7a46e0f9378e92"
+            ],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_e815b722e2fda7a3",
+          "instanceId": "gen_d4814a6f0bf665b6",
+          "sourceEntityId": "gen_59fb0eb921b7c2a1"
+        }
+      },
+      {
+        "id": "gen_ffef2c56284671a0",
+        "name": "Guest head",
+        "parentId": "gen_b8c597653f1fbd78",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0.7,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.7,
+            0.4,
+            0.8
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_f5080c76bcbd7046",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.78,
+                0.58,
+                0.41
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_e815b722e2fda7a3",
+          "instanceId": "gen_d4814a6f0bf665b6",
+          "sourceEntityId": "gen_e865775bd4cb0753"
+        }
+      },
+      {
+        "id": "gen_2d8dbc1b7d04eef4",
+        "name": "Travel bag",
+        "parentId": "gen_b8c597653f1fbd78",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0.8,
+            -0.2,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.4,
+            0.55,
+            0.5
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_54888c2a0c5f0734",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.2,
+                0.24,
+                0.29
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_e815b722e2fda7a3",
+          "instanceId": "gen_d4814a6f0bf665b6",
+          "sourceEntityId": "gen_975f1c980adfa5ff"
+        }
+      },
+      {
+        "id": "gen_8db3b395ffbdce37",
+        "name": "Guest 3",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0.9,
+            1.7999999999999998
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.6,
+            1.2,
+            0.5
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_91bd23074b311f61",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.5133389674743779,
+                0.3,
+                0.45
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_edb57205f893101c",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_fef8edc8ec8aa28a",
+            "type": "guestQueue",
+            "enabled": true,
+            "properties": {
+              "waypoints": [
+                "gen_0f8138e116b3df20",
+                "gen_06c9cfe111bfc1af",
+                "gen_db7a46e0f9378e92",
+                "gen_fef9aae10d9045e6",
+                "gen_f65e81e108b50fed"
+              ],
+              "speed": 1.2,
+              "arrivalRadius": 0.15,
+              "loop": true,
+              "visualComponentId": "gen_91bd23074b311f61"
+            },
+            "entityRefs": [
+              "gen_fef9aae10d9045e6",
+              "gen_f65e81e108b50fed",
+              "gen_0f8138e116b3df20",
+              "gen_06c9cfe111bfc1af",
+              "gen_db7a46e0f9378e92"
+            ],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_e815b722e2fda7a3",
+          "instanceId": "gen_dd2a2f6f10dd657f",
+          "sourceEntityId": "gen_59fb0eb921b7c2a1"
+        }
+      },
+      {
+        "id": "gen_b57f7f04b3b97af7",
+        "name": "Guest head",
+        "parentId": "gen_8db3b395ffbdce37",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0.7,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.7,
+            0.4,
+            0.8
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_9b1b1c651bd34fbb",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.78,
+                0.58,
+                0.41
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_e815b722e2fda7a3",
+          "instanceId": "gen_dd2a2f6f10dd657f",
+          "sourceEntityId": "gen_e865775bd4cb0753"
+        }
+      },
+      {
+        "id": "gen_dc448727c8145733",
+        "name": "Travel bag",
+        "parentId": "gen_8db3b395ffbdce37",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0.8,
+            -0.2,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.4,
+            0.55,
+            0.5
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_35748cd252dc50ad",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.2,
+                0.24,
+                0.29
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_e815b722e2fda7a3",
+          "instanceId": "gen_dd2a2f6f10dd657f",
+          "sourceEntityId": "gen_975f1c980adfa5ff"
+        }
+      },
+      {
+        "id": "gen_12fee5cefaa1e8da",
+        "name": "Guest 4",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0.9,
+            0.1999999999999993
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.6,
+            1.2,
+            0.5
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_d12dceb49ea65bb6",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.3870693910920101,
+                0.3,
+                0.45
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_64017f60a5b1ce1f",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_c8c9dd7b33e54465",
+            "type": "guestQueue",
+            "enabled": true,
+            "properties": {
+              "waypoints": [
+                "gen_06c9cfe111bfc1af",
+                "gen_db7a46e0f9378e92",
+                "gen_fef9aae10d9045e6",
+                "gen_f65e81e108b50fed",
+                "gen_0f8138e116b3df20"
+              ],
+              "speed": 1.2,
+              "arrivalRadius": 0.15,
+              "loop": true,
+              "visualComponentId": "gen_d12dceb49ea65bb6"
+            },
+            "entityRefs": [
+              "gen_fef9aae10d9045e6",
+              "gen_f65e81e108b50fed",
+              "gen_0f8138e116b3df20",
+              "gen_06c9cfe111bfc1af",
+              "gen_db7a46e0f9378e92"
+            ],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_e815b722e2fda7a3",
+          "instanceId": "gen_e6bb586f168ab9f0",
+          "sourceEntityId": "gen_59fb0eb921b7c2a1"
+        }
+      },
+      {
+        "id": "gen_ae2d95c732db9b4a",
+        "name": "Guest head",
+        "parentId": "gen_12fee5cefaa1e8da",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0.7,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.7,
+            0.4,
+            0.8
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_a045c583e84691c4",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.78,
+                0.58,
+                0.41
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_e815b722e2fda7a3",
+          "instanceId": "gen_e6bb586f168ab9f0",
+          "sourceEntityId": "gen_e865775bd4cb0753"
+        }
+      },
+      {
+        "id": "gen_1075ce87d30c28be",
+        "name": "Travel bag",
+        "parentId": "gen_12fee5cefaa1e8da",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0.8,
+            -0.2,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.4,
+            0.55,
+            0.5
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_271f78cda66c6b72",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.2,
+                0.24,
+                0.29
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_e815b722e2fda7a3",
+          "instanceId": "gen_e6bb586f168ab9f0",
+          "sourceEntityId": "gen_975f1c980adfa5ff"
+        }
+      },
+      {
+        "id": "gen_ba4a6c913fde29a3",
+        "name": "Guest 5",
+        "parentId": "gen_1f23f385cb2ee577",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0.9,
+            -1.4000000000000004
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.6,
+            1.2,
+            0.5
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_e62027e0dae60c7d",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.5285165244394061,
+                0.3,
+                0.45
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_402c9863103f3d28",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_97ebcb70b2e65726",
+            "type": "guestQueue",
+            "enabled": true,
+            "properties": {
+              "waypoints": [
+                "gen_db7a46e0f9378e92",
+                "gen_fef9aae10d9045e6",
+                "gen_f65e81e108b50fed",
+                "gen_0f8138e116b3df20",
+                "gen_06c9cfe111bfc1af"
+              ],
+              "speed": 1.2,
+              "arrivalRadius": 0.15,
+              "loop": true,
+              "visualComponentId": "gen_e62027e0dae60c7d"
+            },
+            "entityRefs": [
+              "gen_fef9aae10d9045e6",
+              "gen_f65e81e108b50fed",
+              "gen_0f8138e116b3df20",
+              "gen_06c9cfe111bfc1af",
+              "gen_db7a46e0f9378e92"
+            ],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_e815b722e2fda7a3",
+          "instanceId": "gen_a93f7d6ef379fc69",
+          "sourceEntityId": "gen_59fb0eb921b7c2a1"
+        }
+      },
+      {
+        "id": "gen_a05704ce1a773853",
+        "name": "Guest head",
+        "parentId": "gen_ba4a6c913fde29a3",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0.7,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.7,
+            0.4,
+            0.8
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_59faa8101781cdd7",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.78,
+                0.58,
+                0.41
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_e815b722e2fda7a3",
+          "instanceId": "gen_a93f7d6ef379fc69",
+          "sourceEntityId": "gen_e865775bd4cb0753"
+        }
+      },
+      {
+        "id": "gen_7aa2f92153feb81f",
+        "name": "Travel bag",
+        "parentId": "gen_ba4a6c913fde29a3",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0.8,
+            -0.2,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.4,
+            0.55,
+            0.5
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_7abdaa063625f979",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.2,
+                0.24,
+                0.29
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_e815b722e2fda7a3",
+          "instanceId": "gen_a93f7d6ef379fc69",
+          "sourceEntityId": "gen_975f1c980adfa5ff"
+        }
+      }
+    ]
+  },
+  "overrides": [],
+  "detached": [],
+  "prefabBindings": [
+    {
+      "prefabId": "gen_e815b722e2fda7a3",
+      "path": "authoring/guest.bindings.json"
+    }
+  ]
+}

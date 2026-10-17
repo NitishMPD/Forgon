@@ -1,0 +1,26 @@
+﻿# Tasks — 17 October 2026
+- Recorded Forgon Engine branding, pnpm-only workflow, initial provider targets and build/test authorization; dispatched five workers with separate ownership for core, UI, desktop, T3 reuse and PlayCanvas reuse.
+- Reviewed UI direction and shared contracts; handed off React editor implementation with explicit desktop/runtime integration boundaries.
+- Verified 24 schema/editor-core tests, including undo/redo and save/watcher races; accepted shared contracts and dispatched authoring/fixture/CLI implementation.
+- Rendered a visual mockup of the workspace UI (hierarchy, viewport placeholder, inspector, agent dock, status bar) from design.md and docs/research/ui-direction.md; no app UI code exists yet.
+- Reviewed pinned T3 source/protocol/license and accepted managed-sidecar integration; dispatched real provider transport and lifecycle implementation.
+- Consolidated the V1 UI plan (screens, layout rules, tokens, keyboard) into design.md and rendered an interactive hi-fi workspace mockup with direction options (3 themes, 2 densities, 2 agent layouts) for selection.
+- Reviewed PlayCanvas reuse audit, found the engine-native Picker export, and dispatched viewport/runtime implementation against pinned release APIs.
+- Accepted deterministic authoring/CLI implementation and validated the 47-entity hotel project; assigned shared filesystem persistence and excluded upstream research checkouts from Git.
+- Reviewed UI foundation and identified property-editing and permission-copy gaps; dispatched editor interaction and lifecycle-test follow-up.
+- Checked all five interrupted tasks and resumed them with preserved edits; advanced verified Windows toolchain research to Tauri shell implementation.
+- Mocked five very different layout concepts (workbench, infinite canvas, agent-led, studio board, device-first), each with its own first-run setup, for direction selection.
+- Accepted project IO implementation with 13 passing real-filesystem tests; dispatched CLI consolidation, create/bake persistence and validated asset import.
+- Accepted CLI create/bake/import and shared IO consolidation (37 tests); accepted editor interactions (69 UI/studio tests and build), then dispatched real studio integration.
+- Accepted studio integration updates and 90 passing core/UI/studio tests; wired real viewport export and sent connected runtime compilation failures/native adapter requirements to active owners.
+- Adopted the user's four-group modular dock layout (Viewport|Game, Hierarchy|Inspector, AI Composer|Agents, Project|Console; slottable extra tabs) in design.md and project.md 7.1, with an interactive drag/resize prototype.
+- Reconciled root pnpm installation for CLI runtime/Vite/esbuild export dependencies.
+- Accepted exporter safety handoff (20/22 tests pass, runtime blocked); stopped GLM runtime worker and reassigned runtime/export completion to Sol.
+- Accepted agent bridge/service contract implementation (173 tests); identified test-server versus live-T3 gap and assigned isolated upstream runtime verification plus session resume/diff completion.
+- Accepted runtime/export handoff: five runtime and 22 CLI tests reported passing with real Ammo WASM, deterministic hotel web packaging and license provenance; recorded browser/native verification limits.
+- Passed parent workspace-wide pnpm typecheck; reconciled project status and latest no-build/no-launch instructions, and ignored generated CLI artifacts.
+- Restyled the dock prototype to a modern minimal look (near-black canvas, floating rounded groups, icon+label pills, glass viewport toolbars, activity-feed composer) and recorded the direction and tokens in design.md.
+- Adopted Lucide as the only icon set: added lucide-react 1.58.0 (pinned) to @forgon/editor-ui and recorded icon rules in design.md.
+- Connected multi-object viewport transforms to one atomic command and undo step; worker verified 74 editor-UI tests and UI/Studio typechecks, including invalid/stale batch rejection and edit guards.
+- Accepted desktop shell/Node bridge/native adapter handoff (eight desktop and three Studio tests); reconciled pnpm dependencies without lifecycle scripts and passed workspace-wide typecheck. Updated native Forgon Engine branding and documented remaining native/T3 acceptance gates.
+- Accepted agent configuration/runtime preflight and service controls handoff (124 bridge passes, 104 service passes, one live integration skip); replaced desktop's duplicate parser with the shared strict loader and passed desktop typecheck/eight tests.

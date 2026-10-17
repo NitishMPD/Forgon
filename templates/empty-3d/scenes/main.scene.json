@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "sceneId": "gen_4934b1e4d930661a",
+  "name": "Empty 3D",
+  "entities": [
+    {
+      "id": "gen_c68de6bf2459a97b",
+      "name": "Lobby camera",
+      "parentId": null,
+      "enabled": true,
+      "transform": {
+        "position": [
+          12,
+          13,
+          16
+        ],
+        "rotationEuler": [
+          -32,
+          36,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "gen_c8cb797cd22811d0",
+          "type": "camera",
+          "enabled": true,
+          "properties": {
+            "fov": 50,
+            "nearClip": 0.1,
+            "farClip": 100,
+            "clearColor": [
+              0.07,
+              0.09,
+              0.13
+            ]
+          },
+          "entityRefs": [],
+          "assetRefs": []
+        }
+      ]
+    },
+    {
+      "id": "gen_1ccbb62837a9802c",
+      "name": "Warm daylight",
+      "parentId": null,
+      "enabled": true,
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          -55,
+          25,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "gen_44835956dc966a59",
+          "type": "light",
+          "enabled": true,
+          "properties": {
+            "kind": "directional",
+            "color": [
+              1,
+              0.93,
+              0.8
+            ],
+            "intensity": 1.5,
+            "castShadows": true,
+            "range": 30
+          },
+          "entityRefs": [],
+          "assetRefs": []
+        }
+      ]
+    },
+    {
+      "id": "gen_bfdd0c76b9e108d9",
+      "name": "Reception fill",
+      "parentId": null,
+      "enabled": true,
+      "transform": {
+        "position": [
+          0,
+          4,
+          -3
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "gen_4938c1422283df0a",
+          "type": "light",
+          "enabled": true,
+          "properties": {
+            "kind": "omni",
+            "color": [
+              0.65,
+              0.8,
+              1
+            ],
+            "intensity": 1,
+            "castShadows": false,
+            "range": 18
+          },
+          "entityRefs": [],
+          "assetRefs": []
+        }
+      ]
+    }
+  ]
+}

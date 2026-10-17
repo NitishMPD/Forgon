@@ -1,7 +1,8 @@
-# Agent-Native Game Studio
+﻿# Forgon Engine
+Author: Nitish
 
 **Project plan / technical PRD / implementation roadmap**  
-**Working name:** Forge Studio (placeholder)  
+**Product name:** Forgon Engine  
 **Version:** 1.0 planning draft  
 **Date:** 16 October 2026  
 **Primary development platform:** Windows desktop  
@@ -10,7 +11,7 @@
 **Desktop stack:** Tauri 2 + Rust + React/TypeScript  
 **AI foundation:** Adapted components and concepts from T3 Code  
 **Project model:** Local-first, agent-readable, file-based; no mandatory MCP protocol  
-**Status:** Proposal, not an existing implemented product
+**Status:** Implementation in progress; subsystem checks pass, integrated desktop acceptance remains pending
 
 ---
 
@@ -385,20 +386,26 @@ Design-time generators operate under a controlled environment and output a gener
 
 ### 7.1 Main UI layout
 
+Every panel is a movable, closable, resizable tab inside a dock. Default arrangement:
+
 ```text
 +----------------------------------------------------------------------------------+
-| Project | Scene | Play | Pause | Build | Target | Search | Git | Settings        |
-+----------------+-----------------------------------------+-----------------------+
-| HIERARCHY      | EDITOR VIEWPORT                         | INSPECTOR             |
-| - World        | - 3D camera, grids, gizmos               | Transform             |
-| - Lobby        | - Game/editor overlays                  | Render + Material     |
-| - Guests       | - drag/drop assets                       | Collision + Physics   |
-| - Reception    | - select/highlight entity                | Script Properties     |
-| - Camera       | - multi-view later                      | Prefab Overrides      |
-+----------------+-----------------------------------------+-----------------------+
-| ASSETS / LEVELS | TERMINAL / CONSOLE / PROFILER / TIMELINE | AI COMPOSER / DIFF  |
+| Forgon | project / scene | Edit Play Pause Stop | Search | Layout | Provider       |
++---------------------------------------------------+------------------------------+
+| [Viewport] [Game] [+]                             | [Hierarchy] [Inspector] [+]  |
+|                                                   |                              |
+|  edit viewport: camera, grid, gizmos, overlays    |  scene tree / selected       |
+|  game view: play snapshot at target device size   |  entity properties           |
+|                                                   |                              |
++---------------------------------------------------+------------------------------+
+| [AI Composer] [Agents] [+]                        | [Project] [Console] [+]      |
+|  thread transcript, approvals, composer           |  files/assets, diagnostics   |
++----------------------------------------------------------------------------------+
+| status: save state, watcher, diagnostics, drafts, branch, fps                    |
 +----------------------------------------------------------------------------------+
 ```
+
+Audio, Animation, Timeline, Profiler, Assets and Review (diff/history) are slottable tabs that can be added to any group. Layout persists per project, with a reset to default.
 
 ### 7.2 Must-have panels
 
@@ -1133,3 +1140,47 @@ These links support technology and reuse assumptions; they do not prove the prop
 - **Spike C, desktop:** Prove Tauri + sidecar + WebView2 graphics/debugging quality, packaged size and stability; keep Electron benchmark as fallback.
 
 Then decide which frontend pieces to reuse and lock the architecture. The **first product milestone is an editable scene, not a polished AI chat panel**. If the scene graph, file model and hot reload are sound, the rest of the studio can grow in deliberate, testable layers.
+
+## 26. Approved build-session decisions (17 October 2026)
+
+- Build the roadmap in one sustained coordinated session with internal architecture and correctness gates; this supersedes the Phase-0-only approval recommendation in section 25. External account, signing, device and production approval requirements remain real gates, not simulated completions.
+- Product branding is Forgon Engine. T3 Code is the visual and agent-workflow reference. Audit and reuse its orchestration where it fits the local game-project architecture.
+- Initial provider integrations target Codex, OpenCode and Claude Code, with T3-like capabilities wherever genuinely supported. Build-worker models are independent of in-product provider support.
+- Use pnpm workspaces and one pnpm-lock.yaml for all JavaScript/TypeScript dependencies.
+- Parent agent orchestrates and monitors up to five concurrent delegated workers; worker replacement is authorized. The latest user AGENTS instructions supersede earlier launch authorization: do not run builds, development servers or app launches; typechecks and unit tests are allowed. Provide exact commands for user-run build/full-test verification. No commits, branches, pushes or deployments are authorized.
+- Finish with an evidence-based capability report and user guide: first-run/new project flow, existing Forgon project flow, asset/import workflows, and explicit compatibility limits for projects from other engines.
+- Preserve the complete roadmap; distinguish implemented, verified, unverified and externally blocked work in delivery reporting.
+
+### Verified foundation status
+The pnpm workspace, strict version-1 project schemas and editor command/store core are implemented. On 17 October 2026, 24 focused tests passed for validation, undo/redo, external conflicts and save/watcher interleavings. This establishes only the in-memory foundation; filesystem safety, desktop/runtime, providers and exports require separate integration proof.
+
+### T3 reuse decision
+Use a managed, isolated T3 sidecar behind a Forgon-owned versioned adapter, based on audited upstream commit 2520821d575fb769875f67fca1b9c62784817452 and protocol 2. Avoid extracting the app-coupled Codex/Claude adapters and orchestration core. The service owns sidecar lifecycle/authentication; capabilities and provider enforcement determine available controls. A shared-workspace restore refusal is not evidence of selective rollback, and project cwd is not a process sandbox. Runtime protocol compatibility and redistribution dependencies remain verification gates.
+
+### PlayCanvas reuse direction
+The integration uses playcanvas 2.23.3 with standalone engine rendering, native picking and gizmos against Forgon documents; the hosted editor is not a backend dependency. Runtime, real Ammo WASM and standalone web packaging pass headless checks described below. Browser/GPU, audible playback and native-shell verification remain pending.
+
+### Authoring foundation status
+Implemented deterministic authoring, explicit prefab reference remapping, override capture/replay/conflicts/detach, empty-3d and Lantern House Hotel fixtures, and bounded inspect/validate/bake CLI operations. The hotel has 47 entities, five prefab instances and three original assets; catalog validation passed. Worker verification reports 27 tests and three package type-checks passed. Bake supports explicit transactional writes through shared project IO. See the newer persistence and runtime/export evidence below for subsequent integration progress.
+
+### Local persistence status
+Project IO implements create-only projects, validated catalog/asset reads, revision-checked scene saves, debounced watchers and scene/authoring pair recovery. Worker verification: 13 real-filesystem tests passed and package type-check passed. Generated scene saves capture supported overrides; unsupported structural edits fail explicitly. Atomic replacement is not cross-process CAS, hostile concurrent ancestor replacement is not sandboxed, and power-loss durability is unverified. Desktop integration remains pending.
+
+### CLI and editor interaction status
+CLI now uses shared IO and supports create --template, explicit bake --write and validated local GLB/PNG/JPEG/WAV import with provenance. Worker checks: IO/assets/CLI 37 tests passed. Editor supports component value updates, reparent/duplicate, guarded scene switching and viewport transform callbacks; 69 UI/studio tests and studio build passed. These are subsystem checks: desktop/runtime/provider services are not yet connected. Asset reimport/transcoding and other import formats remain unimplemented.
+
+### Runtime and export integration status
+Studio forwards multi-object gizmo commits through one atomic batch command and undo step. Empty/unchanged gestures preserve history; invalid or stale edits reject the whole batch. Worker evidence: 74 editor-UI tests and UI/Studio typechecks pass. Actual browser gesture behavior remains unverified.
+
+The real editor viewport is connected to Studio. Runtime validation and asynchronous standalone mounting are implemented, with detached play snapshots, guest paths, arrival audio/VFX and vendored Ammo static/kinematic box physics. Unsupported playable semantics fail explicitly; dynamic bodies, arbitrary scripts and asset-backed model rendering are not supported by this runtime yet. Imported GLB registration does not imply playable GLB rendering.
+
+The runtime worker reports five runtime tests and 22 CLI tests passing, including actual Ammo WASM and real hotel web packaging with deterministic manifest/hashes, exact assets and bundled license/provenance. Studio/preview builds were verified before the latest no-build instruction. The hotel artifact is at packages/cli/.artifacts/hotel-web/index.html. Browser/GPU picking and gizmos, audible playback, native CSP/loading and Windows game export remain unverified or unfinished. See docs/research/runtime-implementation.md and docs/research/export-implementation.md for precise boundaries.
+
+Parent verification on 17 October 2026: pnpm run typecheck passes across all current workspace packages, including the desktop adapters. Studio loads native project/agent services in Tauri and retains sample services in an ordinary browser. Agent bridge/service tests cover a stub T3 server; they do not establish live upstream/provider compatibility. The application is not yet ready for the end-to-end desktop acceptance demo.
+
+### Desktop implementation status
+Agent handoff includes strict artifact configuration parsing, runtime-version preflight, service-level session resume, diffs and controls. Worker results: 124 bridge tests pass; service tests report 104 passes and one skipped real-T3 integration test. Desktop now consumes the shared strict configuration loader; parent reran its typecheck and eight tests successfully. These results do not prove live provider execution or renderer conversation recovery. A checksum-verified portable Node 24.13.1 under .research/tools is available for a future authorized build; current host Node 24.2 is incompatible with the pinned T3 runtime.
+
+Tauri shell, native pickers, Node IO bridge, browser-safe service proxies, persistent recent projects, create-only example copies and lifecycle cleanup are implemented. Worker verification: eight desktop tests and three Studio tests pass; parent workspace-wide typecheck passes after dependency reconciliation. Project persistence stays in Node project-io rather than a duplicate Rust implementation. Native compilation, dialogs, close guards, CSP/WASM loading, process-tree cleanup and installer behavior remain unverified. Desktop packaging is separate from Windows game export, which remains unfinished.
+
+Agents require a trusted isolated T3 artifact configuration; absent configuration shows unavailable providers while project editing stays independent. The desktop bundle currently copies its build-time Node executable, which must satisfy the upstream version requirement for T3 integration. No live user T3 credentials are copied. Exact configuration, dependencies and user-run commands are in docs/research/desktop-implementation.md. The next native build command is pnpm --filter @forgon/studio-desktop build; it has not been run under the current no-build instruction.

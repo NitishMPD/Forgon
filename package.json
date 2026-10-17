@@ -1,0 +1,17 @@
+{
+  "name": "forgon-engine",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@12.5.1",
+  "type": "module",
+  "engines": { "node": ">=22.0.0" },
+  "scripts": {
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
+  }
+}

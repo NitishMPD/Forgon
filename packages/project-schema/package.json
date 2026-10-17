@@ -1,0 +1,9 @@
+{
+  "name": "@forgon/project-schema",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc --noEmit", "test": "tsx --test test/*.test.ts" },
+  "dependencies": { "zod": "3.25.76" }
+}

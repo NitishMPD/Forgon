@@ -1,0 +1,17 @@
+{
+  "name": "@forgon/game-preview",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@forgon/game-runtime": "workspace:*",
+    "playcanvas": "2.23.3"
+  },
+  "devDependencies": {
+    "vite": "7.3.6"
+  }
+}

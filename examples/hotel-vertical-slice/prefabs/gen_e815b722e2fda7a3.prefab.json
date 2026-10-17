@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "prefabId": "gen_e815b722e2fda7a3",
+  "name": "Original traveler",
+  "rootId": "gen_59fb0eb921b7c2a1",
+  "entities": [
+    {
+      "id": "gen_59fb0eb921b7c2a1",
+      "name": "Guest body",
+      "parentId": null,
+      "enabled": true,
+      "transform": {
+        "position": [
+          0,
+          0.9,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.6,
+          1.2,
+          0.5
+        ]
+      },
+      "components": [
+        {
+          "id": "gen_e46c09c73504d7de",
+          "type": "render",
+          "enabled": true,
+          "properties": {
+            "primitive": "box",
+            "color": [
+              0.7,
+              0.35,
+              0.22
+            ],
+            "castShadows": true
+          },
+          "entityRefs": [],
+          "assetRefs": []
+        },
+        {
+          "id": "gen_e3b599b75eb0c1d0",
+          "type": "collision",
+          "enabled": true,
+          "properties": {
+            "shape": "box",
+            "halfExtents": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "isTrigger": false
+          },
+          "entityRefs": [],
+          "assetRefs": []
+        },
+        {
+          "id": "gen_c907d8941b00245f",
+          "type": "guestQueue",
+          "enabled": true,
+          "properties": {
+            "waypoints": [
+              "gen_59fb0eb921b7c2a1"
+            ],
+            "speed": 1.2,
+            "arrivalRadius": 0.15,
+            "loop": true,
+            "visualComponentId": "gen_e46c09c73504d7de"
+          },
+          "entityRefs": [
+            "gen_59fb0eb921b7c2a1"
+          ],
+          "assetRefs": []
+        }
+      ]
+    },
+    {
+      "id": "gen_e865775bd4cb0753",
+      "name": "Guest head",
+      "parentId": "gen_59fb0eb921b7c2a1",
+      "enabled": true,
+      "transform": {
+        "position": [
+          0,
+          0.7,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.7,
+          0.4,
+          0.8
+        ]
+      },
+      "components": [
+        {
+          "id": "gen_776bc7dfdd1fbe74",
+          "type": "render",
+          "enabled": true,
+          "properties": {
+            "primitive": "box",
+            "color": [
+              0.78,
+              0.58,
+              0.41
+            ],
+            "castShadows": true
+          },
+          "entityRefs": [],
+          "assetRefs": []
+        }
+      ]
+    },
+    {
+      "id": "gen_975f1c980adfa5ff",
+      "name": "Travel bag",
+      "parentId": "gen_59fb0eb921b7c2a1",
+      "enabled": true,
+      "transform": {
+        "position": [
+          0.8,
+          -0.2,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.4,
+          0.55,
+          0.5
+        ]
+      },
+      "components": [
+        {
+          "id": "gen_c2c8904e165daac6",
+          "type": "render",
+          "enabled": true,
+          "properties": {
+            "primitive": "box",
+            "color": [
+              0.2,
+              0.24,
+              0.29
+            ],
+            "castShadows": true
+          },
+          "entityRefs": [],
+          "assetRefs": []
+        }
+      ]
+    }
+  ]
+}

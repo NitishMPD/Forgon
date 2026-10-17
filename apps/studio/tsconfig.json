@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": { "jsx": "react-jsx" },
+  "include": ["src", "test", "vite.config.ts", "../../packages/editor-ui/src", "../../packages/editor-ui/test", "../../packages/game-runtime/src/types/**/*.d.ts"]
+}

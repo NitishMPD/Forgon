@@ -1,0 +1,6 @@
+{
+  "name": "@forgon/procedural-authoring", "version": "0.0.0", "private": true, "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc --noEmit", "test": "tsx --test test/*.test.ts" },
+  "dependencies": { "@forgon/project-schema": "workspace:*", "zod": "3.25.76" }
+}

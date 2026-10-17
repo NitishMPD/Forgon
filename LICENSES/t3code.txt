@@ -1,0 +1,51 @@
+Upstream project: T3 Code
+Upstream repository: https://github.com/pingdotgg/t3code
+Audited revision: 2520821d575fb769875f67fca1b9c62784817452
+Audited on: 2026-10-17 (local clone at .research/t3code)
+License scope: the whole repository, including apps/server (published to npm as the "t3" package).
+
+Forgon Engine does not vendor T3 Code source. It consumes a pinned, separately installed
+"t3" sidecar process over T3's published, versioned HTTP/WebSocket protocol, and re-derives
+protocol constants and JSON shapes from the audited source above. The notice below is
+retained because the Forgon bridge and sidecar manager adapt that protocol and copy the
+MIT-licensed protocol constants and license text.
+
+What was copied verbatim from upstream (all MIT, covered by the notice below):
+- Protocol constants (ORCHESTRATION_PROTOCOL_VERSION, query param/header names, WS ticket
+  query param) from packages/contracts/src/environment.ts and apps/server/src/auth/EnvironmentAuth.ts.
+- Path strings and method names from packages/contracts/src/{environmentHttp,rpc,orchestrationV2}.ts.
+- The shared-workspace restore refusal message from
+  apps/server/src/orchestration-v2/CheckpointRestoreSafety.ts.
+- Value unions (RuntimeMode, ProviderApprovalDecision, run/item status) from
+  packages/contracts/src/{providerPolicy,orchestrationV2}.ts.
+
+Third-party notices that are NOT settled by this file (see docs/research/agent-implementation.md
+"Licensing" and docs/research/t3-reuse.md section 11):
+- @anthropic-ai/claude-agent-sdk declares "SEE LICENSE IN README.md" (non-SPDX) and needs manual
+  review before any distribution that bundles it. Forgon does not bundle it: the dependency lives
+  inside the separately installed T3 sidecar, not in Forgon's workspace.
+- @cursor/sdk is non-SPDX and is not needed for Forgon's three-provider set; it must be excluded.
+
+--- Verbatim upstream license ---
+
+MIT License
+
+Copyright (c) 2026 T3 Tools Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+.forge/
+target/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.research/
+packages/cli/.artifacts/

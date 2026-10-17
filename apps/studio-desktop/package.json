@@ -1,0 +1,22 @@
+{
+  "name": "@forgon/studio-desktop",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/client.ts" },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "bundle:bridge": "node scripts/bundle.mjs",
+    "dev": "tauri dev",
+    "build": "tauri build"
+  },
+  "dependencies": {
+    "@forgon/project-schema": "workspace:*",
+    "@forgon/project-io": "workspace:*",
+    "@forgon/asset-pipeline": "workspace:*",
+    "@forgon/agent-service": "workspace:*",
+    "@tauri-apps/api": "^2.10.0"
+  },
+  "devDependencies": { "@tauri-apps/cli": "^2.10.0", "esbuild": "^0.25.0" }
+}

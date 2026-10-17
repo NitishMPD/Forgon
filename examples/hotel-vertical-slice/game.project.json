@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "projectId": "gen_ef743c8a148bd6aa",
+  "name": "Lantern House Hotel",
+  "startScene": "gen_4f9592ea7c001397",
+  "scenes": [
+    {
+      "id": "gen_4f9592ea7c001397",
+      "path": "scenes/main.scene.json"
+    }
+  ],
+  "prefabs": [
+    {
+      "id": "gen_e815b722e2fda7a3",
+      "path": "prefabs/gen_e815b722e2fda7a3.prefab.json"
+    }
+  ],
+  "assetRegistry": "assets/registry.json"
+}

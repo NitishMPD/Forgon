@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lantern House — standalone player</title>
+<style>
+html,body,#game{margin:0;width:100%;height:100%;background:#121722;color:#fff;font:16px system-ui}
+body{overflow:hidden}#controls{position:absolute;z-index:1;left:1rem;top:1rem;max-width:32rem;background:#121722df;padding:1rem;border-radius:.5rem}
+button{font:inherit;padding:.6rem 1rem}button:focus-visible{outline:3px solid #e7ba71;outline-offset:3px}#status{margin:.6rem 0 0}
+</style>
+<div id="game" aria-label="Standalone game viewport"></div>
+<div id="controls"><button id="start">Play hotel</button> <button id="stop" disabled>Stop</button><p id="status" role="status">Standalone fixture player. Start enables audio.</p></div>
+<script type="module" src="/src/main.ts"></script>
+</html>
