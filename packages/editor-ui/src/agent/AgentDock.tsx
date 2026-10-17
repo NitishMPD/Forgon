@@ -1,6 +1,7 @@
-import { useEffect, useRef, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { ArrowUp, Braces, Plus, Square, TriangleAlert, X } from 'lucide-react';
 import type { AssetRecord, PermissionMode, SceneDocument } from '@forgon/project-schema';
-import { Banner, Button, EmptyState, StatusText, cx, type Tone } from '../primitives/primitives.js';
+import { Banner, Button, IconButton, StatusText, cx, type Tone } from '../primitives/primitives.js';
 import { buildContext, chipStatus, isSendKey } from './composerModel.js';
 import type { AgentController } from './useAgentSessions.js';
 import { enforcementNote, permissionLabels, providerLimitsNote } from './permissions.js';
@@ -30,7 +31,7 @@ function Transcript({ thread, onApprove }: { thread: AgentThread; onApprove(runI
     endRef.current?.scrollIntoView?.({ block: 'end' });
   }, [thread.transcript.length]);
   if (thread.transcript.length === 0) {
-    return <EmptyState title="No messages yet">Ask for a change. Agent replies and file changes appear here.</EmptyState>;
+    return <p className="fg-transcript-empty">No messages yet</p>;
   }
   return (
     <ol className="fg-transcript" aria-label="Transcript" aria-live="polite">
@@ -72,7 +73,7 @@ function TranscriptRow({ item, mode, onApprove }: {
       return (
         <li className="fg-approval" role="group" aria-label="Approval request">
           <p>{item.description}</p>
-          <p className="fg-muted fg-small">Mode: {mode ? permissionLabels[mode] : 'none chosen'}. {mode ? enforcementNote(mode) : 'Choose a mode to continue.'}</p>
+          <p className="fg-muted fg-small" title={mode ? enforcementNote(mode) : undefined}>{mode ? permissionLabels[mode] : 'No mode chosen'}</p>
           {item.state === 'pending' ? (
             <div className="fg-toolbar">
               <Button variant="primary" onClick={() => onApprove(item.runId, item.requestId, true)}>Approve once</Button>
@@ -119,20 +120,22 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
     if (agent.canSend) agent.send();
   };
 
+  const [showContext, setShowContext] = useState(false);
+  const modeNote = thread?.permissionMode ? `${enforcementNote(thread.permissionMode)}${provider ? ` ${providerLimitsNote(provider)}` : ''}` : 'Choose a permission mode before sending.';
+
   return (
     <div className="fg-composer">
-      {thread && thread.queue.length > 0 ? (
-        <p className="fg-small fg-muted" role="status">{thread.queue.length} queued. Queued prompts start when the current run finishes.</p>
-      ) : null}
+      {showContext ? <pre className="fg-code" aria-label="What will be sent">{JSON.stringify(context, null, 2)}</pre> : null}
+      {thread && thread.queue.length > 0 ? <p className="fg-small fg-muted" role="status">{thread.queue.length} queued</p> : null}
       {agent.chips.length > 0 ? (
         <ul className="fg-chip-row" aria-label="Context references">
           {agent.chips.map(chip => {
             const missing = chipStatus(chip, scene, assets) === 'missing';
             return (
-              <li key={chip.id} className={cx('fg-chip', missing && 'is-missing')}>
-                <span className="fg-mono">@{chip.kind}</span> {chip.label}
+              <li key={chip.id} className={cx('fg-chip', missing && 'is-missing')} title={`@${chip.kind} ${chip.label}`}>
+                <span className="fg-chip-label">{chip.label.split(' · ')[0]}</span>
                 {missing ? <span className="fg-chip-state">missing</span> : null}
-                <button type="button" className="fg-chip-remove" aria-label={`Remove ${chip.label}`} onClick={() => agent.removeChip(chip.id)}>×</button>
+                <button type="button" className="fg-chip-remove" aria-label={`Remove ${chip.label}`} onClick={() => agent.removeChip(chip.id)}><X size={12} strokeWidth={2} aria-hidden="true" /></button>
               </li>
             );
           })}
@@ -143,27 +146,18 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
         id="agent-composer"
         ref={inputRef}
         className="fg-textarea"
-        rows={3}
+        rows={2}
         value={agent.draft}
         disabled={!projectOpen || thread === null}
         aria-describedby="agent-composer-help agent-composer-blockers"
-        placeholder={projectOpen ? 'Ask the agent. Ctrl+Enter sends. Enter adds a new line.' : 'Open a project to use agents.'}
+        placeholder={projectOpen ? 'Ask for a change…' : 'Open a project to use agents'}
         onChange={event => agent.setDraft(event.currentTarget.value)}
         onKeyDown={onKeyDown}
       />
       <p id="agent-composer-help" className="fg-sr-only">Press Control and Enter to send. Enter inserts a new line.</p>
-      {agent.blockers.length > 0 ? (
-        <ul id="agent-composer-blockers" className="fg-blockers" role="status">
-          {agent.blockers.map(reason => <li key={reason}>{reason}</li>)}
-        </ul>
-      ) : <span id="agent-composer-blockers" className="fg-sr-only" />}
-      <details className="fg-details">
-        <summary>What will be sent</summary>
-        <pre className="fg-code">{JSON.stringify(context, null, 2)}</pre>
-      </details>
       <div className="fg-composer-footer">
         <select
-          className="fg-select"
+          className="fg-select fg-select-quiet"
           aria-label="Provider"
           value={thread?.provider ?? ''}
           disabled={running || thread === null}
@@ -173,42 +167,52 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
         </select>
         {provider && provider.models.length > 0 ? (
           <select
-            className="fg-select"
+            className="fg-select fg-select-quiet"
             aria-label="Model"
             value={thread?.model ?? ''}
             disabled={running || thread === null}
             onChange={event => agent.setModel(event.currentTarget.value === '' ? null : event.currentTarget.value)}
           >
-            <option value="">Provider default</option>
+            <option value="">Default model</option>
             {provider.models.map(model => <option key={model} value={model}>{model}</option>)}
           </select>
         ) : null}
         <select
-          className="fg-select"
+          className="fg-select fg-select-quiet"
           aria-label="Permission mode"
+          title={modeNote}
           value={thread?.permissionMode ?? ''}
           disabled={running || !provider || provider.permissionModes.length === 0}
           onChange={event => agent.setPermissionMode(event.currentTarget.value as PermissionMode)}
         >
-          {thread?.permissionMode === null || thread?.permissionMode === undefined ? <option value="" disabled>Choose a mode</option> : null}
+          {thread?.permissionMode === null || thread?.permissionMode === undefined ? <option value="" disabled>Mode</option> : null}
           {provider?.permissionModes.map(mode => <option key={mode} value={mode}>{permissionLabels[mode]}</option>)}
         </select>
-        <StatusText tone={statusTone[status]}>{thread ? threadStatusLabels[status] : 'No thread'}</StatusText>
+        <IconButton label="What will be sent" aria-expanded={showContext} onClick={() => setShowContext(open => !open)}>
+          <Braces size={14} strokeWidth={1.75} aria-hidden="true" />
+        </IconButton>
+        <span className="fg-composer-spacer" />
+        {agent.blockers.length > 0 ? (
+          <span id="agent-composer-blockers" className="fg-composer-blocker" role="status" title={agent.blockers.join('\n')}>
+            <TriangleAlert size={12} strokeWidth={2} aria-hidden="true" />
+            <span aria-hidden="true">Can't send</span>
+            <span className="fg-sr-only">{agent.blockers.join(' ')}</span>
+          </span>
+        ) : <span id="agent-composer-blockers" className="fg-sr-only" />}
+        <span className="fg-sr-only">{thread ? threadStatusLabels[status] : 'No thread'}</span>
         {running ? (
           <>
             <Button onClick={agent.send} disabled={!agent.canSend}>Queue</Button>
-            <Button variant="danger" disabled={!thread?.activeRunId} onClick={agent.cancel}>Stop</Button>
+            <IconButton label="Stop" className="fg-send fg-send-stop" disabled={!thread?.activeRunId} onClick={agent.cancel}>
+              <Square size={12} strokeWidth={2} fill="currentColor" aria-hidden="true" />
+            </IconButton>
           </>
         ) : (
-          <Button variant="primary" onClick={agent.send} disabled={!agent.canSend}>Send</Button>
+          <IconButton label="Send" title="Send (Ctrl+Enter)" className="fg-send" onClick={agent.send} disabled={!agent.canSend}>
+            <ArrowUp size={16} strokeWidth={2} aria-hidden="true" />
+          </IconButton>
         )}
       </div>
-      {thread ? (
-        <p className="fg-small fg-muted">
-          {thread.permissionMode ? enforcementNote(thread.permissionMode) : 'Choose a permission mode before sending.'}
-          {provider ? <> {providerLimitsNote(provider)}</> : null}
-        </p>
-      ) : null}
     </div>
   );
 }
@@ -217,9 +221,7 @@ export function AgentDock({ agent, scene, assets, projectOpen, focusToken }: Age
   if (!agent) {
     return (
       <section className="fg-dock-panel" aria-label="Agent">
-        <Banner tone="neutral">
-          The agent service is not connected in this build. The editor works without an agent.
-        </Banner>
+        <Banner tone="neutral">Agent service not connected</Banner>
         <div className="fg-composer">
           <textarea className="fg-textarea" rows={3} disabled aria-label="Message to the agent (unavailable)" value="" readOnly />
         </div>
@@ -230,13 +232,8 @@ export function AgentDock({ agent, scene, assets, projectOpen, focusToken }: Age
   return (
     <section className="fg-dock-panel fg-agent" aria-label="Agent">
       <header className="fg-agent-head">
-        {thread ? (
-          <>
-            <span className="fg-agent-title">{thread.title}</span>
-            <StatusText tone={statusTone[threadStatus(thread)]}>{threadStatusLabels[threadStatus(thread)]}</StatusText>
-          </>
-        ) : <span className="fg-muted">No thread</span>}
-        <Button variant="ghost" className="fg-agent-new" onClick={agent.newThread}>New thread</Button>
+        <span className="fg-agent-title">{thread ? thread.title : 'No thread'}</span>
+        <IconButton label="New thread" className="fg-agent-new" onClick={agent.newThread}><Plus size={14} strokeWidth={1.75} aria-hidden="true" /></IconButton>
       </header>
       {thread ? <Transcript thread={thread} onApprove={(runId, requestId, allow) => agent.approve(thread.id, runId, requestId, allow)} /> : null}
       <Composer agent={agent} scene={scene} assets={assets} projectOpen={projectOpen} focusToken={focusToken} />

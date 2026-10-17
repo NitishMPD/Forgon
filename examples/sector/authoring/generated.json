@@ -1,0 +1,3314 @@
+{
+  "formatVersion": 1,
+  "generator": {
+    "id": "sector",
+    "version": "1.0.0",
+    "seed": "forgon"
+  },
+  "base": {
+    "schemaVersion": 1,
+    "sceneId": "gen_41dd206316318d2f",
+    "name": "Sector 07",
+    "entities": [
+      {
+        "id": "gen_6f845ce7b181e415",
+        "name": "Sector 07 relay course",
+        "parentId": null,
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": []
+      },
+      {
+        "id": "gen_9117e287b50f5c0a",
+        "name": "Runner",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.06,
+            -4
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_e1caf5405fdfa04d",
+            "type": "player",
+            "enabled": true,
+            "properties": {
+              "runSpeed": 7.6,
+              "sprintSpeed": 12.4,
+              "gravity": 27,
+              "jumpVelocity": 10.5,
+              "doubleJumpVelocity": 9.2,
+              "maxJumps": 2,
+              "coyoteTime": 0.13,
+              "jumpBuffer": 0.16,
+              "wallRun": true,
+              "wallRunTime": 1.5,
+              "wallRunSpeed": 13,
+              "wallJumpUp": 10,
+              "wallJumpOut": 8,
+              "slide": true,
+              "slideTime": 0.75,
+              "slideHeight": 0.85,
+              "radius": 0.42,
+              "height": 1.85,
+              "fallLimit": -34,
+              "invulnerable": 0.6
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_c11c8504481d62ec",
+        "name": "Torso",
+        "parentId": "gen_9117e287b50f5c0a",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.02,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.62,
+            0.72,
+            0.36
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_a0a4d74a0ed8240b",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.9,
+                0.93,
+                1
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_b712f7596ecff065",
+        "name": "Head",
+        "parentId": "gen_9117e287b50f5c0a",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.6,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.34,
+            0.32,
+            0.34
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_6a7ce6f8c375956e",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.9,
+                0.93,
+                1
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_55b64f6c1f795536",
+        "name": "Left arm",
+        "parentId": "gen_9117e287b50f5c0a",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -0.44,
+            1.18,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.16,
+            0.62,
+            0.16
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_4a9998af4cae08cf",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.16,
+                0.8040196714395392,
+                1
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_12754936b73471f9",
+        "name": "Right arm",
+        "parentId": "gen_9117e287b50f5c0a",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0.44,
+            1.18,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.16,
+            0.62,
+            0.16
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_47cbb446d5b00100",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.16,
+                0.8040196714395392,
+                1
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_17cce41da88504b0",
+        "name": "Left leg",
+        "parentId": "gen_9117e287b50f5c0a",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -0.18,
+            0.48,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.22,
+            0.9,
+            0.22
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_236e0b8843e49fb5",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.24,
+                0.26,
+                0.32
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_4bae5e0ed9934433",
+        "name": "Right leg",
+        "parentId": "gen_9117e287b50f5c0a",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0.18,
+            0.48,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.22,
+            0.9,
+            0.22
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_280e7937ddcbfcde",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.24,
+                0.26,
+                0.32
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_f64d4836c9c8d5d3",
+        "name": "Entry rooftop",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            16,
+            2,
+            16
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_1d96b5dc15f67f54",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.125,
+                0.14,
+                0.185
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_5eecf08db958ba42",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_1e492f6f0a3c5e18",
+        "name": "Ferry rooftop",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0,
+            17
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            10,
+            2,
+            10
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_fe686e7de5cdcf9d",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.2,
+                0.225,
+                0.29
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_19a6ea32166b60a5",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_0526b86efc3dfba5",
+        "name": "Switchback rooftop",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0.6,
+            31
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            9,
+            2,
+            9
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_28c40a5c484599fe",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.125,
+                0.14,
+                0.185
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_6264f820abea81f0",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_0dc2216f01199e5e",
+        "name": "Chasm launch",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.6,
+            45
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            8,
+            2,
+            9
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_afc8156eabb896f7",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.2,
+                0.225,
+                0.29
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_0675eeffb628ce0b",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_c23c5ec2293a56b4",
+        "name": "Entry lip",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.03,
+            7.85
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            15.6,
+            0.08,
+            0.32
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_8736c0a2dcfdca85",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.16,
+                0.8040196714395392,
+                1
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_5c2c781fdc349e3b",
+        "name": "Ferry lip",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.03,
+            21.85
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            9.6,
+            0.08,
+            0.32
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_125bc400660c24c0",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.16,
+                0.8040196714395392,
+                1
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_5382531fd74b7eb2",
+        "name": "Switchback lip",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.63,
+            35.35
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            8.6,
+            0.08,
+            0.32
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_de9b1b302525ce1b",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.63,
+                0.24
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_c2b1698d222744b4",
+        "name": "Chasm wall left",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -4.8,
+            5,
+            57
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1.2,
+            10,
+            17
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_cc536b7b7ae48503",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.125,
+                0.14,
+                0.185
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_dbcf2d4547063d97",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_d195b0d129faa1cf",
+        "name": "Chasm wall right",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            4.8,
+            5,
+            57
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1.2,
+            10,
+            17
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_c2eb1d41a6375aec",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.125,
+                0.14,
+                0.185
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_ecae47fb57c7f62a",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_24c1cdbb8f03a793",
+        "name": "Left wall light line",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -4.16,
+            0.5,
+            57
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.1,
+            0.28,
+            16.6
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_a2d7738239109340",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.16,
+                0.8040196714395392,
+                1
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_f9a37e2a9ec23682",
+        "name": "Right wall light line",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            4.16,
+            0.5,
+            57
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.1,
+            0.28,
+            16.6
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_b3365a6f9dac539d",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.16,
+                0.8040196714395392,
+                1
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_f2eca26ef1a999d3",
+        "name": "Chasm landing",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.6,
+            67
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            8,
+            2,
+            9
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_edee227de0a23c18",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.125,
+                0.14,
+                0.185
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_8dcd7f344c142446",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_4a0d6a1fd1b711b9",
+        "name": "Chasm landing lip",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            2.63,
+            71.35
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            7.6,
+            0.08,
+            0.32
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_0d97b3035480f7f2",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.63,
+                0.24
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_bbd799fbabbde369",
+        "name": "Slide run",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            3.1,
+            84
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            7,
+            2,
+            22
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_1817a37dfea40b8c",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.2,
+                0.225,
+                0.29
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_b55fdbb4407318ca",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_a3364d29efe14f37",
+        "name": "Slide gate",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            5.7,
+            84
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            7.4,
+            1.2,
+            0.7
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_56619b4ca8a738dc",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.18,
+                0.3
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_fbf21a530beceeda",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_ecb19fb45a8a1fae",
+        "name": "Slide run lip left",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -3.4,
+            4.13,
+            84
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.3,
+            0.08,
+            21.6
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_8839d7fdae3c92e9",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.16,
+                0.8040196714395392,
+                1
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_89f1efb6d7e73db1",
+        "name": "Slide run lip right",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            3.4,
+            4.13,
+            84
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.3,
+            0.08,
+            21.6
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_d52d4544dcd89bba",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.16,
+                0.8040196714395392,
+                1
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_47ad431aa1d3dbf5",
+        "name": "Slide gate lip",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            5.06,
+            84
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            7.4,
+            0.12,
+            0.7
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_7d3f1a1a96badd54",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.63,
+                0.24
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_af217abb8249cf84",
+        "name": "Uplink terrace",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            6.6,
+            106.5
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            10,
+            2,
+            10
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_36f6187d64083d93",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.2,
+                0.225,
+                0.29
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_110f498fe9a439e7",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_e9b5e0d9b1fb92fd",
+        "name": "Uplink lip",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            7.63,
+            101.6
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            9.6,
+            0.08,
+            0.32
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_de597ab2e5dc5bd4",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.35,
+                1,
+                0.65
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_e26ede107338dc01",
+        "name": "Relay gate",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1,
+            -4
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.7,
+            0.14,
+            0.7
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_ef09b419b113b78e",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.72,
+                0.3
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_401166b3b3ed4cc4",
+            "type": "checkpoint",
+            "enabled": true,
+            "properties": {
+              "index": 0,
+              "radius": 1.9,
+              "offsetY": 1.3,
+              "spawn": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_d8aa275af9f2fc06",
+            "type": "audio",
+            "enabled": true,
+            "properties": {
+              "assetId": "gen_4e3e2da309496e5f",
+              "autoplay": false,
+              "loop": false,
+              "volume": 0.3
+            },
+            "entityRefs": [],
+            "assetRefs": [
+              "gen_4e3e2da309496e5f"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "gen_b39ee628db946869",
+        "name": "Relay gate post",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -1.6,
+            2.45,
+            -4
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.26,
+            2.9,
+            0.26
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_7700681b2e02e986",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.72,
+                0.3
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_8032e41a85d7a220",
+        "name": "Relay gate post",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            1.6,
+            2.45,
+            -4
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.26,
+            2.9,
+            0.26
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_d0a67f4ccd2445b3",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.72,
+                0.3
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_e3d1269742ba6dfd",
+        "name": "Ferry gate",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1,
+            20
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.7,
+            0.14,
+            0.7
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_fcef69f8094c0c22",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.72,
+                0.3
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_45daf6dd534d85a8",
+            "type": "checkpoint",
+            "enabled": true,
+            "properties": {
+              "index": 1,
+              "radius": 1.9,
+              "offsetY": 1.3
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_91b4c9e4152d9edd",
+        "name": "Ferry gate post",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -1.6,
+            2.45,
+            20
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.26,
+            2.9,
+            0.26
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_9e27016a9654d082",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.72,
+                0.3
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_aa69ae748a502da4",
+        "name": "Ferry gate post",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            1.6,
+            2.45,
+            20
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.26,
+            2.9,
+            0.26
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_d3f6d059b68b326f",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.72,
+                0.3
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_fdcd9d9751727430",
+        "name": "Launch gate",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            2.6,
+            47.5
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.7,
+            0.14,
+            0.7
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_b4d746fffbd8d131",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.72,
+                0.3
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_2f4a18fac46030bb",
+            "type": "checkpoint",
+            "enabled": true,
+            "properties": {
+              "index": 2,
+              "radius": 1.9,
+              "offsetY": 1.3
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_ff5947de7d69e8b0",
+        "name": "Launch gate post",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -1.6,
+            4.05,
+            47.5
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.26,
+            2.9,
+            0.26
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_d37cf04b6cb35979",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.72,
+                0.3
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_e534b18b0a7640a7",
+        "name": "Launch gate post",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            1.6,
+            4.05,
+            47.5
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.26,
+            2.9,
+            0.26
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_926cd77f64e82d6e",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.72,
+                0.3
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_f43d74974bc6d2bf",
+        "name": "Slide gate",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            4.1,
+            90
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.7,
+            0.14,
+            0.7
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_6a6ee58b3f059d70",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.72,
+                0.3
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_6263e826dbf3783e",
+            "type": "checkpoint",
+            "enabled": true,
+            "properties": {
+              "index": 3,
+              "radius": 1.9,
+              "offsetY": 1.3
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_989564ab20cee2f7",
+        "name": "Slide gate post",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -1.6,
+            5.55,
+            90
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.26,
+            2.9,
+            0.26
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_3d9b876e052c1c30",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.72,
+                0.3
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_aae68137345ea8ca",
+        "name": "Slide gate post",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            1.6,
+            5.55,
+            90
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.26,
+            2.9,
+            0.26
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_2b72fc2803cb4609",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.72,
+                0.3
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_964157d7940b6ad1",
+        "name": "Data shard",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            2.2,
+            4
+          ],
+          "rotationEuler": [
+            45,
+            0,
+            45
+          ],
+          "scale": [
+            0.55,
+            0.55,
+            0.55
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_de47577d3105fc98",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.4,
+                0.95,
+                1
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_c8a0b8f5419c878c",
+            "type": "collectible",
+            "enabled": true,
+            "properties": {
+              "value": 1,
+              "radius": 1.25,
+              "offsetY": 0
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_42972c2db7ea8211",
+        "name": "Data shard",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            3.1,
+            10
+          ],
+          "rotationEuler": [
+            45,
+            0,
+            45
+          ],
+          "scale": [
+            0.55,
+            0.55,
+            0.55
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_2fbf90e0c9f0a094",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.4,
+                0.95,
+                1
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_c62b77fa567c2f98",
+            "type": "collectible",
+            "enabled": true,
+            "properties": {
+              "value": 1,
+              "radius": 1.25,
+              "offsetY": 0
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_ece7cfdb4a3944fa",
+        "name": "Data shard",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            2.6,
+            31
+          ],
+          "rotationEuler": [
+            45,
+            0,
+            45
+          ],
+          "scale": [
+            0.55,
+            0.55,
+            0.55
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_184df88a2868a1bf",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.4,
+                0.95,
+                1
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_2bb56301e4d44da9",
+            "type": "collectible",
+            "enabled": true,
+            "properties": {
+              "value": 1,
+              "radius": 1.25,
+              "offsetY": 0
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_27b52a27b400bd17",
+        "name": "Data shard",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -3.6,
+            2.6,
+            31.5
+          ],
+          "rotationEuler": [
+            45,
+            0,
+            45
+          ],
+          "scale": [
+            0.55,
+            0.55,
+            0.55
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_e4b97a2e366812fe",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.4,
+                0.95,
+                1
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_aaaf3a23d10142c2",
+            "type": "collectible",
+            "enabled": true,
+            "properties": {
+              "value": 1,
+              "radius": 1.25,
+              "offsetY": 0
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_3006b44fcaa08e57",
+        "name": "Data shard",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            4.6,
+            54
+          ],
+          "rotationEuler": [
+            45,
+            0,
+            45
+          ],
+          "scale": [
+            0.55,
+            0.55,
+            0.55
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_8d356fe334aff336",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.4,
+                0.95,
+                1
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_c4020125b31e82ea",
+            "type": "collectible",
+            "enabled": true,
+            "properties": {
+              "value": 1,
+              "radius": 1.25,
+              "offsetY": 0
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_66d105e211a59e69",
+        "name": "Data shard",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            2.9,
+            56.5
+          ],
+          "rotationEuler": [
+            45,
+            0,
+            45
+          ],
+          "scale": [
+            0.55,
+            0.55,
+            0.55
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_ea35181b7386f868",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.4,
+                0.95,
+                1
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_d0896f8b70127f5c",
+            "type": "collectible",
+            "enabled": true,
+            "properties": {
+              "value": 1,
+              "radius": 1.25,
+              "offsetY": 0
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_40fc373c5b104673",
+        "name": "Data shard",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            4.6,
+            85.5
+          ],
+          "rotationEuler": [
+            45,
+            0,
+            45
+          ],
+          "scale": [
+            0.55,
+            0.55,
+            0.55
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_298b5e5534d180e4",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.4,
+                0.95,
+                1
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_4a5a7f50c46113a8",
+            "type": "collectible",
+            "enabled": true,
+            "properties": {
+              "value": 1,
+              "radius": 1.25,
+              "offsetY": 0
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_809b509382f21b38",
+        "name": "Data shard",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            8.6,
+            107
+          ],
+          "rotationEuler": [
+            45,
+            0,
+            45
+          ],
+          "scale": [
+            0.55,
+            0.55,
+            0.55
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_d46ad8a93cf47df9",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.4,
+                0.95,
+                1
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_ca461212a2786013",
+            "type": "collectible",
+            "enabled": true,
+            "properties": {
+              "value": 1,
+              "radius": 1.25,
+              "offsetY": 0
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_ce587fa06b422949",
+        "name": "Uplink",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            9.2,
+            110.5
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            4,
+            3.2,
+            0.6
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_f96af96ff1271dd9",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.35,
+                1,
+                0.65
+              ],
+              "castShadows": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_be4e20f3bc907d67",
+            "type": "goal",
+            "enabled": true,
+            "properties": {
+              "radius": 2.6,
+              "offsetY": -0.7
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_4ad22584de4db994",
+        "name": "Relay camera",
+        "parentId": null,
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            10,
+            -20
+          ],
+          "rotationEuler": [
+            -24,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_b1536c1bbef42647",
+            "type": "camera",
+            "enabled": true,
+            "properties": {
+              "fov": 62,
+              "nearClip": 0.1,
+              "farClip": 600,
+              "clearColor": [
+                0.03,
+                0.045,
+                0.07
+              ],
+              "mode": "follow",
+              "distance": 7.6,
+              "height": 2.3,
+              "lag": 6.5,
+              "intro": 3.2,
+              "speedFov": 12,
+              "lookAhead": 0.3
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_b17be7a5b9a90655",
+        "name": "Cold sky",
+        "parentId": null,
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotationEuler": [
+            -54,
+            34,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_4c59b7199cfbbed0",
+            "type": "light",
+            "enabled": true,
+            "properties": {
+              "kind": "directional",
+              "color": [
+                0.6,
+                0.72,
+                1
+              ],
+              "intensity": 1.1,
+              "castShadows": true,
+              "range": 80
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_cf33b3d76ae9cd10",
+        "name": "Entry fill",
+        "parentId": null,
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            7,
+            2
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_e2351634c8885cd7",
+            "type": "light",
+            "enabled": true,
+            "properties": {
+              "kind": "omni",
+              "color": [
+                0.4,
+                0.9,
+                1
+              ],
+              "intensity": 1.5,
+              "castShadows": false,
+              "range": 30
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_65d3bd4aa5b4f529",
+        "name": "Uplink fill",
+        "parentId": null,
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            13,
+            108
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_4070315682c84b88",
+            "type": "light",
+            "enabled": true,
+            "properties": {
+              "kind": "omni",
+              "color": [
+                1,
+                0.6,
+                0.3
+              ],
+              "intensity": 1.3,
+              "castShadows": false,
+              "range": 34
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ]
+      },
+      {
+        "id": "gen_464769e3a9151b09",
+        "name": "Ferry stop lower",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.6,
+            53
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": []
+      },
+      {
+        "id": "gen_5f69e0e3b7137d7c",
+        "name": "Ferry stop upper",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.6,
+            60
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": []
+      },
+      {
+        "id": "gen_580a0b8b86e94365",
+        "name": "Relay lift ferry",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            1.6,
+            53
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            5,
+            1,
+            5
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_5ce982904923c9cf",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.2,
+                0.225,
+                0.29
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_6e8c430c307afce1",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_eb6647c789c3fc92",
+            "type": "movingPlatform",
+            "enabled": true,
+            "properties": {
+              "waypoints": [
+                "gen_464769e3a9151b09",
+                "gen_5f69e0e3b7137d7c"
+              ],
+              "speed": 3,
+              "mode": "pingpong",
+              "wait": 1.2
+            },
+            "entityRefs": [
+              "gen_464769e3a9151b09",
+              "gen_5f69e0e3b7137d7c"
+            ],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_1f2515aaff3c10e7",
+          "instanceId": "gen_801721eac2e656fa",
+          "sourceEntityId": "gen_149c086b71961214"
+        }
+      },
+      {
+        "id": "gen_9124d1f9de455d8b",
+        "name": "Relay lift anchor",
+        "parentId": "gen_580a0b8b86e94365",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": [],
+        "prefab": {
+          "prefabId": "gen_1f2515aaff3c10e7",
+          "instanceId": "gen_801721eac2e656fa",
+          "sourceEntityId": "gen_ab6ca9af526b93ac"
+        }
+      },
+      {
+        "id": "gen_70cfdd4e367dfdab",
+        "name": "Relay lift rim",
+        "parentId": "gen_580a0b8b86e94365",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            -0.62,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            4.6,
+            0.14,
+            4.6
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_c13b5b802ad87d8b",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.16,
+                0.8040196714395392,
+                1
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_1f2515aaff3c10e7",
+          "instanceId": "gen_801721eac2e656fa",
+          "sourceEntityId": "gen_d0c7bed7e35c0769"
+        }
+      },
+      {
+        "id": "gen_03038d1cac314e1e",
+        "name": "Uplink lift lower stop",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            3.6,
+            99
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": []
+      },
+      {
+        "id": "gen_0bacb21cb118baa7",
+        "name": "Uplink lift upper stop",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            7.1,
+            99
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": []
+      },
+      {
+        "id": "gen_18624b7fc67bfd40",
+        "name": "Relay lift uplink",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            3.6,
+            99
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            5,
+            1,
+            5
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_6cc366fcabbeae88",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.2,
+                0.225,
+                0.29
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_7122fea1a55d6726",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_d0cef6981fc6458d",
+            "type": "movingPlatform",
+            "enabled": true,
+            "properties": {
+              "waypoints": [
+                "gen_03038d1cac314e1e",
+                "gen_0bacb21cb118baa7"
+              ],
+              "speed": 2.2,
+              "mode": "pingpong",
+              "wait": 1.4
+            },
+            "entityRefs": [
+              "gen_03038d1cac314e1e",
+              "gen_0bacb21cb118baa7"
+            ],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_1f2515aaff3c10e7",
+          "instanceId": "gen_361cde7efa345539",
+          "sourceEntityId": "gen_149c086b71961214"
+        }
+      },
+      {
+        "id": "gen_0d957359e826eb0a",
+        "name": "Relay lift anchor",
+        "parentId": "gen_18624b7fc67bfd40",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": [],
+        "prefab": {
+          "prefabId": "gen_1f2515aaff3c10e7",
+          "instanceId": "gen_361cde7efa345539",
+          "sourceEntityId": "gen_ab6ca9af526b93ac"
+        }
+      },
+      {
+        "id": "gen_5e36c2596464aefe",
+        "name": "Relay lift rim",
+        "parentId": "gen_18624b7fc67bfd40",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            -0.62,
+            0
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            4.6,
+            0.14,
+            4.6
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_4f2cbf151062bdfc",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.16,
+                0.8040196714395392,
+                1
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_1f2515aaff3c10e7",
+          "instanceId": "gen_361cde7efa345539",
+          "sourceEntityId": "gen_d0c7bed7e35c0769"
+        }
+      },
+      {
+        "id": "gen_adc7d0a7a07ee610",
+        "name": "Sentinel switchback",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -1.7,
+            2.35,
+            31
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            2,
+            1.5,
+            1.5
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_f4522cf7a85d3a14",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.24,
+                0.26,
+                0.32
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_834122d97b10c972",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_aeb9411eb65ae424",
+            "type": "hazard",
+            "enabled": true,
+            "properties": {
+              "kind": "plasma",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ]
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_9a060ef876d0ef10",
+          "instanceId": "gen_30b0befe3a014cd2",
+          "sourceEntityId": "gen_c3177d0279689650"
+        }
+      },
+      {
+        "id": "gen_c6216a0cb60fd126",
+        "name": "Sentinel core",
+        "parentId": "gen_adc7d0a7a07ee610",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0,
+            0.78
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1.2,
+            0.9,
+            0.3
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_45e4df17b349536e",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.18,
+                0.3
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_9a060ef876d0ef10",
+          "instanceId": "gen_30b0befe3a014cd2",
+          "sourceEntityId": "gen_7d837c3e7bab2c39"
+        }
+      },
+      {
+        "id": "gen_5945e61ae989da6b",
+        "name": "Sentinel slide",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            2.2,
+            4.85,
+            78
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            2,
+            1.5,
+            1.5
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_ca80c39e29b40fbd",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.24,
+                0.26,
+                0.32
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_c558e6a7ce87b197",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_51b4b6d631019219",
+            "type": "hazard",
+            "enabled": true,
+            "properties": {
+              "kind": "plasma",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ]
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_9a060ef876d0ef10",
+          "instanceId": "gen_c7dde4af3cea0954",
+          "sourceEntityId": "gen_c3177d0279689650"
+        }
+      },
+      {
+        "id": "gen_7a479cddee921a91",
+        "name": "Sentinel core",
+        "parentId": "gen_5945e61ae989da6b",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0,
+            0.78
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1.2,
+            0.9,
+            0.3
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_989209841cec17b3",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.18,
+                0.3
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_9a060ef876d0ef10",
+          "instanceId": "gen_c7dde4af3cea0954",
+          "sourceEntityId": "gen_7d837c3e7bab2c39"
+        }
+      },
+      {
+        "id": "gen_82c0c6441e21aa16",
+        "name": "Sentinel landing",
+        "parentId": "gen_6f845ce7b181e415",
+        "enabled": true,
+        "transform": {
+          "position": [
+            -2.3,
+            3.35,
+            67
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            2,
+            1.5,
+            1.5
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_2420e823754100fe",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                0.24,
+                0.26,
+                0.32
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_5c304c95ae698ef8",
+            "type": "collision",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ],
+              "isTrigger": false
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          },
+          {
+            "id": "gen_c277d6f0e4cf3f6e",
+            "type": "hazard",
+            "enabled": true,
+            "properties": {
+              "kind": "plasma",
+              "halfExtents": [
+                0.5,
+                0.5,
+                0.5
+              ]
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_9a060ef876d0ef10",
+          "instanceId": "gen_247fc85b87955a2e",
+          "sourceEntityId": "gen_c3177d0279689650"
+        }
+      },
+      {
+        "id": "gen_596345bf6ec93978",
+        "name": "Sentinel core",
+        "parentId": "gen_82c0c6441e21aa16",
+        "enabled": true,
+        "transform": {
+          "position": [
+            0,
+            0,
+            0.78
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1.2,
+            0.9,
+            0.3
+          ]
+        },
+        "components": [
+          {
+            "id": "gen_2cfa8611eb1afda4",
+            "type": "render",
+            "enabled": true,
+            "properties": {
+              "primitive": "box",
+              "color": [
+                1,
+                0.18,
+                0.3
+              ],
+              "castShadows": true
+            },
+            "entityRefs": [],
+            "assetRefs": []
+          }
+        ],
+        "prefab": {
+          "prefabId": "gen_9a060ef876d0ef10",
+          "instanceId": "gen_247fc85b87955a2e",
+          "sourceEntityId": "gen_7d837c3e7bab2c39"
+        }
+      }
+    ]
+  },
+  "overrides": [],
+  "detached": [],
+  "prefabBindings": [
+    {
+      "prefabId": "gen_1f2515aaff3c10e7",
+      "path": "authoring/relay-lift.bindings.json"
+    }
+  ]
+}

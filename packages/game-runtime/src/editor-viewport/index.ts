@@ -11,6 +11,8 @@ import { faultMessage, validateScene } from '../core/validate.js';
 import type { ViewportCallbacks, ViewportHandle, ViewportMountOptions, ViewportTool } from '../core/types.js';
 import { loadPhysics, physicsReady } from '../runtime/physics.js';
 import { createPlaySession, type PlaySession } from '../runtime/play-session.js';
+import { createInputSource, type InputSource } from '../runtime/input.js';
+import { createHud, type Hud } from '../runtime/hud.js';
 
 // The editor viewport mount: a PlayCanvas Application bound to a canvas inside the given
 // container, an editor-owned camera/grid/gizmo/picking stack for edit mode, and a detached
@@ -92,25 +94,43 @@ export const mountEditorViewport = (
     picker = createPickingSession(app, registry, layers);
   }
 
-  const playSession: PlaySession = createPlaySession({
+  // Play reads `deps.input` every frame, so a live holder lets Play attach the browser controls
+  // without rebuilding the session. Without it a parkour course would run on empty input: the
+  // editor has no keyboard mapping of its own, so WASD/jump/slide would do nothing.
+  const playDeps = {
     app,
     editRoot,
     context: options.context,
     loadAssetBytes: options.loadAssetBytes,
     onRuntimeEvent: options.onRuntimeEvent ?? (() => undefined),
-  });
+    input: undefined as InputSource | undefined,
+  };
+  const playSession: PlaySession = createPlaySession(playDeps);
+
+  // Browser controls and HUD live only for the duration of a Play, so edit-mode shortcuts and
+  // the editor camera are untouched, and nothing keeps listening after Stop.
+  let playInput: InputSource | null = null;
+  let playHud: Hud | null = null;
+  const releasePlaySurface = (): void => {
+    playDeps.input = undefined;
+    playInput?.dispose(); playInput = null;
+    playHud?.dispose(); playHud = null;
+  };
 
   let lastView: { scene: SceneDocument; selectedIds: readonly string[] } | null = null;
   let lastStats: ReconcileStats = { added: [], removed: [], patched: [] };
   let currentSelectionIds: readonly string[] = [];
   let disposed = false;
   let hasSeenScene = false;
+  let started = false;
 
   const resize = (): void => {
     if (disposed) return;
     const width = Math.max(container.clientWidth, 1);
     const height = Math.max(container.clientHeight, 1);
     app.resizeCanvas(width, height);
+    // Resizing clears the canvas; draw now so the cleared buffer is never painted (panel-drag flicker).
+    if (started) app.render();
   };
   const resizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(resize);
   resizeObserver?.observe(container);
@@ -219,9 +239,21 @@ export const mountEditorViewport = (
       try {
         if (!physicsReady()) throw new Error('Physics is still loading. Retry Play when initialization completes.');
         playSession.start(scene);
+        if (typeof window !== 'undefined') {
+          if (!playInput) playInput = createInputSource(canvas);
+          playDeps.input = playInput;
+          // Move focus off the Play button so Space jumps instead of re-activating it.
+          canvas.focus();
+        }
+        const numbers = playSession.getHud();
+        if (numbers && typeof document !== 'undefined') {
+          if (!playHud) playHud = createHud(container);
+          playHud.showOpening(scene.name.toUpperCase(), 'reach the uplink');
+        }
         editorCamera.setLocked(true);
         gizmoController.setLocked(true);
       } catch (error) {
+        releasePlaySurface();
         editorCamera.setLocked(false);
         callbacks.onFault(`Play failed: ${faultMessage(error)}`);
         throw error;
@@ -231,6 +263,7 @@ export const mountEditorViewport = (
       if (disposed) return;
       editorCamera.setLocked(false);
       playSession.stop();
+      releasePlaySurface();
       gizmoController.setLocked(false);
       if (lastView) {
         // Replays any authoring that happened while playing.
@@ -242,6 +275,7 @@ export const mountEditorViewport = (
       disposed = true;
       resizeObserver?.disconnect();
       playSession.dispose();
+      releasePlaySurface();
       gizmoController.destroy();
       editorCamera.detach();
       picker?.dispose();
@@ -258,6 +292,7 @@ export const mountEditorViewport = (
   }).catch(error => { if (!disposed) callbacks.onFault(`Physics initialization failed: ${faultMessage(error)}`); });
   resize();
   app.start();
+  started = true;
 
   return handle;
 };

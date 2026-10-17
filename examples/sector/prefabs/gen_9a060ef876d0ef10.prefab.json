@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "prefabId": "gen_9a060ef876d0ef10",
+  "name": "Original sentinel hazard",
+  "rootId": "gen_c3177d0279689650",
+  "entities": [
+    {
+      "id": "gen_c3177d0279689650",
+      "name": "Sentinel pylon",
+      "parentId": null,
+      "enabled": true,
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          2,
+          1.5,
+          1.5
+        ]
+      },
+      "components": [
+        {
+          "id": "gen_d6783933ff0406c3",
+          "type": "render",
+          "enabled": true,
+          "properties": {
+            "primitive": "box",
+            "color": [
+              0.24,
+              0.26,
+              0.32
+            ],
+            "castShadows": true
+          },
+          "entityRefs": [],
+          "assetRefs": []
+        },
+        {
+          "id": "gen_767e817eef87e057",
+          "type": "collision",
+          "enabled": true,
+          "properties": {
+            "shape": "box",
+            "halfExtents": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "isTrigger": false
+          },
+          "entityRefs": [],
+          "assetRefs": []
+        },
+        {
+          "id": "gen_28eee30a5539e81f",
+          "type": "hazard",
+          "enabled": true,
+          "properties": {
+            "kind": "plasma",
+            "halfExtents": [
+              0.5,
+              0.5,
+              0.5
+            ]
+          },
+          "entityRefs": [],
+          "assetRefs": []
+        }
+      ]
+    },
+    {
+      "id": "gen_7d837c3e7bab2c39",
+      "name": "Sentinel core",
+      "parentId": "gen_c3177d0279689650",
+      "enabled": true,
+      "transform": {
+        "position": [
+          0,
+          0,
+          0.78
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1.2,
+          0.9,
+          0.3
+        ]
+      },
+      "components": [
+        {
+          "id": "gen_a12bf38abd4d42a6",
+          "type": "render",
+          "enabled": true,
+          "properties": {
+            "primitive": "box",
+            "color": [
+              1,
+              0.18,
+              0.3
+            ],
+            "castShadows": true
+          },
+          "entityRefs": [],
+          "assetRefs": []
+        }
+      ]
+    }
+  ]
+}

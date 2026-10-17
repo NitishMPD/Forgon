@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement, type DragEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import {
   Activity, AudioLines, Bot, Box, ChevronRight, CircleAlert, Clock, Diamond, Eye, Film, Focus, FolderOpen, Gamepad2,
-  GitCompareArrows, LayoutDashboard, ListTree, LogOut, MousePointer2, Move, Play, Plus, Redo2, RotateCcw, RotateCw, Save,
+  GitCompareArrows, LayoutDashboard, ListTree, LogOut, MousePointer2, Move, Play, Plus, Redo2, RotateCw, Save, Settings as SettingsIcon,
   Scaling, ShieldCheck, SlidersHorizontal, Sparkles, Square, Terminal, TriangleAlert, Undo2, X, type LucideIcon,
 } from 'lucide-react';
 import type { SceneCommand } from '@forgon/editor-core';
@@ -27,6 +27,7 @@ import { planSceneSwitch } from '../model/sceneSwitch.js';
 import { topmostIds } from '../model/tree.js';
 import { Banner, Button, IconButton, StatusText, cx, type Tone } from '../primitives/primitives.js';
 import type { ViewportHandle, ViewportMount, ViewportTool, ViewportView } from '../services.js';
+import { Settings } from './Settings.js';
 import { ViewportSlot } from './ViewportSlot.js';
 
 export interface SceneEntry {
@@ -254,6 +255,7 @@ export function Workspace(props: WorkspaceProps) {
   const [switchError, setSwitchError] = useState<string | null>(null);
   const [menuGroup, setMenuGroup] = useState<GroupId | null>(null);
   const [dropGroup, setDropGroup] = useState<GroupId | null>(null);
+  const [view_, setView] = useState<'editor' | 'settings'>('editor');
   const areaRef = useRef<HTMLDivElement>(null);
   const pendingFocus = useRef<string | null>(null);
   const primary = scene.entities.find(entity => entity.id === selection.primaryId) ?? null;
@@ -571,7 +573,6 @@ export function Workspace(props: WorkspaceProps) {
           <div className="fg-viewport-placeholder">
             <Box size={20} strokeWidth={1.75} aria-hidden="true" />
             <h2 className="fg-section-title">Viewport not connected</h2>
-            <p className="fg-muted">The scene is loaded with {scene.entities.length} {scene.entities.length === 1 ? 'object' : 'objects'}. The viewport runtime is not connected in this build.</p>
           </div>
         ) : null}
         <div className="fg-viewport-readout fg-float">
@@ -584,7 +585,7 @@ export function Workspace(props: WorkspaceProps) {
         <div className="fg-game-card">
           <Gamepad2 size={20} strokeWidth={1.75} aria-hidden="true" />
           <StatusText tone={playing ? 'success' : 'neutral'}>{playing ? 'Playing a snapshot' : 'Not running'}</StatusText>
-          <p className="fg-muted">Play runs a snapshot of the scene in the Viewport. A separate game view at target device size is not built yet.</p>
+          <p className="fg-muted" title="A separate device-size game view is not built yet.">Play runs in the Viewport for now.</p>
           <Button variant="primary" disabled={!playing && !handle?.play} onClick={() => { (playing ? stop : play)(); show('viewport'); }}>
             {playing ? <Square {...iconProps} /> : <Play {...iconProps} />}{playing ? 'Stop' : 'Play'}
           </Button>
@@ -618,7 +619,7 @@ export function Workspace(props: WorkspaceProps) {
       />
     ),
     composer: <AgentDock agent={agent} scene={scene} assets={props.assets} projectOpen={props.source === 'project'} focusToken={focusToken} />,
-    agents: <AgentsPanel agent={agent} onOpenThread={openComposer} />,
+    agents: <AgentsPanel agent={agent} onOpenThread={openComposer} onOpenSettings={() => setView('settings')} />,
     project: <AssetsPanel assets={props.assets} projectOpen={props.source === 'project'} onRefresh={props.onRefreshAssets} onImport={props.onImportAsset} />,
     console: <ConsolePanel log={log} />,
     review: <ReviewPanel threadTitle={activeThread?.title ?? null} changedPaths={reviewPaths} />,
@@ -628,7 +629,8 @@ export function Workspace(props: WorkspaceProps) {
     <div className="fg-workspace" data-layout="dock" onKeyDown={onKeyDown}>
       <nav className="fg-rail" aria-label="Main">
         <span className="fg-logo" aria-hidden="true"><Diamond size={16} strokeWidth={2} /></span>
-        <span className="fg-rail-item is-active" aria-current="page" title="Editor"><LayoutDashboard {...iconProps} size={18} /><span className="fg-sr-only">Editor</span></span>
+        <IconButton className={cx('fg-rail-item', view_ === 'editor' && 'is-active')} label="Editor" aria-current={view_ === 'editor' ? 'page' : undefined} onClick={() => setView('editor')}><LayoutDashboard {...iconProps} size={18} /></IconButton>
+        <IconButton className={cx('fg-rail-item', view_ === 'settings' && 'is-active')} label="Settings" aria-current={view_ === 'settings' ? 'page' : undefined} onClick={() => setView(current => (current === 'settings' ? 'editor' : 'settings'))}><SettingsIcon {...iconProps} size={18} /></IconButton>
         <span className="fg-rail-spacer" />
         <IconButton className="fg-rail-item" label="Close project" title="Close project" onClick={requestClose}><LogOut {...iconProps} size={18} /></IconButton>
       </nav>
@@ -674,17 +676,6 @@ export function Workspace(props: WorkspaceProps) {
           <IconButton label="Save" disabled={saveDisabled} title={props.saveDisabledReason ?? 'Save (Ctrl+S)'} onClick={() => { void props.onSave(); }}><Save {...iconProps} size={16} /></IconButton>
         </div>
         <span className="fg-topbar-spacer" />
-        <button
-          type="button"
-          className="fg-pill fg-agent-pill"
-          disabled={!agent}
-          title={agent ? 'Agents and providers' : 'The agent service is not connected in this build.'}
-          onClick={() => show('agents')}
-        >
-          <Bot {...iconProps} />
-          <span>{agentLabel}</span>
-        </button>
-        <IconButton label="Reset layout" title="Reset panel layout" onClick={() => setLayout(defaultLayout)}><RotateCcw {...iconProps} size={16} /></IconButton>
         {closeArmed ? (
           <>
             <Button variant="danger" disabled={props.saveStatus === 'saving'} onClick={props.onClose}>Discard changes and close</Button>
@@ -696,6 +687,7 @@ export function Workspace(props: WorkspaceProps) {
       <div
         ref={areaRef}
         className="fg-dock-area"
+        inert={view_ === 'settings'}
         onDragOver={onDragOver}
         onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropGroup(null); }}
         onDrop={onDrop}
@@ -788,6 +780,14 @@ export function Workspace(props: WorkspaceProps) {
         <SplitHandle split="rightRows" layout={layout} area={areaRef} onChange={rightRows => setLayout({ ...layout, rightRows })} />
       </div>
 
+      {view_ === 'settings' ? (
+        <Settings
+          providers={agent ? agent.connection.providers : null}
+          onRefreshProviders={agent?.refreshProviders}
+          onResetLayout={() => setLayout(defaultLayout)}
+        />
+      ) : null}
+
       <footer className="fg-statusbar">
         <StatusText tone={saveLabel.tone}>{saveLabel.label}</StatusText>
         <span className="fg-status-item"><Eye {...iconProps} size={12} />{props.sourcePath ? `Watching ${props.sourcePath}` : 'Not watching a file'}</span>
@@ -795,6 +795,9 @@ export function Workspace(props: WorkspaceProps) {
         <span className={cx('fg-status-item', counts.errors > 0 && 'fg-tone-danger')} title={`${counts.errors} errors`}><CircleAlert {...iconProps} size={12} />{counts.errors}<span className="fg-sr-only"> errors</span></span>
         <span className={cx('fg-status-item', counts.warnings > 0 && 'fg-tone-warning')} title={`${counts.warnings} warnings`}><TriangleAlert {...iconProps} size={12} />{counts.warnings}<span className="fg-sr-only"> warnings</span></span>
         <span className="fg-status-item fg-muted">{selection.entityIds.length} selected</span>
+        {activeThread && threadStatus(activeThread) !== 'idle' ? (
+          <button type="button" className="fg-status-item fg-status-link" onClick={openComposer}><Bot {...iconProps} size={12} />{agentLabel}</button>
+        ) : null}
         <span className="fg-statusbar-spacer" />
         <span className="fg-status-item fg-muted"><ShieldCheck {...iconProps} size={12} />Scripts do not run on open</span>
       </footer>

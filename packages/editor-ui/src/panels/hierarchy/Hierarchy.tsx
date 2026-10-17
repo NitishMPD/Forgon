@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent } from 'react';
 import { createId, type Entity } from '@forgon/project-schema';
 import type { SceneCommand } from '@forgon/editor-core';
-import { Button, EmptyState, cx } from '../../primitives/primitives.js';
+import { Box, Camera, Folder, Lightbulb, Package, Shapes, Sparkles, SquareDashed, Users, Volume2, ListPlus, Circle, type LucideIcon } from 'lucide-react';
+import { EmptyState, IconButton, cx } from '../../primitives/primitives.js';
 import { noSelection, rangeSelection, selectOne, toggleSelection, type Selection } from '../../model/selection.js';
 import { buildRows, parentRowId, stepId } from '../../model/tree.js';
 import { duplicatePlan, indentTarget, outdentTarget, reparentCommands } from '../../model/hierarchyOps.js';
@@ -48,6 +49,19 @@ function RenameInput({ initial, onCommit, onCancel }: { initial: string; onCommi
   );
 }
 
+// Row icon from what the entity is: the first recognised component wins, then group or empty.
+const componentIcons: ReadonlyArray<[string, LucideIcon]> = [
+  ['camera', Camera], ['light', Lightbulb], ['audio', Volume2], ['sound', Volume2], ['vfx', Sparkles],
+  ['guestQueue', Users], ['render', Box], ['model', Box], ['collision', SquareDashed], ['rigidbody', Shapes],
+];
+
+function entityIcon(entity: Entity | undefined, hasChildren: boolean): LucideIcon {
+  if (entity?.prefab) return Package;
+  const types = new Set(entity?.components.map(component => component.type) ?? []);
+  for (const [type, icon] of componentIcons) if (types.has(type)) return icon;
+  return hasChildren ? Folder : Circle;
+}
+
 export function Hierarchy({ sceneName, entities, selection, locked, onSelect, onCreate, onDelete, onRename, onCommand, onNotice }: HierarchyProps) {
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -56,6 +70,7 @@ export function Hierarchy({ sceneName, entities, selection, locked, onSelect, on
   const treeRef = useRef<HTMLDivElement>(null);
   const pendingFocus = useRef<string | null>(null);
   const dragging = useRef<readonly string[] | null>(null);
+  const byId = new Map(entities.map(entity => [entity.id, entity] as const));
   const rows = buildRows(entities, collapsed);
   const ids = rows.map(row => row.id);
   const primary = selection.primaryId !== null && ids.includes(selection.primaryId) ? selection.primaryId : null;
@@ -268,21 +283,19 @@ export function Hierarchy({ sceneName, entities, selection, locked, onSelect, on
   return (
     <section className="fg-panel fg-hierarchy" aria-labelledby="hierarchy-title">
       <header className="fg-panel-header">
-        <div>
-          <h2 id="hierarchy-title" className="fg-panel-title">Hierarchy</h2>
-          <p className="fg-panel-subtitle" title={sceneName}>{sceneName}</p>
-        </div>
-        <Button
-          aria-label="New entity"
+        <h2 id="hierarchy-title" className="fg-panel-title">Hierarchy</h2>
+        <span className="fg-panel-subtitle" title={sceneName}>{entities.length} objects</span>
+        <IconButton
+          label="New entity"
           title={primary ? 'New entity under the selected object' : 'New entity at the root'}
           disabled={locked}
           onClick={onCreate}
         >
-          New
-        </Button>
+          <ListPlus size={16} strokeWidth={1.75} aria-hidden="true" />
+        </IconButton>
       </header>
       {entities.length === 0 ? (
-        <EmptyState title="No objects in this scene">Create an object to start building the scene.</EmptyState>
+        <EmptyState title="No objects" />
       ) : (
         <>
           <p id="hierarchy-help" className="fg-sr-only">
@@ -338,6 +351,7 @@ export function Hierarchy({ sceneName, entities, selection, locked, onSelect, on
                   ) : (
                     <span className="fg-chevron-spacer" aria-hidden="true" />
                   )}
+                  {(() => { const Icon = entityIcon(byId.get(row.id), row.hasChildren); return <Icon className="fg-tree-icon" size={14} strokeWidth={1.75} aria-hidden="true" />; })()}
                   {renamingId === row.id ? (
                     <RenameInput
                       initial={row.name}
@@ -351,7 +365,7 @@ export function Hierarchy({ sceneName, entities, selection, locked, onSelect, on
                   ) : (
                     <span className="fg-tree-name">{row.name}</span>
                   )}
-                  {row.prefab ? <span className="fg-badge">Prefab</span> : null}
+                  {row.prefab ? <span className="fg-sr-only">Prefab</span> : null}
                 </div>
               );
             })}

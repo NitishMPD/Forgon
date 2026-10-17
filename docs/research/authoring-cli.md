@@ -9,9 +9,15 @@ These are authored data conventions for the runtime worker, not claims of engine
 | --- | --- | --- |
 | `render` | `primitive: 'box' \| 'sphere' \| 'cylinder'`, `color: [r,g,b]` (0–1), `castShadows: boolean` | Original colored primitives; no model loading required |
 | `collision` | `shape: 'box'`, `halfExtents: [0.5,0.5,0.5]`, `isTrigger: boolean` | Static collider unless another runtime component says otherwise |
-| `camera` | `fov: 50`, `nearClip: 0.1`, `farClip: 100`, `clearColor: [r,g,b]` | Authored scene camera; editor camera remains separate |
+| `camera` | `fov: 50`, `nearClip: 0.1`, `farClip: 100`, `clearColor: [r,g,b]`, optional `mode: 'static' \| 'follow'`, `distance`, `height`, `lag`, `intro`, `speedFov`, `lookAhead` | Authored scene camera; the editor camera remains separate. `mode: 'follow'` drives the cinematic chase rig (behind-and-above the player, easing over `intro` seconds off the authored pose, widening fov by `speedFov` deg per unit of speed, aiming `lookAhead` seconds down the run) |
 | `light` | `kind: 'directional' \| 'omni'`, `color: [r,g,b]`, `intensity: number`, `castShadows: boolean`, `range: number` | Range used by omni lights |
 | `guestQueue` | `waypoints: string[]`, `speed: 1.2`, `arrivalRadius: 0.15`, `loop: true`, `visualComponentId: string` | Ordered entity IDs in `waypoints`, also listed in `entityRefs`; move in world space towards waypoint world positions during play only. `visualComponentId` is a remapped render-component reference for authoring; runtime may ignore it |
+| `player` | `runSpeed`, `sprintSpeed`, `gravity`, `jumpVelocity`, `doubleJumpVelocity`, `maxJumps`, `coyoteTime`, `jumpBuffer`, `wallRun`, `wallRunTime`, `wallRunSpeed`, `wallJumpUp`, `wallJumpOut`, `slide`, `slideTime`, `slideHeight`, `radius`, `height`, `fallLimit`, `invulnerable` (all optional over documented defaults) | The parked runner the play session drives; exactly one enabled `player` per playable scene. The character rig and spawn markers are its descendants/authored refs |
+| `movingPlatform` | `waypoints: string[]`, `speed: 2`, `mode: 'pingpong' \| 'loop'`, `wait: 0` | Ordered entity IDs in `waypoints` (index 0 is the authored position); the same entity must also carry a trigger `collision` giving the deck size. Carries a rider standing on it |
+| `checkpoint` | `index: number`, `radius: 2`, `offsetY: number`, optional `spawn: true` | Ordered relay gate; the enabled `spawn` checkpoint owns the level spawn point and is armed from the start. Respawn occurs at the gate's `groundY` |
+| `collectible` | `value: 1`, `radius: 1.1`, `offsetY: 0` | Data shard; collected once, contributes to the goal tally |
+| `goal` | `radius: 2.4`, `offsetY: 0` | Uplink volume; reaching it finishes the run |
+| `hazard` | `kind: string`, `halfExtents: [0.5,0.5,0.5]` | Local half-extents scaled by entity scale (like `collision`). Overlapping the body is fatal |
 | `audio` | `assetId: string`, `autoplay: false`, `loop: false`, `volume: 0.25` | `assetId` also in `assetRefs`; original WAV reception cue, requires user gesture/runtime event integration |
 | `vfx` | `kind: 'arrivalPulse'`, `color: [r,g,b]`, `duration: 0.5`, `autoplay: false` | Declarative arrival cue; runtime event/VFX integration remains required |
 

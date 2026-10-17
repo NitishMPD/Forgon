@@ -4,18 +4,29 @@ import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import { Application, AmmoPhysicsWorld, Entity, NullGraphicsDevice, Vec3, BoundingBox } from 'playcanvas';
 import { createEntity, createScene } from '@forgon/project-schema';
-import { createHotelFixture } from '../../test-fixtures/src/index.js';
+import { createHotelFixture, createSectorFixture } from '../../test-fixtures/src/index.js';
 import { createDiagnostics, createMaterialCache, createSceneRegistry } from '../src/core/projection.js';
 import { reconcileScene } from '../src/core/reconcile.js';
 import { createEditorCamera } from '../src/core/editor-camera.js';
 import { createPlaySession } from '../src/runtime/play-session.js';
 import { createGuestMover, stepGuestMover } from '../src/runtime/guest-queue.js';
+import { createInputState } from '../src/runtime/parkour.js';
 import { mountGame, validatePlayableScene } from '../src/runtime/index.js';
 import type { RuntimeEvent } from '../src/core/types.js';
 
 function headless(physics = false): Application {
   const canvas = { id: 'runtime-test', width: 64, height: 64, style: {}, addEventListener() {}, removeEventListener() {} } as unknown as HTMLCanvasElement;
   return new Application(canvas, { devtools: false, graphicsDevice: new NullGraphicsDevice(canvas), ...(physics ? { physicsWorld: new AmmoPhysicsWorld() } : {}) });
+}
+
+/** Loads the vendored classic-script Ammo build so play sessions get a real physics world. */
+async function bootAmmo(): Promise<void> {
+  const require = createRequire(import.meta.url);
+  // The vendored file is unmodified classic-script/CommonJS upstream code.
+  const source = await readFile(new URL('../vendor/ammo.wasm.js', import.meta.url), 'utf8');
+  const module = { exports: {} as unknown };
+  const factory = new Function('module', 'exports', 'require', '__dirname', source + '\nreturn module.exports;')(module, module.exports, require, new URL('../vendor/', import.meta.url).pathname);
+  (globalThis as typeof globalThis & { Ammo: unknown }).Ammo = await factory({ wasmBinary: await readFile(new URL('../vendor/ammo.wasm.wasm', import.meta.url)) });
 }
 
 test('standalone import is Node-safe and validates required semantics before mounting', () => {
@@ -107,12 +118,7 @@ test('guest stepping consumes distance, finishes once, and terminates overlappin
 });
 
 test('actual Ammo boxes raycast, queue movement updates physics and stop restores authoring snapshot', async () => {
-  const require = createRequire(import.meta.url);
-  // The vendored file is unmodified classic-script/CommonJS upstream code.
-  const source = await readFile(new URL('../vendor/ammo.wasm.js', import.meta.url), 'utf8');
-  const module = { exports: {} as unknown };
-  const factory = new Function('module', 'exports', 'require', '__dirname', source + '\nreturn module.exports;')(module, module.exports, require, new URL('../vendor/', import.meta.url).pathname);
-  (globalThis as typeof globalThis & { Ammo: unknown }).Ammo = await factory({ wasmBinary: await readFile(new URL('../vendor/ammo.wasm.wasm', import.meta.url)) });
+  await bootAmmo();
   const app = headless(true);
   const editRoot = new Entity('Authoring'); app.root.addChild(editRoot);
   const fixture = createHotelFixture(); const scene = fixture.scenes[0]!;
@@ -136,5 +142,62 @@ test('actual Ammo boxes raycast, queue movement updates physics and stop restore
   assert.equal(editRoot.enabled, true); assert.equal(session.isPlaying, false);
   assert.equal(app.root.findByName('Guest 1'), null);
   assert.deepEqual(scene, original);
+  session.dispose(); app.destroy();
+});
+
+test('the Sector parkour session drives the rig, the lifts and the chase camera from authored input', async () => {
+  await bootAmmo();
+  const app = headless(true);
+  const editRoot = new Entity('Authoring'); app.root.addChild(editRoot);
+  const fixture = createSectorFixture(); const scene = fixture.scenes[0]!;
+  const events: RuntimeEvent[] = [];
+  const session = createPlaySession({
+    app, editRoot, context: { assets: fixture.assets.assets, prefabs: fixture.prefabs },
+    // Held forward + sprint: the runner takes the opening gaps and the camera chases.
+    input: { sample: () => ({ state: { ...createInputState(), moveZ: 1, sprint: true }, yaw: 0, pitch: 0.16, manual: false, restart: false }) },
+    onRuntimeEvent: event => events.push(event),
+  });
+  session.start(scene);
+  assert.equal(session.isPlaying, true);
+  const hud = session.getHud()!;
+  assert.equal(hud.checkpointTotal, 4, 'the four relay gates are registered');
+  assert.equal(hud.total, 8, 'eight shards are registered');
+  const runner = app.root.findByName('Runner') as Entity;
+  assert.ok(runner, 'the runner root is projected from the authored player');
+  const start = runner.getPosition().clone();
+  const ferry = app.root.findByName('Relay lift ferry') as Entity;
+  const ferryStart = ferry.getPosition().clone();
+  for (let i = 0; i < 600; i++) session.update(1 / 60);
+  assert.ok(runner.getPosition().distance(start) > 5, 'the rig follows the simulated runner through the course');
+  assert.ok(ferry.getPosition().distance(ferryStart) > 0.5, 'the relay ferry is a real moving platform');
+  const finalHud = session.getHud()!;
+  assert.ok(finalHud.time > 0 && finalHud.speed >= 0, 'the HUD tracks the run');
+  assert.ok(app.root.findByName('Sentinel switchback'), 'hazard prefab instances are projected');
+  session.stop();
+  assert.equal(session.isPlaying, false);
+  assert.equal(app.root.findByName('Runner'), null);
+  session.dispose(); app.destroy();
+});
+
+test('a parkour session honours input attached mid-run, so an editor can wire controls at Play', async () => {
+  await bootAmmo();
+  const app = headless(true);
+  const editRoot = new Entity('Authoring'); app.root.addChild(editRoot);
+  const fixture = createSectorFixture(); const scene = fixture.scenes[0]!;
+  // The editor viewport holds a live reference and attaches the browser controls when Play starts.
+  const deps = {
+    app, editRoot, context: { assets: fixture.assets.assets, prefabs: fixture.prefabs },
+    input: undefined as undefined | { sample(): { state: ReturnType<typeof createInputState>; yaw: number; pitch: number; manual: boolean; restart: boolean } },
+    onRuntimeEvent: () => undefined,
+  };
+  const session = createPlaySession(deps);
+  session.start(scene);
+  const runner = app.root.findByName('Runner') as Entity;
+  const start = runner.getPosition().clone();
+  for (let i = 0; i < 120; i++) session.update(1 / 60);
+  assert.ok(runner.getPosition().distance(start) < 1, 'no input leaves the runner at the spawn while it settles');
+  deps.input = { sample: () => ({ state: { ...createInputState(), moveZ: 1, sprint: true }, yaw: 0, pitch: 0.16, manual: false, restart: false }) };
+  for (let i = 0; i < 240; i++) session.update(1 / 60);
+  assert.ok(runner.getPosition().distance(start) > 3, 'input attached after start drives the run');
   session.dispose(); app.destroy();
 });

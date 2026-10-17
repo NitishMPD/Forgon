@@ -7,7 +7,11 @@ import { loadStudioServices } from './services.js';
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing #root element');
 
+root.setAttribute('role', 'status');
+root.textContent = 'Connecting to Forgon...';
+
 void loadStudioServices().then(studioServices => {
+  root.removeAttribute('role');
   createRoot(root).render(
     <StrictMode>
       <App services={studioServices} />

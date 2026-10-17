@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "id": "gen_4e3e2da309496e5f",
+      "name": "Relay data cue",
+      "kind": "audio",
+      "path": "assets/relay.wav",
+      "provenance": {
+        "source": "Original Forgon fixture artwork, level design and synthesized audio; created for this repository",
+        "license": "CC0-1.0",
+        "generator": "forgon-sector-1.0.0"
+      }
+    },
+    {
+      "id": "gen_aff752f7d6fcb1c8",
+      "name": "Sector 07 wordmark source",
+      "kind": "texture",
+      "path": "assets/sector-mark.svg",
+      "provenance": {
+        "source": "Original Forgon fixture artwork, level design and synthesized audio; created for this repository",
+        "license": "CC0-1.0",
+        "generator": "forgon-sector-1.0.0"
+      }
+    },
+    {
+      "id": "gen_cda3f58862e8fa32",
+      "name": "Sector material palette",
+      "kind": "material",
+      "path": "assets/palette.json",
+      "provenance": {
+        "source": "Original Forgon fixture artwork, level design and synthesized audio; created for this repository",
+        "license": "CC0-1.0",
+        "generator": "forgon-sector-1.0.0"
+      }
+    }
+  ]
+}

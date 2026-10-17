@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "prefabId": "gen_1f2515aaff3c10e7",
+  "name": "Original relay lift",
+  "rootId": "gen_149c086b71961214",
+  "entities": [
+    {
+      "id": "gen_149c086b71961214",
+      "name": "Relay lift deck",
+      "parentId": null,
+      "enabled": true,
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          5,
+          1,
+          5
+        ]
+      },
+      "components": [
+        {
+          "id": "gen_18b34736faffc3d9",
+          "type": "render",
+          "enabled": true,
+          "properties": {
+            "primitive": "box",
+            "color": [
+              0.2,
+              0.225,
+              0.29
+            ],
+            "castShadows": true
+          },
+          "entityRefs": [],
+          "assetRefs": []
+        },
+        {
+          "id": "gen_592083c9c602f8c1",
+          "type": "collision",
+          "enabled": true,
+          "properties": {
+            "shape": "box",
+            "halfExtents": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "isTrigger": true
+          },
+          "entityRefs": [],
+          "assetRefs": []
+        },
+        {
+          "id": "gen_794e28aa29f4fa0f",
+          "type": "movingPlatform",
+          "enabled": true,
+          "properties": {
+            "waypoints": [
+              "gen_ab6ca9af526b93ac"
+            ],
+            "speed": 2.2,
+            "mode": "pingpong",
+            "wait": 1.4
+          },
+          "entityRefs": [
+            "gen_ab6ca9af526b93ac"
+          ],
+          "assetRefs": []
+        }
+      ]
+    },
+    {
+      "id": "gen_ab6ca9af526b93ac",
+      "name": "Relay lift anchor",
+      "parentId": "gen_149c086b71961214",
+      "enabled": true,
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": []
+    },
+    {
+      "id": "gen_d0c7bed7e35c0769",
+      "name": "Relay lift rim",
+      "parentId": "gen_149c086b71961214",
+      "enabled": true,
+      "transform": {
+        "position": [
+          0,
+          -0.62,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          4.6,
+          0.14,
+          4.6
+        ]
+      },
+      "components": [
+        {
+          "id": "gen_bfb3549f53f4b4e2",
+          "type": "render",
+          "enabled": true,
+          "properties": {
+            "primitive": "box",
+            "color": [
+              0.16,
+              0.8040196714395392,
+              1
+            ],
+            "castShadows": true
+          },
+          "entityRefs": [],
+          "assetRefs": []
+        }
+      ]
+    }
+  ]
+}

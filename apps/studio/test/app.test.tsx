@@ -13,7 +13,7 @@ test('studio with no desktop services renders the launcher with the capability g
   const html = renderToStaticMarkup(<App services={disconnectedServices} />);
   assert.match(html, /Forgon Engine/);
   assert.match(html, /desktop host is not connected/);
-  assert.match(html, />Open in-memory sample</);
+  assert.match(html, /In-memory sample/);
 });
 
 test('the in-memory sample is a valid scene with stable IDs and a working edit history', () => {

@@ -73,7 +73,15 @@ test('real IO through renderer proxy: create, save, conflict, watch, close and p
       const value = await reopened.dispatch({ v: 1, id: 'o', method: 'project:open', args: { root: plan.root } }) as { status: string };
       assert.equal(value.status, 'opened');
       assert.deepEqual(JSON.parse(await readFile(join(plan.root, path), 'utf8')).entities[0].transform, external.entities[0]!.transform);
+      await reopened.dispatch({ v: 1, id: 'f', method: 'project:forget', args: { root: plan.root } });
+      assert.deepEqual(await reopened.dispatch({ v: 1, id: 'r2', method: 'project:recent', args: {} }), []);
     } finally { await reopened.close(); }
+    const fresh = await createDesktopBridge({ dataDir: join(h.root, 'state'), emit() {} });
+    try {
+      assert.deepEqual(await fresh.dispatch({ v: 1, id: 'r3', method: 'project:recent', args: {} }), [], 'forgetting persists');
+      await assert.rejects(fresh.dispatch({ v: 1, id: 'o2', method: 'project:open', args: { root: plan.root } }), /not selected/, 'a forgotten root needs a fresh native pick');
+      assert.ok(JSON.parse(await readFile(join(plan.root, path), 'utf8')), 'project files are untouched');
+    } finally { await fresh.close(); }
   } finally { await h.close(); }
 });
 
@@ -159,5 +167,29 @@ test('agent proxy preserves early events and binds cancellation and approval to 
     assert.deepEqual(calls, ['approve:run:request:false', 'cancel:run']);
     await h.bridge.close(); await h.bridge.close();
     assert.equal(stopped, 1); assert.equal(listener, undefined);
+  } finally { await h.close(); }
+});
+
+
+test('project services work before agent attachment and late services are stopped after close', async () => {
+  const h = await harness();
+  let stopped = 0;
+  let subscriptions = 0;
+  const agent = { service: {
+    subscribe: () => { subscriptions++; return () => { subscriptions--; }; },
+    refreshProviders: async () => [],
+  }, stop: async () => { stopped++; } } as unknown as RunningAgentService;
+  try {
+    assert.equal((await h.services.project.openExample()).status, 'opened');
+    assert.ok(h.services.agent.providers.every(p => p.readiness === 'not-ready'));
+    await h.bridge.attachAgent(agent);
+    assert.equal(subscriptions, 1);
+    assert.deepEqual(await h.services.agent.refreshProviders(), []);
+    await h.bridge.close();
+    assert.equal(subscriptions, 0);
+    assert.equal(stopped, 1);
+    await h.bridge.attachAgent(agent);
+    assert.equal(stopped, 2, 'an agent finishing startup after close must stop');
+    assert.equal(subscriptions, 0);
   } finally { await h.close(); }
 });

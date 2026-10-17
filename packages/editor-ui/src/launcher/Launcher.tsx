@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { projectDestination } from '../model/projectDestination.js';
 import type { Diagnostic } from '@forgon/project-schema';
 import type { CreatePlan, ProjectHost, ProjectOpenResult, ProjectSession, RecentProject } from '../services.js';
-import { Banner, Button, EmptyState, StatusText, type Tone } from '../primitives/primitives.js';
+import { Box, Building2, Copy, Diamond, FolderOpen, Plus, Search, ShieldCheck, X } from 'lucide-react';
+import { Banner, Button, IconButton, StatusText, type Tone } from '../primitives/primitives.js';
 
 export interface LauncherProps {
   host: ProjectHost | null;
@@ -17,6 +18,21 @@ const recentWords: Record<RecentProject['status'], { label: string; tone: Tone }
   needs_attention: { label: 'Needs attention', tone: 'warning' },
   unavailable: { label: 'Unavailable', tone: 'danger' },
 };
+
+const folderName = (path: string): string => path.split(/[\\/]/).filter(Boolean).pop() ?? path;
+
+// Short relative time for the recent list; the exact timestamp stays in the tooltip.
+export function relativeTime(iso: string, now = Date.now()): string {
+  const then = Date.parse(iso);
+  if (Number.isNaN(then)) return '';
+  const minutes = Math.round((now - then) / 60000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} h ago`;
+  const days = Math.round(hours / 24);
+  return days === 1 ? 'yesterday' : `${days} days ago`;
+}
 
 function DiagnosticList({ diagnostics }: { diagnostics: readonly Diagnostic[] }) {
   if (diagnostics.length === 0) return null;
@@ -39,6 +55,7 @@ export function Launcher({ host, onOpened, onSample }: LauncherProps) {
   const [parent, setParent] = useState<string | null>(null);
   const [name, setName] = useState('My game');
   const [notice, setNotice] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     if (!host) return;
@@ -103,6 +120,14 @@ export function Launcher({ host, onOpened, onSample }: LauncherProps) {
     finally { setBusy(false); }
   };
 
+  const forget = async (root: string): Promise<void> => {
+    if (!host?.forgetRecent) return;
+    try {
+      await host.forgetRecent(root);
+      setRecents(list => list?.filter(item => item.path !== root) ?? null);
+    } catch (error) { setNotice(error instanceof Error ? error.message : String(error)); }
+  };
+
   const confirmCreate = async (): Promise<void> => {
     if (!host || !plan) return;
     const root = plan.root;
@@ -110,17 +135,22 @@ export function Launcher({ host, onOpened, onSample }: LauncherProps) {
     await run(root, () => host.create(root));
   };
 
+  const needle = query.trim().toLowerCase();
+  const shown = recents?.filter(item => !needle || item.name.toLowerCase().includes(needle) || item.path.toLowerCase().includes(needle)) ?? null;
+  const actions = [
+    { label: 'Open folder…', hint: 'game.project.json', icon: FolderOpen, primary: true, disabled: !host || busy, onClick: () => { void openFolder(); } },
+    { label: 'New project…', hint: 'Empty 3D', icon: Plus, primary: false, disabled: !host || busy, onClick: () => { void newProject(); } },
+    ...(host?.openExample ? [{ label: 'Open example', hint: 'Copy of the hotel', icon: Building2, primary: false, disabled: busy, onClick: () => { void run(null, () => host.openExample!()); } }] : []),
+    { label: 'In-memory sample', hint: 'Not saved', icon: Box, primary: false, disabled: busy, onClick: onSample },
+  ];
+
   return (
     <main className="fg-launcher" aria-labelledby="launcher-title">
       <header className="fg-launcher-header">
+        <span className="fg-logo" aria-hidden="true"><Diamond size={16} strokeWidth={2} /></span>
         <h1 id="launcher-title" className="fg-launcher-title">Forgon Engine</h1>
-        <p className="fg-muted">Local, file-based game projects. Open a project folder or start from a template.</p>
       </header>
-      {!host ? (
-        <Banner tone="warning">
-          The desktop host is not connected in this build. Projects cannot be opened, created or saved. You can still open the in-memory sample.
-        </Banner>
-      ) : null}
+      {!host ? <Banner tone="warning">The desktop host is not connected in this build. Only the in-memory sample is available.</Banner> : null}
       {notice ? <Banner tone="warning">{notice}</Banner> : null}
       {failure ? (
         <section className="fg-launch-failure" role="alert" aria-labelledby="failure-title">
@@ -128,13 +158,11 @@ export function Launcher({ host, onOpened, onSample }: LauncherProps) {
             {failure.reason === 'not-project' ? 'This folder is not a Forgon project' : failure.reason === 'invalid' ? 'The project has validation errors' : "Can't read this folder"}
           </h2>
           <p className="fg-small">{failure.message}</p>
-          {failure.reason === 'not-project' ? (
-            <p className="fg-small fg-muted">Forgon does not import Unity, Godot, or PlayCanvas Editor projects in V1.</p>
-          ) : null}
+          {failure.reason === 'not-project' ? <p className="fg-small fg-muted">Projects from other engines are not imported.</p> : null}
           <DiagnosticList diagnostics={failure.diagnostics} />
           <div className="fg-toolbar">
             {failure.reason === 'not-project' && failure.root !== null ? (
-              <Button variant="primary" disabled={busy} onClick={() => { setParent(failure.root); setPlan(null); }}>Create a project in a new child folder</Button>
+              <Button variant="primary" disabled={busy} onClick={() => { setParent(failure.root); setPlan(null); }}>Create project here</Button>
             ) : null}
             {failure.reason !== 'not-project' && failure.root !== null ? (
               <Button disabled={busy} onClick={() => openRoot(failure.root!)}>Retry</Button>
@@ -150,7 +178,7 @@ export function Launcher({ host, onOpened, onSample }: LauncherProps) {
             <input className="fg-input" value={name} onChange={event => setName(event.currentTarget.value)} disabled={busy} />
           </label>
           <div className="fg-toolbar">
-            <Button disabled={busy} onClick={() => { void planChild(); }}>Review files and destination</Button>
+            <Button disabled={busy} onClick={() => { void planChild(); }}>Review files</Button>
             <Button disabled={busy} onClick={() => setParent(null)}>Cancel</Button>
           </div>
         </section>
@@ -160,7 +188,7 @@ export function Launcher({ host, onOpened, onSample }: LauncherProps) {
           <h2 id="create-title" className="fg-section-title">Create this project?</h2>
           {plan.blockedReason ? <Banner tone="danger">{plan.blockedReason}</Banner> : null}
           <p className="fg-small fg-mono">{plan.root}</p>
-          <p className="fg-small">These files will be added. Existing files are never overwritten.</p>
+          <p className="fg-small fg-muted">Adds these files. Never overwrites.</p>
           <ul className="fg-list-plain fg-mono">
             {plan.files.map(file => <li key={file}>{file}</li>)}
           </ul>
@@ -170,18 +198,32 @@ export function Launcher({ host, onOpened, onSample }: LauncherProps) {
           </div>
         </section>
       ) : null}
-      <div className="fg-launcher-grid">
-        <section className="fg-launcher-recents" aria-labelledby="recent-title">
+      <nav className="fg-launch-actions" aria-label="Start">
+        {actions.map(action => (
+          <button key={action.label} type="button" className={action.primary ? 'fg-launch-tile is-primary' : 'fg-launch-tile'} disabled={action.disabled} onClick={action.onClick}>
+            <span className="fg-launch-icon"><action.icon size={18} strokeWidth={1.75} aria-hidden="true" /></span>
+            <span className="fg-launch-label">{action.label}</span>
+            <span className="fg-launch-hint">{action.hint}</span>
+          </button>
+        ))}
+      </nav>
+      <section className="fg-launcher-recents" aria-labelledby="recent-title">
+        <header className="fg-launcher-list-head">
           <h2 id="recent-title" className="fg-section-title">Recent projects</h2>
-          {!host ? (
-            <EmptyState title="Recent projects unavailable">They are listed by the desktop host.</EmptyState>
-          ) : recents === null ? (
-            <p className="fg-muted">Loading recent projects…</p>
-          ) : recents.length === 0 ? (
-            <EmptyState title="No recent projects">Create one or open a folder.</EmptyState>
-          ) : (
+          {recents && recents.length > 0 ? (
+            <label className="fg-search">
+              <Search size={14} strokeWidth={1.75} aria-hidden="true" />
+              <span className="fg-sr-only">Search projects</span>
+              <input value={query} placeholder="Search" onChange={event => setQuery(event.currentTarget.value)} />
+            </label>
+          ) : null}
+        </header>
+        {!host ? <p className="fg-muted">Recent projects unavailable</p>
+          : shown === null ? <p className="fg-muted">Loading…</p>
+          : recents!.length === 0 ? <p className="fg-muted">No recent projects</p>
+          : shown.length === 0 ? <p className="fg-muted">No matches</p> : (
             <ul className="fg-recent-list">
-              {recents.map(item => {
+              {shown.map(item => {
                 const word = recentWords[item.status];
                 return (
                   <li key={item.path} className="fg-recent-row">
@@ -189,44 +231,34 @@ export function Launcher({ host, onOpened, onSample }: LauncherProps) {
                       type="button"
                       className="fg-recent-open"
                       disabled={busy || item.status === 'unavailable'}
+                      title={item.path}
                       onClick={() => openRoot(item.path)}
                     >
-                      <span className="fg-recent-name">{item.name}</span>
-                      <span className="fg-mono fg-muted fg-recent-path" title={item.path}>{item.path}</span>
+                      <span className="fg-recent-avatar" aria-hidden="true">{item.name.slice(0, 1)}</span>
+                      <span className="fg-recent-text">
+                        <span className="fg-recent-name">{item.name}</span>
+                        <span className="fg-recent-path">{folderName(item.path)}</span>
+                      </span>
                     </button>
-                    <StatusText tone={word.tone}>{word.label}</StatusText>
-                    <span className="fg-muted fg-small">{item.lastOpened}</span>
+                    {item.status === 'ready' ? null : <StatusText tone={word.tone}>{word.label}</StatusText>}
+                    <span className="fg-muted fg-small" title={item.lastOpened}>{relativeTime(item.lastOpened)}</span>
+                    <span className="fg-recent-actions">
+                      <IconButton label={`Copy path of ${item.name}`} onClick={() => { void globalThis.navigator?.clipboard?.writeText(item.path); }}>
+                        <Copy size={14} strokeWidth={1.75} aria-hidden="true" />
+                      </IconButton>
+                      {host.forgetRecent ? (
+                        <IconButton label={`Remove ${item.name} from recents`} title="Remove from recents (files stay on disk)" disabled={busy} onClick={() => { void forget(item.path); }}>
+                          <X size={14} strokeWidth={1.75} aria-hidden="true" />
+                        </IconButton>
+                      ) : null}
+                    </span>
                   </li>
                 );
               })}
             </ul>
           )}
-        </section>
-        <section className="fg-launcher-actions" aria-labelledby="actions-title">
-          <h2 id="actions-title" className="fg-section-title">Start</h2>
-          <div className="fg-action-list">
-            <div className="fg-action">
-              <Button variant="primary" disabled={!host || busy} onClick={openFolder}>Open folder…</Button>
-              <p className="fg-small fg-muted">Choose a folder that contains game.project.json.</p>
-            </div>
-            <div className="fg-action">
-              <Button disabled={!host || busy} onClick={newProject}>New project…</Button>
-              <p className="fg-small fg-muted">Empty 3D template. Creates files only after you confirm the list.</p>
-            </div>
-            {host?.openExample ? (
-              <div className="fg-action">
-                <Button disabled={busy} onClick={() => run(null, () => host.openExample!())}>Open example</Button>
-                <p className="fg-small fg-muted">Opens a copy of the hotel fixture. The original is never changed.</p>
-              </div>
-            ) : null}
-            <div className="fg-action">
-              <Button disabled={busy} onClick={onSample}>Open in-memory sample</Button>
-              <p className="fg-small fg-muted">Not saved to disk. No project folder, no agent, no export.</p>
-            </div>
-          </div>
-          <p className="fg-small fg-muted">Opening a project does not run code from it. Project scripts run only when you press Play.</p>
-        </section>
-      </div>
+      </section>
+      <p className="fg-launcher-foot"><ShieldCheck size={12} strokeWidth={1.75} aria-hidden="true" />Opening a project does not run code from it.</p>
     </main>
   );
 }

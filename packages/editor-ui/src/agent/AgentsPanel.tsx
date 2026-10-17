@@ -1,7 +1,6 @@
-import { Plus } from 'lucide-react';
-import { Banner, Button, StatusText, cx } from '../primitives/primitives.js';
+import { Plus, Settings } from 'lucide-react';
+import { Banner, IconButton, StatusText, cx } from '../primitives/primitives.js';
 import { statusTone } from './AgentDock.js';
-import { ProviderSetup } from './ProviderSetup.js';
 import { threadStatus, threadStatusLabels } from './threadState.js';
 import type { AgentController } from './useAgentSessions.js';
 
@@ -9,13 +8,14 @@ export interface AgentsPanelProps {
   agent: AgentController | null;
   // Opens the composer for the chosen thread.
   onOpenThread(): void;
+  onOpenSettings(): void;
 }
 
-export function AgentsPanel({ agent, onOpenThread }: AgentsPanelProps) {
+export function AgentsPanel({ agent, onOpenThread, onOpenSettings }: AgentsPanelProps) {
   if (!agent) {
     return (
       <section className="fg-dock-panel" aria-label="Agents">
-        <Banner tone="neutral">The agent service is not connected in this build. The editor works without an agent.</Banner>
+        <Banner tone="neutral">Agent service not connected</Banner>
       </section>
     );
   }
@@ -25,11 +25,14 @@ export function AgentsPanel({ agent, onOpenThread }: AgentsPanelProps) {
       <header className="fg-agent-head">
         <span className="fg-agent-title">Threads</span>
         <span className="fg-muted">{agent.state.threads.length}</span>
-        <Button variant="ghost" className="fg-agent-new" onClick={() => { agent.newThread(); onOpenThread(); }}>
-          <Plus aria-hidden="true" size={14} strokeWidth={1.75} />New thread
-        </Button>
+        <IconButton label="New thread" className="fg-agent-new" onClick={() => { agent.newThread(); onOpenThread(); }}>
+          <Plus aria-hidden="true" size={14} strokeWidth={1.75} />
+        </IconButton>
+        <IconButton label="Provider settings" onClick={onOpenSettings}>
+          <Settings aria-hidden="true" size={14} strokeWidth={1.75} />
+        </IconButton>
       </header>
-      {agent.state.threads.length === 0 ? <p className="fg-muted fg-small">No threads yet.</p> : (
+      {agent.state.threads.length === 0 ? <p className="fg-muted fg-small">No threads</p> : (
         <ul className="fg-thread-list">
           {agent.state.threads.map(thread => {
             const status = threadStatus(thread);
@@ -50,7 +53,6 @@ export function AgentsPanel({ agent, onOpenThread }: AgentsPanelProps) {
           })}
         </ul>
       )}
-      <ProviderSetup providers={agent.connection.providers} onRefresh={agent.refreshProviders} />
     </section>
   );
 }

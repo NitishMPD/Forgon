@@ -51,6 +51,8 @@ export interface CreatePlan {
 
 export interface ProjectHost {
   listRecent(): Promise<RecentProject[]>;
+  // Removes a project from the recent list without touching its files.
+  forgetRecent?(root: string): Promise<void>;
   pickFolder(): Promise<string | null>;
   open(root: string): Promise<ProjectOpenResult>;
   planCreate(root: string): Promise<CreatePlan>;

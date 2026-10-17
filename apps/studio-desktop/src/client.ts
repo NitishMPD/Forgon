@@ -78,6 +78,7 @@ export async function createDesktopServices(transport: Transport) {
     project: {
       pickFolder: () => transport.request<string | null>('project:pick'),
       listRecent: () => transport.request<{ path: string; name: string; lastOpened: string; status: 'ready' | 'needs_attention' | 'unavailable' }[]>('project:recent'),
+      forgetRecent: async (root: string) => { await transport.request<null>('project:forget', { root }); },
       planCreate: (root: string) => transport.request<{ root: string; files: string[]; blockedReason?: string }>('project:plan', { root }),
       planCreateChild: (parent: string, name: string) => transport.request<{ root: string; files: string[]; blockedReason?: string }>('project:planChild', { parent, name }),
       open: (root: string) => open('project:open', { root }),

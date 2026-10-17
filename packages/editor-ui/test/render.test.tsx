@@ -25,8 +25,8 @@ test('launcher without a desktop host says so, disables project actions, and sti
   const html = renderToStaticMarkup(<Launcher host={null} onOpened={() => {}} onSample={() => {}} />);
   assert.match(html, /desktop host is not connected/);
   assert.match(html, /Recent projects unavailable/);
-  assert.match(html, /disabled=""[^>]*>Open folder…/);
-  assert.match(html, />Open in-memory sample</);
+  assert.match(html, /<button(?=[^>]*disabled="")[^>]*>(?:(?!<\/button>).)*Open folder…/);
+  assert.match(html, /<button(?![^>]*disabled)[^>]*>(?:(?!<\/button>).)*In-memory sample/);
   assert.match(html, /Opening a project does not run code from it/);
 });
 
@@ -96,8 +96,8 @@ test('agent dock without a service says the capability is missing and offers no 
   const html = renderToStaticMarkup(
     <AgentDock agent={null} scene={null} assets={[]} projectOpen={false} focusToken={0} />,
   );
-  assert.match(html, /agent service is not connected/);
-  assert.doesNotMatch(html, />Send</);
+  assert.match(html, /Agent service not connected/);
+  assert.doesNotMatch(html, /aria-label="Send"/);
 });
 
 test('console empty state names what appears there', () => {

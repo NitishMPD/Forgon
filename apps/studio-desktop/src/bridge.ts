@@ -47,22 +47,29 @@ export async function createDesktopBridge(options: BridgeOptions) {
   let generation = 0;
   let persistence = Promise.resolve();
   const host = createNodeProjectHost(async () => null);
-  const agentUnsubscribe = options.agent?.service.subscribe(value => {
-    if (!closed && runs.has(value.runId)) options.emit({ kind: 'agent', value });
-    else if (!closed && startingRuns && earlyEvents.length < 128) earlyEvents.push(value);
-  });
+  let agentUnsubscribe: (() => void) | undefined;
+  function subscribeAgent() {
+    agentUnsubscribe = options.agent?.service.subscribe(value => {
+      if (!closed && runs.has(value.runId)) options.emit({ kind: 'agent', value });
+      else if (!closed && startingRuns && earlyEvents.length < 128) earlyEvents.push(value);
+    });
+  }
+  subscribeAgent();
   async function remember(session: NodeProjectSession) {
     recents.delete(session.root);
     recents.set(session.root, { path: session.root, name: session.manifest.name, lastOpened: new Date().toISOString(), status: 'ready' });
     while (recents.size > 20) recents.delete(recents.keys().next().value!);
     roots.add(session.root);
+    // A recent-list write failure must not turn successful project creation into a retry/overwrite.
+    await persistRecents().catch(() => {});
+  }
+  function persistRecents() {
     persistence = persistence.catch(() => {}).then(async () => {
       const temp = `${recentPath}.${randomUUID()}.tmp`;
       await writeFile(temp, JSON.stringify([...recents.values()]), { flag: 'wx', mode: 0o600 });
       await rename(temp, recentPath);
     });
-    // A recent-list write failure must not turn successful project creation into a retry/overwrite.
-    await persistence.catch(() => {});
+    return persistence;
   }
   async function opened(result: Awaited<ReturnType<typeof host.open>>, owner: number) {
     if (result.status !== 'opened') return result;
@@ -90,6 +97,13 @@ export async function createDesktopBridge(options: BridgeOptions) {
     agentUnsubscribe?.(); await options.agent?.stop(); await persistence.catch(() => {});
   }
   return {
+    async attachAgent(agent: RunningAgentService) {
+      if (closed) { await agent.stop(); return; }
+      if (options.agent) throw new Error('Agent service already attached');
+      options.agent = agent;
+      subscribeAgent();
+    },
+    setAgentMessage(message: string) { options.agentMessage = message; },
     async dispatch(input: unknown, native = false): Promise<unknown> {
       if (closed) throw new Error('Bridge closed');
       const { method, args: a } = parseRequest(input);
@@ -147,6 +161,14 @@ export async function createDesktopBridge(options: BridgeOptions) {
         try { await readProject(recent.path); return { ...recent, status: 'ready' }; }
         catch (error) { return { ...recent, status: (error as NodeJS.ErrnoException).code === 'NOT_FOUND' ? 'unavailable' : 'needs_attention' }; }
       }));
+      if (method === 'project:forget') {
+        // Removes the entry only; project files are never touched. An open project keeps its grant.
+        const root = string(a.root, 'root');
+        if (!recents.delete(root)) return null;
+        if (![...sessions.values()].some(({ session }) => session.root === root)) roots.delete(root);
+        await persistRecents();
+        return null;
+      }
       if (method === 'project:planChild') {
         const parent = requireRoot(a.parent), name = string(a.name, 'folder name');
         if (!/^[^<>:"/\\|?*\x00-\x1f]+$/.test(name) || /[. ]$/.test(name) || name === '.' || name === '..' || /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(name)) throw new Error('Choose a Windows-safe single folder name');

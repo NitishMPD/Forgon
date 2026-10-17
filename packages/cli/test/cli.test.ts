@@ -142,7 +142,7 @@ test('actual CLI entrypoint propagates nonzero unavailable-command status', asyn
 
 test('create templates are real, create-only, and validate after creation', async t => {
   const parent = await project(t);
-  for (const template of ['empty-3d', 'hotel']) {
+  for (const template of ['empty-3d', 'hotel', 'sector']) {
     const destination = join(parent, template);
     const result = await run(['create', destination, '--template', template]); assert.equal(result.code, 0, result.stderr);
     assert.equal((await run(['validate', destination])).code, 0);

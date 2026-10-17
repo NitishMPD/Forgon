@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "projectId": "gen_562ab656669ed1b2",
+  "name": "Sector 07",
+  "startScene": "gen_41dd206316318d2f",
+  "scenes": [
+    {
+      "id": "gen_41dd206316318d2f",
+      "path": "scenes/main.scene.json"
+    }
+  ],
+  "prefabs": [
+    {
+      "id": "gen_1f2515aaff3c10e7",
+      "path": "prefabs/gen_1f2515aaff3c10e7.prefab.json"
+    },
+    {
+      "id": "gen_9a060ef876d0ef10",
+      "path": "prefabs/gen_9a060ef876d0ef10.prefab.json"
+    }
+  ],
+  "assetRegistry": "assets/registry.json"
+}

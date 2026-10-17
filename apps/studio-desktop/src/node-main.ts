@@ -1,33 +1,19 @@
 import { createDesktopBridge } from './bridge.js';
 import { MAX_FRAME, VERSION, parseRequest } from './protocol.js';
-import { loadAgentServiceConfig, startAgentService, type RunningAgentService } from '@forgon/agent-service';
+import { loadAgentServiceConfig, startAgentService } from '@forgon/agent-service';
 import { join } from 'node:path';
 
 const dataDir = process.argv[2];
 if (!dataDir) throw new Error('Native app data directory required');
 // Rust assigns the process to its kill-on-close job before writing the first request.
 await new Promise<void>(resolve => process.stdin.once('readable', resolve));
-let agent: RunningAgentService | undefined;
-let agentMessage = 'No isolated, verified T3 artifact configured. Project editing is available.';
-// Only the native launch environment configures the pinned artifact; renderer/project files cannot.
-if (process.env.FORGON_T3_CONFIG) {
-  try {
-    const config = await loadAgentServiceConfig(process.env.FORGON_T3_CONFIG);
-    agent = await startAgentService({
-      artifact: config.artifact,
-      homeDir: join(dataDir, 'agent-home'), port: config.port,
-      nodePath: process.execPath,
-      resumeOnStart: false,
-    });
-  } catch { agentMessage = 'Configured isolated T3 service could not start. Verify artifact, Node version and port configuration.'; }
-}
 function send(value: unknown) {
   const line = JSON.stringify(value);
   if (Buffer.byteLength(line) > MAX_FRAME) throw new Error('Desktop response exceeds frame limit');
   if (process.stdout.writableLength > 2 * MAX_FRAME) { void shutdown(); return; }
   process.stdout.write(`${line}\n`);
 }
-const bridge = await createDesktopBridge({ dataDir, ...(agent ? { agent } : {}), agentMessage, emit: event => send({ v: VERSION, event }) });
+const bridge = await createDesktopBridge({ dataDir, agentMessage: process.env.FORGON_T3_CONFIG ? 'Agent service is starting. Check again shortly.' : 'No isolated, verified T3 artifact configured. Project editing is available.', emit: event => send({ v: VERSION, event }) });
 let stopping = false;
 async function shutdown() {
   if (stopping) return; stopping = true;
@@ -54,3 +40,21 @@ process.stdin.on('data', (chunk: Buffer) => {
   }
   if (buffer.length > MAX_FRAME) void shutdown();
 });
+
+// Project requests must remain available while the independent agent service starts.
+if (process.env.FORGON_T3_CONFIG) {
+  void (async () => {
+    try {
+      const config = await loadAgentServiceConfig(process.env.FORGON_T3_CONFIG!);
+      const agent = await startAgentService({
+        artifact: config.artifact,
+        homeDir: join(dataDir, 'agent-home'), port: config.port,
+        nodePath: process.execPath,
+        resumeOnStart: false,
+      });
+      await bridge.attachAgent(agent);
+    } catch {
+      bridge.setAgentMessage('Configured isolated T3 service could not start. Verify artifact, Node version and port configuration.');
+    }
+  })();
+}

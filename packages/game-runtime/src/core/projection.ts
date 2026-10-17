@@ -6,7 +6,11 @@ import type { Component, Entity as SceneEntity } from '@forgon/project-schema';
 // render/camera/light/collision project onto engine components; guestQueue/audio/vfx are
 // runtime-owned behaviors handled in play sessions, not engine components.
 
-export const SUPPORTED_COMPONENT_TYPES = ['render', 'camera', 'light', 'collision', 'guestQueue', 'audio', 'vfx'] as const;
+export const SUPPORTED_COMPONENT_TYPES = [
+  'render', 'camera', 'light', 'collision', 'guestQueue', 'audio', 'vfx',
+  // Parkour gameplay vocabulary: simulated by the play session, no engine component.
+  'player', 'movingPlatform', 'checkpoint', 'collectible', 'goal', 'hazard',
+] as const;
 export type SupportedComponentType = (typeof SUPPORTED_COMPONENT_TYPES)[number];
 
 export interface ProjectionDiagnostics {

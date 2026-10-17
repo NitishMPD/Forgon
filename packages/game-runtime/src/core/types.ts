@@ -20,12 +20,27 @@ export interface ViewportCallbacks {
   onTransforms?(changes: readonly { entityId: string; transform: Transform }[]): void;
 }
 
+export interface HudNumbers {
+  time: number; deaths: number; collected: number; total: number;
+  checkpointIndex: number; checkpointTotal: number; speed: number; grounded: boolean;
+  finished: boolean; finishTime: number | null;
+}
+
 export type RuntimeEvent =
   | { type: 'play-started' }
   | { type: 'play-stopped' }
   | { type: 'arrival'; entityId: string; waypointEntityId: string }
   | { type: 'audio'; entityId: string; status: 'played' | 'unavailable' | 'error'; message?: string }
   | { type: 'vfx'; entityId: string; waypointEntityId: string }
+  | { type: 'checkpoint'; entityId: string; index: number; total: number }
+  | { type: 'collect'; entityId: string; value: number; collected: number; total: number }
+  | { type: 'goal'; time: number; deaths: number; collected: number; total: number }
+  | { type: 'death'; reason: 'fall' | 'hazard'; deaths: number }
+  | { type: 'respawn'; checkpointEntityId: string; index: number }
+  | { type: 'jump'; double: boolean }
+  | { type: 'wall-run'; side: -1 | 1 }
+  | { type: 'slide' }
+  | { type: 'hud'; hud: HudNumbers }
   | { type: 'fault'; message: string };
 
 export interface PlaySnapshot {
