@@ -18,6 +18,7 @@ test('appearance and last five distinct models persist without overwriting each 
   rememberModel({ provider: 'opencode', model: 'vendor/model-4' }, storage);
   assert.deepEqual(readPreferences(storage), {
     appearance,
+    lastModel: { provider: 'opencode', model: 'vendor/model-4' },
     recentModels: [4, 6, 5, 3, 2].map(index => ({ provider: 'opencode', model: `vendor/model-${index}` })),
   });
   saveAppearance(defaultAppearance, storage);
@@ -68,4 +69,19 @@ test('head script restores appearance before CSS/modules and tolerates missing o
     assert.doesNotThrow(() => runInNewContext(script, { localStorage: { getItem: () => raw }, document: { documentElement: { setAttribute() { assert.fail('invalid payload'); } } } }));
   }
   assert.doesNotThrow(() => runInNewContext(script, { localStorage: { getItem() { throw new Error('denied'); } } }));
+});
+
+
+test('remembering provider default preserves recents and validates stored choices', () => {
+  const storage = memoryStorage();
+  rememberModel({ provider: 'codex', model: 'gpt-6.1-sol' }, storage);
+  const recent = readPreferences(storage).recentModels;
+  rememberModel({ provider: 'claude-code', model: null }, storage);
+  saveAppearance(defaultAppearance, storage);
+  assert.deepEqual(readPreferences(storage).lastModel, { provider: 'claude-code', model: null });
+  assert.deepEqual(readPreferences(storage).recentModels, recent);
+  for (const lastModel of [null, [], { provider: 'bad', model: 'm' }, { provider: 'codex', model: '' }, { provider: 'codex', model: 3 }]) {
+    storage.setItem(preferencesKey, JSON.stringify({ version: 1, lastModel }));
+    assert.equal(readPreferences(storage).lastModel, undefined);
+  }
 });

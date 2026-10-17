@@ -8,6 +8,7 @@ import { createEntity, createScene } from '@forgon/project-schema';
 import { ViewportTools } from '../src/shell/ViewportTools.js';
 import { Workspace, type WorkspaceProps } from '../src/shell/Workspace.js';
 import { AgentDock, type AgentDockProps } from '../src/agent/AgentDock.js';
+import { PermissionPicker } from '../src/agent/PermissionPicker.js';
 import { ModelPicker } from '../src/agent/ModelPicker.js';
 import { newThread, threadStatus } from '../src/agent/threadState.js';
 import type { AgentController } from '../src/agent/useAgentSessions.js';
@@ -47,6 +48,26 @@ function workspace(overrides: Partial<WorkspaceProps> = {}) {
   };
   return probe(() => Workspace(props));
 }
+
+test('logo and project close share the dirty and saving guards', () => {
+  for (const label of ['Back to projects', 'Close project']) {
+    let closed = 0;
+    const clean = workspace({ onClose: () => { closed++; } });
+    control(clean.tree, label).props.onClick();
+    assert.equal(closed, 1);
+    assert.match(clean.html, /<button[^>]*aria-label="Back to projects"/);
+    assert.match(clean.html, /lucide-folder-x/);
+    assert.doesNotMatch(clean.html, /lucide-log-out/);
+    const dirty = workspace({ snapshot: { ...readEditorSnapshot(new EditorStore(createScene('Dirty'), 'r1')), dirty: true }, onClose: () => { closed++; } });
+    control(dirty.tree, label).props.onClick();
+    control(dirty.tree, label).props.onClick();
+    assert.equal(closed, 1, 'repeated navigation must not discard unsaved edits');
+    const saving = workspace({ saveStatus: 'saving', onClose: () => { closed++; } });
+    assert.equal(control(saving.tree, label).props.disabled, true);
+    control(saving.tree, label).props.onClick();
+    assert.equal(closed, 1);
+  }
+});
 
 test('tool pill calls the runtime and controlled state, exposes pressed tools, and frames selection', () => {
   const calls: string[] = [];
@@ -119,6 +140,34 @@ test('workspace Ctrl+D selects the copies, uses the saved step and commits one u
   const locked = workspace({ snapshot: readEditorSnapshot(store), selection: { entityIds: [rock.id], primaryId: rock.id },
     banner: { kind: 'invalid', diagnostics: [] }, onCommand() { assert.fail('must not edit'); } });
   (locked.tree as Element).props.onKeyDown({ key: 'd', ctrlKey: true, target: null, preventDefault() {} });
+});
+
+test('workspace Delete, clipboard, select-all, rename and create shortcuts work outside Hierarchy', () => {
+  const parent = createEntity('Parent'); const child = createEntity('Child', parent.id);
+  const scene = { ...createScene('Shortcuts'), entities: [parent, child] };
+  const store = new EditorStore(scene, 'r1');
+  let selection: unknown;
+  let layout = defaultLayout;
+  const { tree } = workspace({ snapshot: readEditorSnapshot(store), selection: { entityIds: [parent.id, child.id], primaryId: parent.id },
+    onCommand: command => { store.execute(command); return true; }, onSelect: next => { selection = next; }, onLayoutChange: next => { layout = next; } });
+  const key = (name: string, ctrlKey = false, shiftKey = false) => (tree as Element).props.onKeyDown({ key: name, ctrlKey, shiftKey, altKey: false, metaKey: false, target: null, preventDefault() {} });
+  key('Delete'); assert.equal(store.scene.entities.length, 0);
+  assert.equal(store.undo(), true); assert.deepEqual(store.scene, scene); assert.equal(store.undo(), false);
+  key('Backspace'); assert.equal(store.scene.entities.length, 0); store.undo();
+  key('c', true); key('v', true);
+  assert.equal(store.scene.entities.length, 4);
+  assert.equal(store.scene.entities[3]!.parentId, store.scene.entities[2]!.id);
+  store.undo(); assert.deepEqual(store.scene, scene);
+  key('x', true); assert.equal(store.scene.entities.length, 0);
+  key('v', true); assert.equal(store.scene.entities.length, 2);
+  store.undo(); store.undo();
+  key('a', true); assert.deepEqual(selection, { entityIds: [parent.id, child.id], primaryId: parent.id });
+  key('Escape'); assert.deepEqual(selection, { entityIds: [], primaryId: null });
+  key('F2'); assert.equal(layout.inspector, true);
+  key('n', true, true); assert.equal(store.scene.entities.at(-1)!.parentId, parent.id);
+  store.undo();
+  const locked = workspace({ snapshot: readEditorSnapshot(store), selection: { entityIds: [parent.id], primaryId: parent.id }, banner: { kind: 'invalid', diagnostics: [] }, onCommand: () => assert.fail('editing is locked') });
+  (locked.tree as Element).props.onKeyDown({ key: 'Delete', ctrlKey: false, shiftKey: false, altKey: false, metaKey: false, target: null, preventDefault() {} });
 });
 
 test('surface alignment is a labelled keyboard button and survives preference storage', () => {
@@ -210,9 +259,10 @@ test('composer preserves Enter/IME rules, removable context, and provider/model/
   const picker = find(tree, element => element.type === ModelPicker);
   assert.ok(picker);
   picker.props.onSelect('model-a', 'codex');
-  control(tree, 'Permission mode').props.onChange({ currentTarget: { value: 'inspect' } });
+  const permissions = find(tree, element => element.type === PermissionPicker);
+  assert.ok(permissions); permissions.props.onSelect('inspect');
   assert.deepEqual(calls, [['send'], ['remove', 'selection:cube'], ['model', 'model-a', 'codex'], ['mode', 'inspect']]);
-  assert.match(html, /aria-label="Model and agent settings"/);
+  assert.match(html, /aria-label="Model: Default model"/);
   assert.match(html, /aria-label="Send"/);
   assert.match(html, /rows="1"/);
 });
@@ -302,6 +352,7 @@ test('assistant messages render markdown while user messages remain plain text',
   const html = renderToStaticMarkup(<AgentDock agent={agent} scene={null} assets={[]} projectOpen focusToken={0} />);
   assert.match(html, /<p>\*\*plain\*\*<\/p>/);
   assert.match(html, /<strong>.*formatted.*<\/strong>/);
+  assert.match(html, /fg-message-final/);
   assert.match(html, /<ul><li>/);
 });
 
@@ -321,7 +372,14 @@ test('running composer retains Queue/Stop, approvals stay inline, and completed 
   thread.transcript = [{ id: 'approval_1', kind: 'approval', runId: 'run_1', requestId: 'request_1', description: 'Change files?', state: 'pending' }];
   const { tree } = composer(agent);
   control(tree, 'Stop').props.onClick();
-  assert.match(renderToStaticMarkup(tree), /aria-label="Model and agent settings"[^>]*disabled/);
+  assert.match(renderToStaticMarkup(tree), /aria-label="Model: Default model"/);
+  assert.doesNotMatch(renderToStaticMarkup(tree), /aria-label="Model: Default model"[^>]*disabled/);
+  // Permissions stay editable while running (they apply to the next message); only a launch in flight locks them.
+  const permissions = (node: ReactNode) => find(node, element => element.type === PermissionPicker);
+  assert.equal(permissions(tree)?.props.starting, false);
+  thread.starting = true;
+  assert.equal(permissions(composer(agent).tree)?.props.starting, true);
+  thread.starting = false;
   const queue = find(tree, element => element.props.children === 'Queue');
   assert.ok(queue); queue.props.onClick();
   const html = renderToStaticMarkup(<AgentDock agent={agent} scene={null} assets={[]} projectOpen focusToken={0} />);

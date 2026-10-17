@@ -11,6 +11,25 @@ function fixture(revision: string | null = 'r1') {
   return { scene, parent, child, store: new EditorStore(scene, revision) };
 }
 const transform: Transform = { position: [1, 2, 3], rotationEuler: [0, 90, 0], scale: [1, 1, 1] };
+
+test('desktop JSON key reordering does not invalidate a saved revision or dirty the scene', () => {
+  const { scene, parent } = fixture();
+  parent.components.push({ id: 'render', type: 'render', enabled: true, properties: { z: 3, nested: { b: 2, a: 1 }, a: 0 }, assetRefs: [], entityRefs: [] });
+  const store = new EditorStore(scene, 'r1');
+  const reordered = structuredClone(scene);
+  reordered.entities[0]!.components[0]!.properties = { a: 0, nested: { a: 1, b: 2 }, z: 3 };
+  assert.equal(store.reconcile(reordered, 'r1'), 'unchanged');
+  assert.equal(store.dirty, false);
+  store.execute({ type: 'rename', entityId: parent.id, name: 'Edited' });
+  const snapshot = store.prepareSave();
+  reordered.entities[0]!.name = 'Edited';
+  assert.equal(store.reconcile(reordered, 'r2'), 'reloaded');
+  store.acknowledgeSave(snapshot, 'r2');
+  assert.equal(store.dirty, false);
+  assert.equal(store.reconcile(reordered, 'r2'), 'unchanged');
+  reordered.entities[0]!.components[0]!.properties.z = 4;
+  assert.throws(() => store.reconcile(reordered, 'r2'), /Same revision/);
+});
 test('commands round-trip 100 edits through undo and redo', () => {
   const { store, scene, parent } = fixture();
   for (let i = 0; i < 100; i++) store.execute({ type: 'rename', entityId: parent.id, name: `Name ${i}` });

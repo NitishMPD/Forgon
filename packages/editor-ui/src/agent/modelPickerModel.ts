@@ -8,7 +8,7 @@ export const modelRenderCap = 100;
 export function modelLabel(model: string | null, provider: ProviderId): { label: string; vendor: string } {
   if (model === null) return { label: 'Default model', vendor: '' };
   const slash = provider === 'opencode' ? model.indexOf('/') : -1;
-  return { label: (slash < 0 ? model : model.slice(slash + 1)).replace(/[-_]/g, ' '), vendor: slash < 0 ? '' : model.slice(0, slash) };
+  return { label: (slash < 0 ? model : model.slice(slash + 1)).replace(/[-_]/g, ' ').replace(/\b(gpt|claude|opus|sonnet|haiku|sol)\b/gi, word => word.toLowerCase() === 'gpt' ? 'GPT' : word[0]!.toUpperCase() + word.slice(1)), vendor: slash < 0 ? '' : model.slice(0, slash) };
 }
 
 export function matchesModel(model: string, query: string): boolean {

@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "sceneId": "gen_4934b1e4d930661a",
+  "name": "Empty 3D",
+  "entities": [
+    {
+      "id": "gen_c68de6bf2459a97b",
+      "name": "Lobby camera",
+      "parentId": null,
+      "enabled": true,
+      "transform": {
+        "position": [
+          12,
+          13,
+          16
+        ],
+        "rotationEuler": [
+          -32,
+          36,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "gen_c8cb797cd22811d0",
+          "type": "camera",
+          "enabled": true,
+          "properties": {
+            "clearColor": [
+              0.07,
+              0.09,
+              0.13
+            ],
+            "farClip": 100,
+            "fov": 50,
+            "nearClip": 0.1
+          },
+          "entityRefs": [],
+          "assetRefs": []
+        }
+      ]
+    },
+    {
+      "id": "gen_1ccbb62837a9802c",
+      "name": "Warm daylight",
+      "parentId": null,
+      "enabled": true,
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          -55,
+          25,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "gen_44835956dc966a59",
+          "type": "light",
+          "enabled": true,
+          "properties": {
+            "castShadows": true,
+            "color": [
+              1,
+              0.93,
+              0.8
+            ],
+            "intensity": 1.5,
+            "kind": "directional",
+            "range": 30
+          },
+          "entityRefs": [],
+          "assetRefs": []
+        }
+      ]
+    },
+    {
+      "id": "gen_bfdd0c76b9e108d9",
+      "name": "Reception fill",
+      "parentId": null,
+      "enabled": true,
+      "transform": {
+        "position": [
+          0,
+          4,
+          -3
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "gen_4938c1422283df0a",
+          "type": "light",
+          "enabled": true,
+          "properties": {
+            "castShadows": false,
+            "color": [
+              0.65,
+              0.8,
+              1
+            ],
+            "intensity": 1,
+            "kind": "omni",
+            "range": 18
+          },
+          "entityRefs": [],
+          "assetRefs": []
+        }
+      ]
+    },
+    {
+      "id": "entity_ed2c31d0-48cb-41ec-b08a-4f9bd3008db7",
+      "name": "Box",
+      "parentId": null,
+      "enabled": true,
+      "transform": {
+        "position": [
+          2.0676614297632376,
+          0.5,
+          1.5147158850856035
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "component_d7d07cdd-bb97-4ffa-a9a7-58ab1fd4b632",
+          "type": "render",
+          "enabled": true,
+          "properties": {
+            "primitive": "box"
+          },
+          "entityRefs": [],
+          "assetRefs": []
+        }
+      ]
+    }
+  ]
+}

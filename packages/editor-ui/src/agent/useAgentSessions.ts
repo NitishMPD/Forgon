@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import type { AgentEvent, AgentRunRequest, AssetRecord, PermissionMode, ProviderId, SceneDocument } from '@forgon/project-schema';
 import type { AgentConnection, AgentProviderInfo } from '../services.js';
 import type { LogInput } from '../model/consoleLog.js';
+import { readPreferences, rememberModel, type Preferences } from '../model/preferences.js';
 import { buildContext, sendBlockers, type ContextChip } from './composerModel.js';
 import { defaultPermissionMode } from './permissions.js';
 import { agentReducer, canChangeProvider, newThread, type AgentAction, type AgentState, type AgentThread, type PendingRequest } from './threadState.js';
@@ -51,8 +52,17 @@ function defaultProvider(providers: readonly AgentProviderInfo[]): AgentProvider
   return providers.find(provider => provider.readiness !== 'not-ready') ?? providers[0] ?? null;
 }
 
+export function defaultAgentThread(id: string, providers: readonly AgentProviderInfo[], preferences: Preferences = readPreferences()): AgentThread | null {
+  const choice = preferences.lastModel;
+  const remembered = choice && providers.find(provider => provider.id === choice.provider && provider.readiness !== 'not-ready');
+  const provider = remembered || defaultProvider(providers);
+  if (!provider) return null;
+  const model = remembered && choice?.model !== null && choice?.model !== undefined && provider.models.includes(choice.model) ? choice.model : null;
+  return newThread(id, provider.id, defaultPermissionMode(provider.permissionModes), model);
+}
+
 export function modelSelectionAction(thread: AgentThread, providers: readonly AgentProviderInfo[], model: string | null, provider: ProviderId = thread.provider): AgentAction | null {
-  if (thread.starting || thread.activeRunId !== null || (provider !== thread.provider && !canChangeProvider(thread))) return null;
+  if (thread.starting || (provider !== thread.provider && !canChangeProvider(thread))) return null;
   const info = providers.find(item => item.id === provider);
   if (!info || (model !== null && !info.models.includes(model))) return null;
   const current = thread.permissionMode;
@@ -71,11 +81,17 @@ export function useAgentSessions(input: AgentSessionInput): AgentController | nu
     const providers = await originalConnection.refreshProviders!();
     setProviderSnapshot({ owner: originalConnection, providers });
   } : undefined;
-  useEffect(() => originalConnection?.onProvidersChanged?.(() => {
-    void originalConnection.refreshProviders?.()
-      .then(providers => setProviderSnapshot({ owner: originalConnection, providers }))
-      .catch(() => undefined);
-  }), [originalConnection]);
+  useEffect(() => {
+    if (!originalConnection?.onProvidersChanged) return undefined;
+    const reread = (): void => {
+      void originalConnection.refreshProviders?.()
+        .then(providers => setProviderSnapshot({ owner: originalConnection, providers }))
+        .catch(() => undefined);
+    };
+    // The service may finish starting while no editor is mounted (e.g. on the launcher), so re-read on mount too.
+    reread();
+    return originalConnection.onProvidersChanged(reread);
+  }, [originalConnection]);
   const [state, dispatch] = useReducer(agentReducer, emptyState);
   const [draft, setDraft] = useState('');
   const [chips, setChips] = useState<ContextChip[]>([]);
@@ -100,9 +116,8 @@ export function useAgentSessions(input: AgentSessionInput): AgentController | nu
 
   useEffect(() => {
     if (!connection || state.threads.length > 0) return;
-    const provider = defaultProvider(connection.providers);
-    if (!provider) return;
-    dispatch({ type: 'thread/ensure', thread: newThread(localId('thread'), provider.id, defaultPermissionMode(provider.permissionModes), null) });
+    const thread = defaultAgentThread(localId('thread'), connection.providers);
+    if (thread) dispatch({ type: 'thread/ensure', thread });
   }, [connection, state.threads.length]);
 
   const start = useCallback((threadId: string, request: PendingRequest, fromQueue: boolean) => {
@@ -191,15 +206,17 @@ export function useAgentSessions(input: AgentSessionInput): AgentController | nu
 
   const newThreadAction = useCallback(() => {
     if (!connection) return;
-    const provider = connection.providers.find(item => item.id === activeThread?.provider) ?? defaultProvider(connection.providers);
-    if (!provider) return;
-    dispatch({ type: 'thread/add', thread: newThread(localId('thread'), provider.id, defaultPermissionMode(provider.permissionModes), null) });
-  }, [connection, activeThread]);
+    const thread = defaultAgentThread(localId('thread'), connection.providers);
+    if (thread) dispatch({ type: 'thread/add', thread });
+  }, [connection]);
 
   const setModel = useCallback((model: string | null, provider?: ProviderId) => {
     if (!activeThread || !connection) return;
     const action = modelSelectionAction(activeThread, connection.providers, model, provider);
-    if (action) dispatch(action);
+    if (action) {
+      dispatch(action);
+      rememberModel({ provider: provider ?? activeThread.provider, model });
+    }
   }, [activeThread, connection]);
 
   const setProvider = useCallback((provider: ProviderId) => setModel(null, provider), [setModel]);

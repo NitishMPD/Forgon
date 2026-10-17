@@ -119,7 +119,7 @@ test('strict artifacts reject duplicate overrides and unsafe property paths', ()
   assert.throws(() => parseAuthoringArtifact(input));
 });
 
-test('capture records transform/material/name edits and refuses unsupported structural loss', () => {
+test('capture records transform/material/name edits and added objects', () => {
   const input = artifact(); const edited = structuredClone(input.base);
   edited.entities[0]!.name = 'Human'; edited.entities[0]!.transform.position = [2, 3, 4];
   edited.entities[0]!.components[0]!.properties.color = [0, 0, 1];
@@ -127,7 +127,7 @@ test('capture records transform/material/name edits and refuses unsupported stru
   assert.equal(captured.overrides.length, 3); assert.deepEqual(replayOverrides(captured).scene, edited);
   assert.deepEqual(captureOverrides(captured, input.base).overrides, []);
   edited.entities.push(author.entity('manual', 'Manual'));
-  assert.throws(() => captureOverrides(input, edited), /additions\/deletions/);
+  assert.deepEqual(replayOverrides(captureOverrides(input, edited)).scene, edited);
 });
 
 test('bake advances seed/base and preserves manual intent when generation temporarily agrees', () => {
@@ -152,10 +152,39 @@ test('detached entities retain deleted-parent conflicts instead of silently repa
   assert.equal(result.conflicts[0]!.reason, 'invalid-result');
 });
 
-test('detach preserves existing author order and capture rejects unrepresented reordering', () => {
+test('detach and capture preserve author order', () => {
   const input = artifact(); input.base.entities.push(author.entity('second', 'Second'));
   const detached = detach(input, input.base.entities[0]!.id);
   assert.deepEqual(replayOverrides(detached).scene!.entities.map(entity => entity.id), input.base.entities.map(entity => entity.id));
   const reordered = structuredClone(input.base); reordered.entities.reverse();
-  assert.throws(() => captureOverrides(input, reordered), /reordering/);
+  assert.deepEqual(replayOverrides(captureOverrides(input, reordered)).scene, reordered);
+});
+
+test('structural edits round-trip, can be undone, and conflict with competing generation', () => {
+  const input = artifact();
+  const edited = structuredClone(input.base);
+  const child = author.entity('manual-child', 'Child', edited.entities[0]!.id);
+  edited.entities.push(child);
+  edited.entities[0]!.components = [];
+  edited.entities.reverse();
+  const captured = captureOverrides(input, edited);
+  assert.deepEqual(replayOverrides(captured).scene, edited);
+  assert.deepEqual(replayOverrides(captureOverrides(captured, input.base)).scene, input.base);
+  const generated = structuredClone(input.base);
+  generated.entities[0]!.name = 'Generator edit';
+  assert.equal(bakeAuthoring(captured, generated).authoring, null);
+  const baked = bakeAuthoring(captured, input.base);
+  assert.ok(baked.authoring);
+  assert.deepEqual(replayOverrides(baked.authoring).scene, edited);
+  const deleted = { ...input.base, entities: [] };
+  assert.deepEqual(replayOverrides(captureOverrides(input, deleted)).scene, deleted);
+  const deletionBake = bakeAuthoring(captureOverrides(input, deleted), deleted);
+  assert.ok(deletionBake.authoring);
+  assert.deepEqual(replayOverrides(deletionBake.authoring).scene, deleted);
+  const prefabSource = prefab();
+  const instance = instantiatePrefab(prefabSource.prefab, 'manual-instance', prefabSource.bindings);
+  const placedPrefab = { ...input.base, entities: [...input.base.entities, ...instance.entities] };
+  assert.deepEqual(replayOverrides(captureOverrides(input, placedPrefab)).scene, placedPrefab);
+  const detached = detach(input, input.base.entities[0]!.id);
+  assert.deepEqual(replayOverrides(captureOverrides(detached, deleted)).scene, deleted);
 });

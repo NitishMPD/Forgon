@@ -9,11 +9,13 @@ const target = { overrideId: idSchema, entityId: idSchema, before: jsonValueSche
 export const overrideSchema = z.discriminatedUnion('field', [
   z.object({ ...target, field: z.enum(['name', 'enabled', 'transform']) }).strict(),
   z.object({ ...target, field: z.literal('property'), componentId: idSchema, path: propertyPath }).strict(),
+  z.object({ overrideId: idSchema, entityId: idSchema, field: z.literal('entity'), before: entitySchema.nullable(), value: entitySchema.nullable() }).strict(),
 ]);
 export type ManualOverride = z.infer<typeof overrideSchema>;
 export const authoringArtifactSchema = z.object({
   formatVersion: z.literal(1), generator: z.object({ id: z.string().min(1), version: z.string().min(1), seed: z.string() }).strict(),
   base: sceneSchema, overrides: z.array(overrideSchema), detached: z.array(entitySchema),
+  entityOrder: z.array(idSchema).optional(),
   prefabBindings: z.array(z.object({ prefabId: idSchema, path: relativePathSchema }).strict()).optional(),
 }).strict();
 export type AuthoringArtifact = z.infer<typeof authoringArtifactSchema>;
@@ -21,11 +23,11 @@ export interface ReplayConflict { overrideId?: string; entityId?: string; reason
 export interface ReplayResult { scene: SceneDocument | null; conflicts: ReplayConflict[] }
 export interface BakeResult extends ReplayResult { authoring: AuthoringArtifact | null }
 
-function equal(a: JsonValue, b: JsonValue): boolean {
+function equal(a: unknown, b: unknown): boolean {
   if (a === b) return true;
   if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object' || Array.isArray(a) !== Array.isArray(b)) return false;
   const keys = Object.keys(a);
-  return keys.length === Object.keys(b).length && keys.every(key => Object.hasOwn(b, key) && equal((a as Record<string, JsonValue>)[key]!, (b as Record<string, JsonValue>)[key]!));
+  return keys.length === Object.keys(b).length && keys.every(key => Object.hasOwn(b, key) && equal((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]));
 }
 function withDetached(entities: Entity[], detached: Entity[]): Entity[] {
   const snapshots = new Map(detached.map(entity => [entity.id, entity]));
@@ -39,28 +41,49 @@ export function parseAuthoringArtifact(input: unknown): AuthoringArtifact {
   if (new Set(artifact.detached.map(entity => entity.id)).size !== artifact.detached.length) throw new Error('Duplicate detached entity ID');
   if (artifact.detached.some(entity => entity.prefab)) throw new Error('Detached entities cannot retain prefab ownership');
   if (artifact.overrides.some(override => artifact.detached.some(entity => entity.id === override.entityId))) throw new Error('Detached edits belong in detached snapshots, not generated overrides');
+  if (artifact.entityOrder && new Set(artifact.entityOrder).size !== artifact.entityOrder.length) throw new Error('Duplicate entity order ID');
+  for (const override of artifact.overrides) {
+    if (override.field === 'entity' && ((!override.before && !override.value) || [override.before, override.value].some(entity => entity && entity.id !== override.entityId))) throw new Error('Entity override identity mismatch');
+  }
   if (artifact.prefabBindings && (new Set(artifact.prefabBindings.map(ref => ref.prefabId)).size !== artifact.prefabBindings.length || new Set(artifact.prefabBindings.map(ref => ref.path)).size !== artifact.prefabBindings.length)) throw new Error('Duplicate prefab binding catalog entry');
   return artifact;
 }
 
-/** Capture supported visual edits; reject structural edits rather than silently dropping them. */
+/** Capture field edits and structural snapshots without changing the generator's base. */
 export function captureOverrides(input: AuthoringArtifact, edited: SceneDocument): AuthoringArtifact {
   const artifact = parseAuthoringArtifact(input);
   const scene = parseScene(edited);
   if (scene.sceneId !== artifact.base.sceneId || scene.name !== artifact.base.name) throw new Error('Scene identity/name changes require explicit project integration');
   const detachedIds = new Set(artifact.detached.map(entity => entity.id));
   const baseline = withDetached(artifact.base.entities, artifact.detached);
-  if (baseline.length !== scene.entities.length || baseline.some((entity, index) => scene.entities[index]?.id !== entity.id)) throw new Error('Entity additions/deletions/reordering require explicit authoring integration');
   artifact.overrides = [];
+  const editedById = new Map(scene.entities.map(entity => [entity.id, entity]));
+  const baselineIds = new Set(baseline.map(entity => entity.id));
+  const recordEntity = (before: Entity | null, value: Entity | null): void => {
+    const entityId = (before ?? value)!.id;
+    artifact.overrides.push({ overrideId: stableId(scene.sceneId, `${entityId}:entity`), entityId, field: 'entity', before, value });
+  };
   for (const before of baseline) {
-    const after = scene.entities.find(entity => entity.id === before.id)!;
-    if (detachedIds.has(before.id)) continue;
-    if (before.parentId !== after.parentId || !equal(before.prefab ? { ...before.prefab } : null, after.prefab ? { ...after.prefab } : null)) throw new Error('Hierarchy/prefab edits require detach or explicit integration');
+    const after = editedById.get(before.id);
+    if (detachedIds.has(before.id)) {
+      if (!after) {
+        const generated = artifact.base.entities.find(entity => entity.id === before.id);
+        if (generated) recordEntity(generated, null);
+      }
+      continue;
+    }
+    const structural = !after || before.parentId !== after.parentId || !equal(before.prefab ? { ...before.prefab } : null, after.prefab ? { ...after.prefab } : null)
+      || before.components.length !== after.components.length || before.components.some((component, index) => {
+        const changed = after.components[index];
+        return !changed || !equal({ ...component, properties: {} }, { ...changed, properties: {} })
+          || Object.keys(component.properties).length !== Object.keys(changed.properties).length
+          || Object.keys(component.properties).some(key => !Object.hasOwn(changed.properties, key));
+      });
+    if (structural) { recordEntity(before, after ?? null); continue; }
     for (const field of ['name', 'enabled', 'transform'] as const) {
       const original = before[field] as JsonValue; const value = after[field] as JsonValue;
       if (!equal(original, value)) artifact.overrides.push({ overrideId: stableId(scene.sceneId, `${before.id}:${field}`), entityId: before.id, field, before: original, value });
     }
-    if (before.components.length !== after.components.length || before.components.some((component, index) => after.components[index]?.id !== component.id)) throw new Error('Component additions/removals/reordering require explicit integration');
     for (const component of before.components) {
       const changed = after.components.find(item => item.id === component.id);
       if (!changed || !equal({ ...component, properties: {} }, { ...changed, properties: {} })) throw new Error('Component identity/type/reference edits require explicit integration');
@@ -73,7 +96,9 @@ export function captureOverrides(input: AuthoringArtifact, edited: SceneDocument
       }
     }
   }
+  for (const entity of scene.entities) if (!baselineIds.has(entity.id)) recordEntity(null, entity);
   artifact.detached = scene.entities.filter(entity => detachedIds.has(entity.id));
+  artifact.entityOrder = scene.entities.map(entity => entity.id);
   const checked = parseAuthoringArtifact(artifact);
   const replay = replayOverrides(checked);
   if (replay.conflicts.length || !replay.scene) throw new Error('Captured overrides are invalid');
@@ -89,6 +114,16 @@ export function replayOverrides(input: AuthoringArtifact, generated: SceneDocume
   const conflicts: ReplayConflict[] = [];
   for (const override of artifact.overrides) {
     const entity = scene.entities.find(entity => entity.id === override.entityId);
+    if (override.field === 'entity') {
+      if (equal(entity ?? null, override.value)) continue;
+      if (!equal(entity ?? null, override.before)) {
+        conflicts.push({ overrideId: override.overrideId, entityId: override.entityId, reason: 'generated-change', message: 'Generator and manual edit both changed this entity' });
+        continue;
+      }
+      if (entity) scene.entities = scene.entities.filter(item => item.id !== entity.id);
+      if (override.value) scene.entities.push(structuredClone(override.value));
+      continue;
+    }
     const component = override.field === 'property' ? entity?.components.find(item => item.id === override.componentId) : undefined;
     if (!entity || (override.field === 'property' && !component)) {
       conflicts.push({ overrideId: override.overrideId, entityId: override.entityId, reason: 'deleted-target', message: 'Override target was removed by generation' });
@@ -105,6 +140,10 @@ export function replayOverrides(input: AuthoringArtifact, generated: SceneDocume
     if (override.field === 'property') writeProperty(component!.properties, override.path, override.value);
     else (entity as unknown as Record<string, JsonValue>)[override.field] = structuredClone(override.value);
   }
+  if (artifact.entityOrder) {
+    const order = new Map(artifact.entityOrder.map((id, index) => [id, index]));
+    scene.entities.sort((a, b) => (order.get(a.id) ?? order.size) - (order.get(b.id) ?? order.size));
+  }
   try { return { scene: parseScene(scene), conflicts }; }
   catch (error) { return { scene: null, conflicts: [...conflicts, { reason: 'invalid-result', message: String(error) }] }; }
 }
@@ -118,6 +157,11 @@ export function bakeAuthoring(input: AuthoringArtifact, generated: SceneDocument
   artifact.base = parseScene(generated);
   artifact.generator = structuredClone(generator);
   for (const override of artifact.overrides) {
+    if (override.field === 'entity') {
+      const generatedEntity = artifact.base.entities.find(entity => entity.id === override.entityId);
+      if (generatedEntity || override.value) override.before = structuredClone(generatedEntity ?? null);
+      continue;
+    }
     const entity = artifact.base.entities.find(entity => entity.id === override.entityId)!;
     override.before = structuredClone(override.field === 'property'
       ? readProperty(entity.components.find(component => component.id === override.componentId)!.properties, override.path)

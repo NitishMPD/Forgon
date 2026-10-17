@@ -15,7 +15,8 @@ export interface Appearance {
   fontSize: (typeof appearanceChoices.fontSize)[number];
 }
 export interface RecentModel { provider: ProviderId; model: string }
-export interface Preferences { appearance: Appearance; recentModels: RecentModel[] }
+export interface ModelChoice { provider: ProviderId; model: string | null }
+export interface Preferences { appearance: Appearance; recentModels: RecentModel[]; lastModel?: ModelChoice }
 export const defaultAppearance: Appearance = { theme: 'dark', accent: 'ember', density: 'comfortable', fontSize: 'default' };
 
 export function browserPreferencesStorage(): KeyValueStorage | null {
@@ -29,6 +30,14 @@ export function readPreferences(storage: KeyValueStorage | null = browserPrefere
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return preferences;
     const value = raw as Record<string, unknown>;
     if (value['version'] !== 1) return preferences;
+    const last = value['lastModel'];
+    if (last && typeof last === 'object') {
+      const choice = last as Record<string, unknown>;
+      if (['codex', 'claude-code', 'opencode'].includes(String(choice['provider']))
+        && (choice['model'] === null || (typeof choice['model'] === 'string' && choice['model'].trim()))) {
+        preferences.lastModel = { provider: choice['provider'] as ProviderId, model: choice['model'] as string | null };
+      }
+    }
     const appearance = value['appearance'];
     if (appearance && typeof appearance === 'object') {
       for (const key of Object.keys(appearanceChoices) as (keyof Appearance)[]) {
@@ -60,10 +69,11 @@ export function saveAppearance(appearance: Appearance, storage: KeyValueStorage 
   writePreferences(storage, { ...readPreferences(storage), appearance });
 }
 
-export function rememberModel(model: RecentModel, storage: KeyValueStorage | null = browserPreferencesStorage()): RecentModel[] {
+export function rememberModel(model: ModelChoice, storage: KeyValueStorage | null = browserPreferencesStorage()): RecentModel[] {
   const preferences = readPreferences(storage);
-  const recentModels = [model, ...preferences.recentModels.filter(item => item.provider !== model.provider || item.model !== model.model)].slice(0, 5);
-  writePreferences(storage, { ...preferences, recentModels });
+  const recentModels = model.model === null ? preferences.recentModels
+    : [{ provider: model.provider, model: model.model }, ...preferences.recentModels.filter(item => item.provider !== model.provider || item.model !== model.model)].slice(0, 5);
+  writePreferences(storage, { ...preferences, recentModels, lastModel: model });
   return recentModels;
 }
 

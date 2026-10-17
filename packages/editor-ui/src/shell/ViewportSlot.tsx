@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Transform } from '@forgon/project-schema';
 import type { SurfacePoint, ViewportHandle, ViewportMount, ViewportView } from '../services.js';
 import { parsePlacement, placementMime, type PlacementTarget } from '../model/placement.js';
+import { QuickAdd } from './QuickAdd.js';
 
 export interface ViewportSlotProps {
   mount: ViewportMount | null;
@@ -26,6 +27,8 @@ export function ViewportSlot({ mount, view, updatesEnabled, visible, onPick, onF
   const containerRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<ViewportHandle | null>(null);
   const [dropPoint, setDropPoint] = useState<SurfacePoint | null>(null);
+  const [quickAdd, setQuickAdd] = useState<{ x: number; y: number; surface: SurfacePoint } | null>(null);
+  const quickDown = useRef<{ x: number; y: number } | null>(null);
   const callbacks = useRef({ onPick, onFault, onTransform, onTransforms, onHandle });
   callbacks.current = { onPick, onFault, onTransform, onTransforms, onHandle };
   const latestView = useRef(view);
@@ -60,15 +63,48 @@ export function ViewportSlot({ mount, view, updatesEnabled, visible, onPick, onF
     if (updatesEnabled) handleRef.current?.update(view);
   }, [view, updatesEnabled, mount]);
 
-  const surface = (event: DragEvent): SurfacePoint | null => {
+  useEffect(() => { setQuickAdd(null); quickDown.current = null; }, [view.scene.sceneId, placementEnabled, updatesEnabled, visible]);
+
+  const surface = (event: { clientX: number; clientY: number }): SurfacePoint | null => {
     if (!placementEnabled || !updatesEnabled) return null;
     try { return handleRef.current?.surfaceAt?.(event.clientX, event.clientY) ?? null; }
     catch (error) { onFault(`Could not find a placement surface: ${String(error)}`); return null; }
+  };
+  const closeQuickAdd = (restoreFocus: boolean): void => {
+    setQuickAdd(null);
+    if (restoreFocus) containerRef.current?.querySelector('canvas')?.focus();
+  };
+  const openQuickAdd = (clientX: number, clientY: number): void => {
+    const point = surface({ clientX, clientY });
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!point || !rect) return;
+    setQuickAdd({ x: Math.max(8, Math.min(clientX - rect.left, rect.width - 308)), y: Math.max(8, Math.min(clientY - rect.top, rect.height - 328)), surface: point });
   };
 
   return (
     <div className="fg-viewport" style={{ visibility: visible ? 'visible' : 'hidden' }}>
       <div ref={containerRef} className="fg-viewport-canvas" data-slot="scene-viewport"
+        onPointerDownCapture={event => {
+          quickDown.current = null;
+          if (event.button !== 0 || !event.ctrlKey || !event.shiftKey || event.altKey || event.metaKey || !placementEnabled || !updatesEnabled) return;
+          event.preventDefault(); event.stopPropagation();
+          quickDown.current = { x: event.clientX, y: event.clientY };
+        }}
+        onPointerUpCapture={event => {
+          const start = quickDown.current;
+          quickDown.current = null;
+          if (!start) return;
+          event.preventDefault(); event.stopPropagation();
+          if (event.button === 0 && Math.hypot(event.clientX - start.x, event.clientY - start.y) < 5) openQuickAdd(event.clientX, event.clientY);
+        }}
+        onPointerCancel={() => { quickDown.current = null; }}
+        onKeyDownCapture={event => {
+          if (event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey && event.key.toLowerCase() === 'a' && placementEnabled && updatesEnabled) {
+            event.preventDefault(); event.stopPropagation();
+            const rect = event.currentTarget.getBoundingClientRect();
+            openQuickAdd(rect.left + rect.width / 2, rect.top + rect.height / 2);
+          }
+        }}
         onDragOver={event => {
           if (!event.dataTransfer.types.includes(placementMime)) return;
           const point = surface(event);
@@ -86,6 +122,8 @@ export function ViewportSlot({ mount, view, updatesEnabled, visible, onPick, onF
         }} />
       {dropPoint && placementEnabled ? <div className="fg-placement-preview" role="status">Drop to place at {dropPoint.position.map(value => value.toFixed(2)).join(', ')} m</div> : null}
       {children}
+      {quickAdd && placementEnabled && updatesEnabled && visible ? <QuickAdd key={`${quickAdd.x}:${quickAdd.y}`} x={quickAdd.x} y={quickAdd.y} assets={view.assets ?? []} prefabs={view.prefabs ?? []}
+        onClose={closeQuickAdd} onPlace={target => { onPlace?.(target, quickAdd.surface); closeQuickAdd(true); }} /> : null}
     </div>
   );
 }

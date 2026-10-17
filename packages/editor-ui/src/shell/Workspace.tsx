@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactElement, type KeyboardEvent } from 'react';
 import {
-  Activity, Bot, Box, ChevronRight, CircleAlert, Eye, FolderOpen,
-  GitCompareArrows, LayoutDashboard, ListTree, LogOut, Play, Redo2, Save, Settings as SettingsIcon,
+  Activity, Bot, Box, ChevronRight, CircleAlert, Eye, FolderOpen, FolderX,
+  GitCompareArrows, LayoutDashboard, Network, Play, Redo2, Save, Settings as SettingsIcon,
   MessageSquare, ShieldCheck, SlidersHorizontal, Square, Terminal, TriangleAlert, Undo2, X, type LucideIcon,
 } from 'lucide-react';
 import { duplicatePlan, type SceneCommand } from '@forgon/editor-core';
-import { createEntity, type AssetRecord, type ScriptCatalog, type ScriptModules, type Transform } from '@forgon/project-schema';
+import { createEntity, type AssetRecord, type Entity, type ScriptCatalog, type ScriptModules, type Transform } from '@forgon/project-schema';
 import { AgentDock } from '../agent/AgentDock.js';
 import { ForgonMark } from '../brand/ForgonMark.js';
 import { AgentsPanel } from '../agent/AgentsPanel.js';
@@ -108,6 +108,7 @@ export function Workspace(props: WorkspaceProps) {
   const [view_, setView] = useState<'editor' | 'settings'>('editor');
   const pendingFocus = useRef<string | null>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
+  const objectClipboard = useRef<{ entities: Entity[]; ids: readonly string[] } | null>(null);
   const primary = scene.entities.find(entity => entity.id === selection.primaryId) ?? null;
   const conflict = snapshot.conflict;
   const invalid = props.banner?.kind === 'invalid';
@@ -175,12 +176,14 @@ export function Workspace(props: WorkspaceProps) {
     if (execute({ type: 'create', entity })) props.onSelect(selectOne(entity.id));
   };
 
-  const deleteObjects = (ids: readonly string[]): void => {
+  const deleteObjects = (ids: readonly string[]): boolean => {
     const top = topmostIds(scene.entities, ids);
-    if (top.length === 0) return;
+    if (top.length === 0) return false;
     if (execute({ type: 'batch', commands: top.map(entityId => ({ type: 'delete' as const, entityId })) })) {
       props.onSelect(noSelection);
+      return true;
     }
+    return false;
   };
 
   const duplicateObjects = (ids: readonly string[]): void => {
@@ -259,7 +262,7 @@ export function Workspace(props: WorkspaceProps) {
 
   const requestClose = (): void => {
     if (props.saveStatus === 'saving') return;
-    if (snapshot.dirty && !closeArmed) {
+    if (snapshot.dirty) {
       setCloseArmed(true);
       return;
     }
@@ -324,8 +327,46 @@ export function Workspace(props: WorkspaceProps) {
     if (mod && key === '`') { event.preventDefault(); setLayout(toggleCard(layout, 'console')); return; }
     if (mod && key === '.' && agent) { event.preventDefault(); agent.cancel(); return; }
     if (mod && event.shiftKey && key === 'r') { event.preventDefault(); show('review'); return; }
-    if (key === 'f5') { event.preventDefault(); (playing ? stop : play)(); return; }
+    if (key === 'f5' || (mod && key === 'p' && !event.shiftKey)) { event.preventDefault(); (playing ? stop : play)(); return; }
     if (isEditableTarget(event.target)) return;
+    if (view_ !== 'editor') return;
+    if (!event.ctrlKey && !event.altKey && !event.metaKey && (key === 'delete' || key === 'backspace')) {
+      event.preventDefault(); deleteObjects(selection.entityIds); return;
+    }
+    if (mod && key === 'a' && !event.shiftKey) {
+      event.preventDefault();
+      props.onSelect({ entityIds: scene.entities.map(entity => entity.id), primaryId: selection.primaryId ?? scene.entities[0]?.id ?? null });
+      return;
+    }
+    if (mod && !event.shiftKey && (key === 'c' || key === 'x')) {
+      if (!selection.entityIds.length || (key === 'x' && !canEdit)) return;
+      event.preventDefault();
+      const plan = duplicatePlan(scene.entities, selection.entityIds, undefined, 0);
+      if (!plan.ok) { props.onLog({ source: 'editor', severity: 'info', message: plan.reason }); return; }
+      const copied = { entities: structuredClone(scene.entities), ids: [...selection.entityIds] };
+      if (key === 'c' || deleteObjects(selection.entityIds)) objectClipboard.current = copied;
+      return;
+    }
+    if (mod && key === 'v' && !event.shiftKey && objectClipboard.current) {
+      event.preventDefault();
+      if (!canEdit) return;
+      const copied = objectClipboard.current;
+      const plan = duplicatePlan(copied.entities, copied.ids, undefined, 0);
+      if (!plan.ok) { props.onLog({ source: 'editor', severity: 'info', message: plan.reason }); return; }
+      for (const command of plan.value.commands) {
+        if (command.type === 'create' && plan.value.topLevelIds.includes(command.entity.id) && !scene.entities.some(entity => entity.id === command.entity.parentId)) command.entity.parentId = null;
+      }
+      if (execute({ type: 'batch', commands: plan.value.commands })) props.onSelect({ entityIds: plan.value.topLevelIds, primaryId: plan.value.topLevelIds[0] ?? null });
+      return;
+    }
+    if (mod && event.shiftKey && key === 'n') { event.preventDefault(); if (canEdit) createObject(); return; }
+    if (key === 'f2' && !event.ctrlKey && !event.altKey && !event.metaKey && primary && canEdit) {
+      event.preventDefault(); setLayout({ ...layout, inspector: true }); pendingFocus.current = 'inspector-name'; return;
+    }
+    if (key === 'escape') { event.preventDefault(); props.onSelect(noSelection); return; }
+    if (key === 'x' && !event.ctrlKey && !event.altKey && !event.metaKey && canEdit && handle?.setSpace) {
+      event.preventDefault(); const next = space === 'world' ? 'local' : 'world'; handle.setSpace(next); setSpace(next); return;
+    }
     if (key === '/' && !event.ctrlKey && !event.altKey && !event.metaKey) { event.preventDefault(); openComposer(); return; }
     if (mod && key === 'd' && !event.shiftKey) {
       event.preventDefault();
@@ -477,11 +518,11 @@ export function Workspace(props: WorkspaceProps) {
   return (
     <div ref={workspaceRef} className="fg-workspace" data-layout="floating" onKeyDown={onKeyDown}>
       <nav className="fg-rail" aria-label="Main">
-        <ForgonMark />
+        <IconButton className="fg-rail-item fg-rail-home" label="Back to projects" title="Forgon Engine — Back to projects" disabled={props.saveStatus === 'saving'} onClick={requestClose}><ForgonMark alt="" /></IconButton>
         <IconButton className={cx('fg-rail-item', view_ === 'editor' && 'is-active')} label="Editor" aria-current={view_ === 'editor' ? 'page' : undefined} onClick={() => setView('editor')}><LayoutDashboard {...iconProps} size={18} /></IconButton>
         <IconButton className={cx('fg-rail-item', view_ === 'settings' && 'is-active')} label="Settings" aria-current={view_ === 'settings' ? 'page' : undefined} onClick={() => setView(current => (current === 'settings' ? 'editor' : 'settings'))}><SettingsIcon {...iconProps} size={18} /></IconButton>
         <span className="fg-rail-spacer" />
-        <IconButton className="fg-rail-item" label="Close project" title="Close project" onClick={requestClose}><LogOut {...iconProps} size={18} /></IconButton>
+        <IconButton className="fg-rail-item" label="Close project" title="Close project" disabled={props.saveStatus === 'saving'} onClick={requestClose}><FolderX {...iconProps} size={18} /></IconButton>
       </nav>
 
       <header className="fg-topbar">
@@ -505,7 +546,7 @@ export function Workspace(props: WorkspaceProps) {
           )}
         </div>
         <div className="fg-topbar-controls">
-        <IconButton id="toggle-hierarchy" label="Toggle Hierarchy" title="Hierarchy (Ctrl+1)" aria-pressed={layout.hierarchy} onClick={() => setLayout({ ...layout, hierarchy: !layout.hierarchy })}><ListTree {...iconProps} /></IconButton>
+        <IconButton id="toggle-hierarchy" label="Toggle Hierarchy" title="Hierarchy (Ctrl+1)" aria-pressed={layout.hierarchy} onClick={() => setLayout({ ...layout, hierarchy: !layout.hierarchy })}><Network {...iconProps} /></IconButton>
         <IconButton id="toggle-inspector" label="Toggle Inspector" title="Inspector (Ctrl+2)" aria-pressed={layout.inspector} onClick={() => setLayout({ ...layout, inspector: !layout.inspector })}><SlidersHorizontal {...iconProps} /></IconButton>
         <div className="fg-pill fg-play-pill" role="group" aria-label="Mode">
           <span className={cx('fg-mode', playing && 'is-playing')}>{preparingPlay ? 'Preparing' : playing ? 'Playing' : 'Edit'}</span>

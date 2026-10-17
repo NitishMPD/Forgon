@@ -1,5 +1,5 @@
 import { duplicatePlan, type SceneCommand } from '@forgon/editor-core';
-import { createEntity, createId, idSchema, parsePrefab, type PrefabDocument } from '@forgon/project-schema';
+import { createEntity, createId, idSchema, parsePrefab, type AssetRecord, type PrefabDocument } from '@forgon/project-schema';
 import type { SurfacePoint } from '../services.js';
 
 export const primitives = ['box', 'sphere', 'cylinder', 'plane', 'cone', 'capsule', 'torus'] as const;
@@ -8,6 +8,16 @@ export type PlacementTarget = { kind: 'primitive'; primitive: Primitive } | { ki
 /** Runtime surface queries optionally carry bounds from their loaded GLB cache. */
 export interface PlacementSurface extends SurfacePoint { modelMinY?(assetId: string): number | null }
 export const placementMime = 'application/x-forgon-placement';
+
+export function searchPlacements(assets: readonly AssetRecord[], prefabs: readonly PrefabDocument[], query: string): { name: string; detail: string; target: PlacementTarget }[] {
+  const choices = [
+    ...primitives.map(primitive => ({ name: primitive, detail: 'Primitive', target: { kind: 'primitive', primitive } as PlacementTarget })),
+    ...prefabs.map(prefab => ({ name: prefab.name, detail: 'Prefab', target: { kind: 'prefab', prefabId: prefab.prefabId } as PlacementTarget })),
+    ...assets.filter(asset => asset.kind === 'model' && /\.glb$/i.test(asset.path)).map(asset => ({ name: asset.name, detail: asset.path, target: { kind: 'model', assetId: asset.id } as PlacementTarget })),
+  ];
+  const needle = query.trim().toLowerCase();
+  return choices.filter(choice => `${choice.name} ${choice.detail}`.toLowerCase().includes(needle));
+}
 
 export function parsePlacement(text: string): PlacementTarget | null {
   try {

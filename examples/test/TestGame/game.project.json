@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "projectId": "gen_1354e92bb0f9e10b",
+  "name": "Empty 3D",
+  "startScene": "gen_4934b1e4d930661a",
+  "scenes": [
+    {
+      "id": "gen_4934b1e4d930661a",
+      "path": "scenes/main.scene.json"
+    }
+  ],
+  "prefabs": [],
+  "assetRegistry": "assets/registry.json"
+}

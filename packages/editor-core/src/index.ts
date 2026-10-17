@@ -1,4 +1,4 @@
-import { parseScene, serializeScene } from '@forgon/project-schema';
+import { parseScene } from '@forgon/project-schema';
 import type { Component, Entity, SaveSnapshot, SceneDocument, Transform, ValidationContext } from '@forgon/project-schema';
 
 export type SceneCommand =
@@ -15,7 +15,13 @@ export type SceneCommand =
 export interface SceneConflict { base: SceneDocument; ours: SceneDocument; theirs: SceneDocument; revision: string }
 export type ReconcileResult = 'unchanged' | 'reloaded' | 'conflict';
 const copy = <T>(value: T): T => structuredClone(value);
-const equal = (left: SceneDocument, right: SceneDocument): boolean => serializeScene(left) === serializeScene(right);
+function equal(left: unknown, right: unknown): boolean {
+  if (left === right) return true;
+  if (left === null || right === null || typeof left !== 'object' || typeof right !== 'object' || Array.isArray(left) !== Array.isArray(right)) return false;
+  const keys = Object.keys(left);
+  return keys.length === Object.keys(right).length && keys.every(key => Object.hasOwn(right, key)
+    && equal((left as Record<string, unknown>)[key], (right as Record<string, unknown>)[key]));
+}
 
 function apply(scene: SceneDocument, command: SceneCommand): void {
   if (command.type === 'batch') {

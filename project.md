@@ -1,6 +1,18 @@
 # Forgon Engine
 Author: Nitish
 
+Scene-store equality compares JSON object fields independent of key order (including nested component properties), while preserving array order and actual value differences. Native JSON map reordering must not mark a saved revision invalid; different content under the same revision still fails.
+
+Workspace shortcuts operate from the viewport as well as panels: Delete/Backspace deletes selected topmost subtrees in one undo step; Ctrl+C/X/V copy/cut/paste scene objects using an internal clipboard for this workspace session, fresh IDs and remapped internal references. Partial prefab copies are rejected before cutting; absent paste parents fall back to the root. Ctrl+A selects all, Escape deselects after closing expanded cards, F2 focuses Inspector rename, Ctrl+Shift+N creates an empty object under the selection (or at the root), X toggles Local/World when supported, and Ctrl+P toggles Play/Stop alongside F5. Existing Q/W/E/R, F, Ctrl+D, save and history shortcuts remain. Object actions leave text editing alone and mutation guards remain in force. Unity features without Forgon equivalents (Rect/combined tools, pause/step, pivot modes and scene-file creation) do not receive inert shortcuts.
+
+Generated-scene saves capture entity additions, deletions, hierarchy/component structural edits and entity order alongside field overrides, preserving the generator base. Entity snapshots use checked before/value pairs; competing generator edits produce conflicts. Existing authoring artifacts remain readable; artifacts with structural overrides require the updated tools. Scene/authoring pair commits and revision guards remain mandatory.
+
+Ctrl+Shift+click on an editable viewport opens placement search at the clicked surface, with primitives, project prefabs and registered GLB models. Ctrl+Shift+A while the viewport is focused opens the same search at the centre. Placement reuses the existing surface/alignment and one-step undo flow; no scripts run. Play, invalid-file and conflict guards apply.
+
+The desktop Studio window disables Tauri's native drag/drop interception (`dragDropEnabled: false`) so WebView2 delivers HTML drag events for asset placement, hierarchy reparenting and composer references on Windows. File imports continue through the native picker; no Tauri file-drop event integration is used. Changing this window configuration requires a desktop restart (and a rebuild for packaged installations); native drag behavior requires Windows verification.
+
+The workspace logo returns to the project launcher through the same guarded close flow as Close project. Unsaved edits require the explicit Discard changes and close action; repeated logo or close presses cannot bypass confirmation. Both entry points are unavailable during an active save.
+
 **Project plan / technical PRD / implementation roadmap**  
 **Product name:** Forgon Engine  
 **Version:** 1.0 planning draft  

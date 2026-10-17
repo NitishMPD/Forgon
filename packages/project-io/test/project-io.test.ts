@@ -11,6 +11,7 @@ import { AUTHORING, JOURNAL, recoverPair } from '../src/transaction.js';
 import { captureOverrides, replayOverrides } from '@forgon/procedural-authoring';
 import type { NodeProjectSession } from '../src/types.js';
 import type { SceneWatchEvent } from '@forgon/project-schema';
+import { createEntity } from '@forgon/project-schema';
 
 const scenePath = 'scenes/main.scene.json';
 const code = (expected: string) => (error: unknown): boolean => !!error && typeof error === 'object' && 'code' in error && error.code === expected;
@@ -209,6 +210,29 @@ test('watcher reports valid, invalid, dependency failure and deletion, then disp
   await assert.rejects(session.sceneIO.readScene(scenePath), code('CLOSED'));
   await assert.rejects(session.readAsset('anything'), code('CLOSED'));
   monitor.stop(); session.close();
+});
+
+test('adding, editing and deleting objects in a generated template survives save and reopen', async t => {
+  const session = await project(t);
+  const initial = await session.sceneIO.readScene(scenePath);
+  const edited = structuredClone(initial.document);
+  edited.entities.push(createEntity('Box'));
+  let saved = await session.sceneIO.saveScene({ path: scenePath, document: edited, expectedRevision: initial.revision });
+  assert.equal(saved.status, 'saved');
+  const reopened = await openProject(session.root); t.after(() => reopened.close());
+  assert.deepEqual((await reopened.sceneIO.readScene(scenePath)).document, edited);
+  assert.deepEqual(replayOverrides((await reopened.readAuthoring())!.document).scene, edited);
+  edited.entities.at(-1)!.components = [{ id: 'manual-render', type: 'render', enabled: true, properties: { primitive: 'box' }, entityRefs: [], assetRefs: [] }];
+  const current = await reopened.sceneIO.readScene(scenePath);
+  saved = await reopened.sceneIO.saveScene({ path: scenePath, document: edited, expectedRevision: current.revision });
+  assert.equal(saved.status, 'saved');
+  assert.deepEqual((await reopened.sceneIO.readScene(scenePath)).document, edited);
+  const stale = await session.sceneIO.saveScene({ path: scenePath, document: initial.document, expectedRevision: initial.revision });
+  assert.equal(stale.status, 'conflict');
+  edited.entities.pop();
+  const latest = await reopened.sceneIO.readScene(scenePath);
+  assert.equal((await reopened.sceneIO.saveScene({ path: scenePath, document: edited, expectedRevision: latest.revision })).status, 'saved');
+  assert.deepEqual((await reopened.sceneIO.readScene(scenePath)).document, initial.document);
 });
 
 test('generated scene saves persist overrides and checked pair saves survive reopen', async t => {

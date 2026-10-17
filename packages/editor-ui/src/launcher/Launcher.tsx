@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { projectDestination } from '../model/projectDestination.js';
 import type { Diagnostic } from '@forgon/project-schema';
 import type { CreatePlan, ProjectHost, ProjectOpenResult, ProjectSession, RecentProject } from '../services.js';
-import { Box, Building2, Copy, FolderOpen, Plus, Search, ShieldCheck, X } from 'lucide-react';
+import { Box, Building2, Copy, FolderOpen, Plus, Search, X } from 'lucide-react';
 import { ForgonMark } from '../brand/ForgonMark.js';
 import { Banner, Button, IconButton, StatusText, type Tone } from '../primitives/primitives.js';
 
@@ -262,7 +262,6 @@ export function Launcher({ host, onOpened, onSample }: LauncherProps) {
             </ul>
           )}
       </section>
-      <p className="fg-launcher-foot"><ShieldCheck size={12} strokeWidth={1.75} aria-hidden="true" />Opening a project does not run code from it.</p>
     </main>
   );
 }

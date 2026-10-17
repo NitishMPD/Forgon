@@ -227,3 +227,24 @@ test('queued prompts leave the queue only when they start', () => {
   state = agentReducer(state, { type: 'run/requested', threadId: 'thread_1', request: request('q1'), fromQueue: true });
   assert.equal(state.threads[0]!.queue.length, 0);
 });
+
+
+test('queued requests retain the model and permissions selected when queued', () => {
+  let state = start();
+  state = agentReducer(state, { type: 'event', event: event(1, { type: 'started', provider: 'codex' }) });
+  state = agentReducer(state, { type: 'thread/settings', threadId: 'thread_1', model: 'next-model', permissionMode: 'inspect' });
+  const thread = state.threads[0]!;
+  const queued: PendingRequest = { ...request('q'), provider: thread.provider, model: thread.model, permissionMode: thread.permissionMode! };
+  state = agentReducer(state, { type: 'queue/add', threadId: thread.id, request: queued });
+  state = agentReducer(state, { type: 'thread/settings', threadId: thread.id, model: 'later-model', permissionMode: 'supervised' });
+  assert.equal(state.threads[0]!.model, 'later-model');
+  const next = state.threads[0]!.queue[0]!;
+  assert.equal(next.model, 'next-model');
+  assert.equal(next.permissionMode, 'inspect');
+  state = agentReducer(state, { type: 'event', event: event(2, { type: 'completed', outcome: 'succeeded' }) });
+  state = agentReducer(state, { type: 'run/requested', threadId: thread.id, request: next, fromQueue: true });
+  assert.equal(state.threads[0]!.model, 'later-model', 'starting older queued work must not reset the composer settings');
+  assert.equal(state.threads[0]!.permissionMode, 'supervised');
+  assert.equal(next.model, 'next-model');
+  assert.equal(next.permissionMode, 'inspect');
+});

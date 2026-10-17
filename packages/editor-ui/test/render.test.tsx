@@ -38,7 +38,7 @@ test('launcher without a desktop host says so, disables project actions, and sti
   assert.match(html, /Recent projects unavailable/);
   assert.match(html, /<button(?=[^>]*disabled="")[^>]*>(?:(?!<\/button>).)*Open folder…/);
   assert.match(html, /<button(?![^>]*disabled)[^>]*>(?:(?!<\/button>).)*In-memory sample/);
-  assert.match(html, /Opening a project does not run code from it/);
+  assert.doesNotMatch(html, /Opening a project does not run code from it/);
 });
 
 test('hierarchy is an ARIA tree with selected and expanded state', () => {

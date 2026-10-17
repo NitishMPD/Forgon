@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { ArrowUp, Braces, Paperclip, Plus, Square, TriangleAlert, X } from 'lucide-react';
-import type { AssetRecord, PermissionMode, SceneDocument } from '@forgon/project-schema';
+import { ArrowUp, Bookmark, Braces, ChevronRight, Circle, FileDiff, LoaderCircle, Paperclip, Plus, Search, ShieldCheck, Square, Terminal, TriangleAlert, X } from 'lucide-react';
+import type { AssetRecord, SceneDocument } from '@forgon/project-schema';
 import { Banner, Button, IconButton, StatusText, cx, type Tone } from '../primitives/primitives.js';
 import { ModelPicker } from './ModelPicker.js';
+import { PermissionPicker } from './PermissionPicker.js';
 import { Markdown } from './Markdown.js';
 import { attachmentReferences, buildContext, chipStatus, clipboardFiles, insertMention, isSendKey, mentionOptions, mentionQuery, recallPrompt, type ContextChip, type HistoryRecall } from './composerModel.js';
 import type { AgentController } from './useAgentSessions.js';
-import { enforcementNote, permissionLabels, providerLimitsNote } from './permissions.js';
-import { threadStatus, threadStatusLabels, type AgentThread, type ThreadStatus, type TranscriptItem } from './threadState.js';
+import { activityDuration, activityGroupLabel, commandLabel, groupActivity, type ActivityGroup, type ActivityRow, type ActivityStep } from './activityModel.js';
+import { threadStatus, threadStatusLabels, type AgentThread, type ThreadStatus } from './threadState.js';
 
 export interface AgentDockProps {
   agent: AgentController | null;
@@ -38,66 +39,86 @@ function Transcript({ thread, onApprove }: { thread: AgentThread; onApprove(runI
   if (thread.transcript.length === 0) {
     return <p className="fg-transcript-empty">No messages yet</p>;
   }
+  const rows = groupActivity(thread.transcript, thread.activeRunId);
+  const lastAnswers = new Map<string, string>();
+  for (const item of rows) if (item.kind === 'assistant') lastAnswers.set(item.runId, item.id);
   return (
     <ol className="fg-transcript" aria-label="Transcript" aria-live="polite">
-      {thread.transcript.map(item => <TranscriptRow key={item.id} item={item} mode={thread.permissionMode} onApprove={onApprove} />)}
+      {rows.map(item => <TranscriptRow key={item.id} item={item} final={item.kind === 'assistant' && item.runId !== thread.activeRunId && lastAnswers.get(item.runId) === item.id} onApprove={onApprove} />)}
       <li ref={endRef} aria-hidden="true" />
     </ol>
   );
 }
 
-function TranscriptRow({ item, mode, onApprove }: {
-  item: TranscriptItem;
-  mode: PermissionMode | null;
+const activityIcons = { command: Terminal, search: Search, edit: FileDiff, approval: ShieldCheck, checkpoint: Bookmark, tool: Circle, diagnostic: TriangleAlert };
+
+export function ActivityStepRow({ step }: { step: ActivityStep }) {
+  const [open, setOpen] = useState(false);
+  const Icon = activityIcons[step.kind];
+  const duration = activityDuration(step);
+  return <li className="fg-activity-step">
+    <button type="button" className="fg-activity-toggle" aria-expanded={open} disabled={!step.detail}
+      title={step.detail || step.label} onClick={() => setOpen(value => !value)}>
+      <Icon size={14} aria-hidden="true" />
+      <span className="fg-activity-label">{step.label}</span>
+      <span className={`fg-activity-state is-${step.state}`} role="img" aria-label={step.state === 'running' ? 'Running' : step.state === 'failed' ? 'Failed' : 'Done'}>
+        {step.state === 'running' ? <LoaderCircle size={12} className="fg-activity-spinner" aria-hidden="true" /> : <Circle size={6} fill="currentColor" aria-hidden="true" />}
+      </span>
+      {duration ? <span className="fg-mono fg-small fg-muted">{duration}</span> : null}
+    </button>
+    {step.failureReason ? <p className="fg-activity-failure">{step.failureReason}</p> : null}
+    {open && step.detail ? <pre className="fg-code fg-activity-detail">{step.detail}</pre> : null}
+  </li>;
+}
+
+export function ActivityGroupRow({ group }: { group: ActivityGroup }) {
+  const [open, setOpen] = useState(false);
+  const failed = group.steps.some(step => step.state === 'failed');
+  const running = group.steps.some(step => step.state === 'running');
+  return <li className="fg-activity-group">
+    <button type="button" className="fg-activity-toggle" aria-expanded={open} onClick={() => setOpen(value => !value)}>
+      <ChevronRight size={14} className={open ? 'is-open' : undefined} aria-hidden="true" />
+      {running ? <LoaderCircle size={14} className="fg-activity-spinner" aria-hidden="true" /> : <Terminal size={14} aria-hidden="true" />}
+      <span className="fg-activity-label">{activityGroupLabel(group)}</span>
+      {failed ? <span className="fg-tone-danger fg-small">Failed step</span> : null}
+    </button>
+    <ul className="fg-activity-steps" hidden={!open}>
+      {group.steps.map(step => <ActivityStepRow key={step.id} step={step} />)}
+    </ul>
+  </li>;
+}
+
+export function PendingApproval({ item, onApprove }: {
+  item: Extract<ActivityRow, { kind: 'approval' }>;
+  onApprove(runId: string, requestId: string, allow: boolean): void;
+}) {
+  return <li className="fg-approval" role="group" aria-label="Approval request">
+    <p className="fg-approval-title"><ShieldCheck size={14} aria-hidden="true" />Approval needed</p>
+    <p>{commandLabel(item.description)}</p>
+    <details><summary>Request details</summary><pre className="fg-code fg-activity-detail">{item.description}</pre></details>
+    <div className="fg-toolbar">
+      <Button variant="primary" onClick={() => onApprove(item.runId, item.requestId, true)}>Approve once</Button>
+      <Button onClick={() => onApprove(item.runId, item.requestId, false)}>Deny</Button>
+    </div>
+  </li>;
+}
+
+function TranscriptRow({ item, final, onApprove }: {
+  item: ActivityRow;
+  final: boolean;
   onApprove(runId: string, requestId: string, allow: boolean): void;
 }) {
   switch (item.kind) {
     case 'user':
       return <li className="fg-message fg-message-user"><span className="fg-message-label">You</span><p>{item.text}</p></li>;
     case 'assistant':
-      return <li className="fg-message"><span className="fg-message-label">Agent</span><Markdown text={item.text} /></li>;
-    case 'tool':
-      return (
-        <li className="fg-tool-line">
-          <span className="fg-mono">{item.name}</span>
-          <StatusText tone={item.state === 'failed' ? 'danger' : item.state === 'completed' ? 'success' : 'info'}>
-            {item.state === 'started' ? 'Started' : item.state === 'completed' ? 'Completed' : 'Failed'}
-          </StatusText>
-          {item.text ? <details><summary>Details</summary><pre className="fg-code">{item.text}</pre></details> : null}
-        </li>
-      );
-    case 'diagnostic':
-      return (
-        <li className="fg-tool-line">
-          <StatusText tone="warning">Warning</StatusText>
-          <span className="fg-mono">{item.diagnostic.path}</span>
-          <span>{item.diagnostic.message}</span>
-        </li>
-      );
+      return <li className={cx('fg-message', final && 'fg-message-final')}><span className="fg-message-label">{final ? 'Answer' : 'Agent'}</span><Markdown text={item.text} /></li>;
+    case 'activity':
+      return <ActivityGroupRow group={item} />;
     case 'approval':
-      return (
-        <li className="fg-approval" role="group" aria-label="Approval request">
-          <p>{item.description}</p>
-          <p className="fg-muted fg-small" title={mode ? enforcementNote(mode) : undefined}>{mode ? permissionLabels[mode] : 'No mode chosen'}</p>
-          {item.state === 'pending' ? (
-            <div className="fg-toolbar">
-              <Button variant="primary" onClick={() => onApprove(item.runId, item.requestId, true)}>Approve once</Button>
-              <Button onClick={() => onApprove(item.runId, item.requestId, false)}>Deny</Button>
-            </div>
-          ) : (
-            <StatusText tone="neutral">{item.state === 'allowed' ? 'Approved once' : item.state === 'denied' ? 'Denied' : 'Closed'}</StatusText>
-          )}
-        </li>
-      );
-    case 'diff':
-      return (
-        <li className="fg-tool-line">
-          <StatusText tone="accent">Changed {item.paths.length} {item.paths.length === 1 ? 'file' : 'files'}</StatusText>
-          <span className="fg-mono fg-muted">{item.paths.join(', ')}</span>
-        </li>
-      );
+      return <PendingApproval item={item} onApprove={onApprove} />;
     case 'status':
-      return <li className="fg-status-line fg-muted">{item.text}</li>;
+      return <li className="fg-status-line fg-tone-danger">{item.text}</li>;
   }
 }
 
@@ -215,7 +236,6 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
   };
 
   const [showContext, setShowContext] = useState(false);
-  const modeNote = thread?.permissionMode ? `${enforcementNote(thread.permissionMode)}${provider ? ` ${providerLimitsNote(provider)}` : ''}` : 'Choose a permission mode before sending.';
 
   return (
     <div className="fg-composer" onDragOver={event => {
@@ -282,20 +302,10 @@ function Composer({ agent, scene, assets, projectOpen, focusToken }: {
       {attachmentNote ? <p className="fg-small fg-muted fg-composer-note" role="status">{attachmentNote}</p> : null}
       <div id="agent-composer-help" className="fg-sr-only">Press Enter to {running ? 'queue' : 'send'}. Control+Enter or Shift+Enter inserts a new line. Type @ to find context. ArrowUp and ArrowDown recall prompts in an empty or unedited recalled draft.</div>
       <div className="fg-composer-footer">
-        {thread ? <ModelPicker key={thread.id} providers={agent.connection.providers} thread={thread} onSelect={agent.setModel}>
-            <select
-              className="fg-select fg-select-quiet"
-              aria-label="Permission mode"
-              title={modeNote}
-              value={thread?.permissionMode ?? ''}
-              disabled={running || !provider || provider.permissionModes.length === 0}
-              onChange={event => agent.setPermissionMode(event.currentTarget.value as PermissionMode)}
-            >
-              {thread?.permissionMode === null || thread?.permissionMode === undefined ? <option value="" disabled>Mode</option> : null}
-              {provider?.permissionModes.map(mode => <option key={mode} value={mode}>{permissionLabels[mode]}</option>)}
-            </select>
-            <p className="fg-small fg-muted">{modeNote}</p>
-        </ModelPicker> : null}
+        {thread ? <>
+          <PermissionPicker key={`permissions-${thread.id}`} provider={provider} value={thread.permissionMode} starting={thread.starting} onSelect={agent.setPermissionMode} />
+          <ModelPicker key={thread.id} providers={agent.connection.providers} thread={thread} onSelect={agent.setModel} />
+        </> : null}
         <IconButton label="What will be sent" aria-expanded={showContext} onClick={() => setShowContext(open => !open)}>
           <Braces size={14} strokeWidth={1.75} aria-hidden="true" />
         </IconButton>

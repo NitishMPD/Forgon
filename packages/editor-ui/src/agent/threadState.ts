@@ -9,14 +9,15 @@ export interface PendingRequest {
   context: AgentContext;
 }
 
-export type TranscriptItem =
+export type TranscriptItem = (
   | { id: string; kind: 'user'; text: string }
   | { id: string; kind: 'assistant'; runId: string; text: string }
   | { id: string; kind: 'tool'; runId: string; name: string; state: 'started' | 'completed' | 'failed'; text: string | null }
   | { id: string; kind: 'diagnostic'; runId: string; diagnostic: Diagnostic }
   | { id: string; kind: 'approval'; runId: string; requestId: string; description: string; state: 'pending' | 'allowed' | 'denied' | 'closed' }
   | { id: string; kind: 'diff'; runId: string; paths: string[] }
-  | { id: string; kind: 'status'; runId: string; text: string };
+  | { id: string; kind: 'status'; runId: string; text: string }
+) & { timestamp?: string; completedAt?: string };
 
 export interface AgentThread {
   id: string;
@@ -114,21 +115,23 @@ function applyEvent(thread: AgentThread, event: AgentEvent): AgentThread {
   const base: AgentThread = {
     ...thread,
     sequences: { ...thread.sequences, [event.runId]: event.sequence },
-    activeRunId: thread.activeRunId ?? (event.type === 'completed' ? null : event.runId),
+    // Only a start (or anything during a launch) opens a run; late events such as a checkpoint
+    // captured after completion must not mark a finished thread as running again.
+    activeRunId: thread.activeRunId ?? (event.type === 'started' || (thread.starting && event.type !== 'completed') ? event.runId : null),
     starting: thread.starting && event.type !== 'started' ? false : thread.starting,
   };
   const id = `${event.runId}:${event.sequence}`;
   const transcript = [...thread.transcript];
   switch (event.type) {
     case 'started':
-      transcript.push({ id, kind: 'status', runId: event.runId, text: `Started ${event.provider}` });
+      transcript.push({ id, timestamp: event.timestamp, kind: 'status', runId: event.runId, text: `Started ${event.provider}` });
       return { ...base, transcript, starting: false, outcome: 'none', changedPaths: [] };
     case 'text': {
       const previous = transcript.at(-1);
       if (previous && previous.kind === 'assistant' && previous.runId === event.runId) {
         transcript[transcript.length - 1] = { ...previous, text: previous.text + event.text };
       } else {
-        transcript.push({ id, kind: 'assistant', runId: event.runId, text: event.text });
+        transcript.push({ id, timestamp: event.timestamp, kind: 'assistant', runId: event.runId, text: event.text });
       }
       return { ...base, transcript };
     }
@@ -137,27 +140,27 @@ function applyEvent(thread: AgentThread, event: AgentEvent): AgentThread {
       if (event.state !== 'started' && index !== -1) {
         const previous = transcript[index];
         if (previous && previous.kind === 'tool') {
-          transcript[index] = { ...previous, state: event.state, text: event.text ?? previous.text };
+          transcript[index] = { ...previous, completedAt: event.timestamp, state: event.state, text: event.text ?? previous.text };
         }
       } else {
-        transcript.push({ id, kind: 'tool', runId: event.runId, name: event.name, state: event.state, text: event.text ?? null });
+        transcript.push({ id, timestamp: event.timestamp, kind: 'tool', runId: event.runId, name: event.name, state: event.state, text: event.text ?? null });
       }
       return { ...base, transcript };
     }
     case 'diagnostic':
-      transcript.push({ id, kind: 'diagnostic', runId: event.runId, diagnostic: event.diagnostic });
+      transcript.push({ id, timestamp: event.timestamp, kind: 'diagnostic', runId: event.runId, diagnostic: event.diagnostic });
       return { ...base, transcript };
     case 'approval':
-      transcript.push({ id, kind: 'approval', runId: event.runId, requestId: event.requestId, description: event.description, state: 'pending' });
+      transcript.push({ id, timestamp: event.timestamp, kind: 'approval', runId: event.runId, requestId: event.requestId, description: event.description, state: 'pending' });
       return { ...base, transcript };
     case 'diff': {
-      transcript.push({ id, kind: 'diff', runId: event.runId, paths: event.paths });
+      transcript.push({ id, timestamp: event.timestamp, kind: 'diff', runId: event.runId, paths: event.paths });
       const changedPaths = [...new Set([...thread.changedPaths, ...event.paths])];
       return { ...base, transcript, changedPaths };
     }
     case 'completed': {
       const closed = transcript.map(item => (item.kind === 'approval' && item.runId === event.runId && item.state === 'pending' ? { ...item, state: 'closed' as const } : item));
-      closed.push({ id, kind: 'status', runId: event.runId, text: event.message ? `${event.outcome}: ${event.message}` : event.outcome });
+      closed.push({ id, timestamp: event.timestamp, kind: 'status', runId: event.runId, text: event.message ? `${event.outcome}: ${event.message}` : event.outcome });
       const sameRun = thread.activeRunId === null || thread.activeRunId === event.runId;
       return {
         ...base,
@@ -190,7 +193,7 @@ export function agentReducer(state: AgentState, action: AgentAction): AgentState
       return state.threads.some(thread => thread.id === action.threadId) ? { ...state, activeThreadId: action.threadId } : state;
     case 'thread/settings':
       return updateThread(state, action.threadId, thread => {
-        if (thread.starting || thread.activeRunId !== null) return thread;
+        if (thread.starting) return thread;
         if (action.provider !== undefined && action.provider !== thread.provider && !canChangeProvider(thread)) return thread;
         return {
           ...thread,
@@ -216,9 +219,6 @@ export function agentReducer(state: AgentState, action: AgentAction): AgentState
           activeRunId: null,
           outcome: 'none',
           changedPaths: [],
-          provider: action.request.provider,
-          model: action.request.model,
-          permissionMode: action.request.permissionMode,
         };
       });
     case 'run/started':
