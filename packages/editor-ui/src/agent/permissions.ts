@@ -4,21 +4,23 @@ import type { AgentProviderInfo } from '../services.js';
 export const permissionLabels: Record<PermissionMode, string> = {
   inspect: 'Inspect',
   supervised: 'Supervised',
-  'auto-edits': 'Auto edits',
-  'full-local': 'Full local',
+  'auto-edits': 'Auto-accept edits',
+  auto: 'Auto',
+  'full-local': 'Full access',
 };
 
 // What each mode asks for. None of them is an operating-system sandbox, and none of them can
 // guarantee what a provider CLI does beyond the requests and reports Forgon actually receives.
 export const permissionDescriptions: Record<PermissionMode, string> = {
-  inspect: 'Asks the provider for read-only access. Forgon refuses writes it can intercept. This is not an operating-system sandbox.',
-  supervised: 'Asks for approval before each request Forgon receives. Forgon cannot see provider actions that are not reported to it.',
-  'auto-edits': 'Lets the provider edit project files without asking. Forgon cannot limit edits beyond what the provider reports.',
-  'full-local': 'No approval prompts. Once a provider CLI is running, Forgon cannot limit what it does. Choose this only on projects you trust.',
+  inspect: 'Read-only tools. Project changes are blocked.',
+  supervised: 'Ask before commands and file changes.',
+  'auto-edits': 'Auto-approve edits, ask before other actions.',
+  auto: 'Supported providers approve routine actions; others still ask.',
+  'full-local': 'Allow commands and edits without permission prompts.',
 };
 
 export function enforcementNote(mode: PermissionMode): string {
-  return permissionDescriptions[mode];
+  return `${permissionDescriptions[mode]} Permission modes are not an operating-system sandbox. ${mode === 'supervised' ? 'Forgon cannot see provider actions that are not reported to it.' : 'Once an agent is running, Forgon cannot limit what it does beyond reported actions.'}`;
 }
 
 // Limits the provider adapter reported. Silence is shown as unverified, never as safe.

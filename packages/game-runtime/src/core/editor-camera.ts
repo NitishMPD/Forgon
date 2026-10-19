@@ -23,6 +23,8 @@ export interface EditorCameraController {
   zoom(factor: number): void;
   /** Fits the camera so the world-space box fits comfortably in view. */
   frameBox(box: Box3 | null): void;
+  /** Rotate around the existing pivot without changing framing. */
+  orbit(radians: number): void;
   /** Sensible default view used until the first scene bounds are known. */
   defaultView(): void;
   /** Gizmo gestures suspend canvas input so camera drags never fight the gizmo. */
@@ -40,6 +42,7 @@ export function createEditorCamera(canvas: HTMLCanvasElement): EditorCameraContr
 
   const pivot = new Vector3(0, 1, 0);
   let distance = 10;
+  let maxZoomDistance = MAX_DISTANCE;
   let azimuth = -35 * DEG;
   let elevation = 30 * DEG;
   let locked = false;
@@ -118,7 +121,7 @@ export function createEditorCamera(canvas: HTMLCanvasElement): EditorCameraContr
   const onWheel = (event: WheelEvent): void => {
     if (locked) return;
     event.preventDefault();
-    distance = clamp(distance * Math.exp(event.deltaY * ZOOM_PER_WHEEL_TICK), MIN_DISTANCE, MAX_DISTANCE);
+    distance = clamp(distance * Math.exp(event.deltaY * ZOOM_PER_WHEEL_TICK), MIN_DISTANCE, maxZoomDistance);
     updateCamera();
   };
 
@@ -144,7 +147,7 @@ export function createEditorCamera(canvas: HTMLCanvasElement): EditorCameraContr
       updateCamera();
     },
     zoom(factor: number): void {
-      distance = clamp(distance * factor, MIN_DISTANCE, MAX_DISTANCE);
+      distance = clamp(distance * factor, MIN_DISTANCE, maxZoomDistance);
       updateCamera();
     },
     frameBox(box: Box3 | null): void {
@@ -159,8 +162,15 @@ export function createEditorCamera(canvas: HTMLCanvasElement): EditorCameraContr
       const verticalFov = camera.fov * DEG;
       const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * aspect);
       const fit = Math.max(radius / Math.sin(verticalFov / 2), radius / Math.sin(horizontalFov / 2));
-      distance = clamp(fit * 1.35, MIN_DISTANCE, MAX_DISTANCE);
+      distance = Math.max(fit * 1.35, MIN_DISTANCE);
+      maxZoomDistance = Math.max(MAX_DISTANCE, distance * 4);
+      camera.far = Math.max(800, maxZoomDistance + radius * 2);
+      camera.updateProjectionMatrix();
       pivot.copy(center);
+      updateCamera();
+    },
+    orbit(radians): void {
+      azimuth += radians;
       updateCamera();
     },
     defaultView(): void {

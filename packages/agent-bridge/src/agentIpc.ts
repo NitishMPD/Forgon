@@ -27,8 +27,8 @@ import {
 } from './errors.js';
 import { createAgentConnection, type AgentConnection, type AgentProviderInfo } from './agentConnection.js';
 
-/** The three `AgentService` methods that take arguments. `subscribe` is the event channel. */
-export type AgentServiceMethod = 'start' | 'cancel' | 'approve';
+/** The `AgentService` methods that take arguments. `subscribe` is the event channel. */
+export type AgentServiceMethod = 'start' | 'cancel' | 'approve' | 'answer';
 
 /**
  * One request crossing the boundary. A single discriminated object (not a `(name, params)` pair)
@@ -37,7 +37,8 @@ export type AgentServiceMethod = 'start' | 'cancel' | 'approve';
 export type AgentServiceCall =
   | { readonly method: 'start'; readonly request: AgentRunRequest }
   | { readonly method: 'cancel'; readonly runId: string }
-  | { readonly method: 'approve'; readonly runId: string; readonly requestId: string; readonly allow: boolean };
+  | { readonly method: 'approve'; readonly runId: string; readonly requestId: string; readonly allow: boolean }
+  | { readonly method: 'answer'; readonly runId: string; readonly requestId: string; readonly answers: import('@forgon/project-schema').AgentAnswers };
 
 /**
  * One reply. Failures are values, not thrown: a rejected IPC call loses the `code`, and the UI
@@ -60,6 +61,7 @@ const agentRunRequestSchema = z
     threadId: z.string().min(1),
     provider: z.string().min(1),
     model: z.string().optional(),
+    modelOptions: z.array(z.object({ id: z.string().min(1), value: z.string().min(1) })).optional(),
     prompt: z.string(),
     projectRoot: z.string().min(1),
     permissionMode: z.string().min(1),
@@ -74,8 +76,11 @@ const agentRunRequestSchema = z
   })
   .passthrough();
 
+export const agentAnswersSchema = z.record(z.union([z.string(), z.array(z.string())]));
+
 const callSchema = z.discriminatedUnion('method', [
   z.object({ method: z.literal('start'), request: agentRunRequestSchema }).passthrough(),
+  z.object({ method: z.literal('answer'), runId: z.string().min(1), requestId: z.string().min(1), answers: agentAnswersSchema }),
   z.object({ method: z.literal('cancel'), runId: z.string().min(1) }).passthrough(),
   z
     .object({ method: z.literal('approve'), runId: z.string().min(1), requestId: z.string().min(1), allow: z.boolean() })
@@ -125,6 +130,10 @@ export const createAgentServiceRpcHandler = (service: AgentService): AgentServic
         await service.cancel(parsed.runId);
         return { ok: true };
       }
+      case 'answer': {
+        await service.answer(parsed.runId, parsed.requestId, parsed.answers);
+        return { ok: true };
+      }
       case 'approve': {
         await service.approve(parsed.runId, parsed.requestId, parsed.allow);
         return { ok: true };
@@ -166,6 +175,10 @@ export const createAgentServiceProxy = (transport: AgentServiceTransport): Agent
   },
   approve: async (runId, requestId, allow) => {
     const result = await transport.call({ method: 'approve', runId, requestId, allow });
+    if (!result.ok) throw failureToError(result);
+  },
+  answer: async (runId, requestId, answers) => {
+    const result = await transport.call({ method: 'answer', runId, requestId, answers });
     if (!result.ok) throw failureToError(result);
   },
   subscribe: (listener) => transport.onEvent(listener),

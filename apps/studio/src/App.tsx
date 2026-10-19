@@ -22,8 +22,7 @@ import {
 } from '@forgon/editor-ui';
 import type { EditorStore } from '@forgon/editor-core';
 import type { ScriptCatalog } from '@forgon/project-schema';
-import { isDesktop } from '@forgon/studio-desktop';
-import { assertScriptPlaySupported, prepareScriptsForPlay } from './scripts.js';
+import { validateScriptsForPlay } from './scripts.js';
 import { useSceneSession, type OpenTarget } from './useSceneSession.js';
 
 function timeNow(): string {
@@ -163,16 +162,12 @@ function ReadyWorkspace({ target, session, store, notice, onDismissNotice, servi
     return () => { active = false; };
   }, [project, reportScripts, addLog]);
   const preparePlay = async (signal: AbortSignal) => {
-    assertScriptPlaySupported(snapshot.scene, isDesktop());
     if (snapshot.scene.entities.some(entity => entity.components.some(component => component.type === 'script' && component.enabled)) && !project?.compileScripts) throw new Error('This project host does not support script compilation.');
     const next = await project?.compileScripts?.() ?? { scripts: [], diagnostics: [] };
     signal.throwIfAborted();
     reportScripts(next);
-    const available = new Set(next.scripts.map(script => script.src));
-    for (const entity of snapshot.scene.entities) for (const component of entity.components) {
-      if (component.type === 'script' && component.enabled && !available.has(String(component.properties.src))) throw new Error(`Script not found or invalid: ${String(component.properties.src)} (${entity.name}). Check Console.`);
-    }
-    return prepareScriptsForPlay(next, signal);
+    validateScriptsForPlay(snapshot.scene, next);
+    return next;
   };
   const [catalog, setCatalog] = useState(() => ({ assets: project?.assets ?? [], prefabs: project?.prefabs ?? [] }));
   const refreshAssets = project?.readCatalog ? async (): Promise<void> => {

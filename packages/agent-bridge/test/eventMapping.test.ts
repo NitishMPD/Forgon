@@ -189,10 +189,10 @@ test('a completed run clears its unanswered approvals', () => {
   assert.equal(mapper.consumeApproval('req-1'), undefined);
 });
 
-test('a runtime-request.updated pending record is offered and removed when resolved', () => {
+test('runtime metadata cannot become an approval without its run-bound turn item', () => {
   const { mapper } = makeMapper();
   mapper.applyStreamItem(streamEvent(1, 'runtime-request.updated', { id: 'req-2', status: 'pending', kind: 'file-change' }));
-  assert.equal(mapper.pendingApprovals().length, 1);
+  assert.equal(mapper.pendingApprovals().length, 0);
   mapper.applyStreamItem(streamEvent(2, 'runtime-request.updated', { id: 'req-2', status: 'resolved', kind: 'file-change' }));
   assert.equal(mapper.pendingApprovals().length, 0);
 });
@@ -253,6 +253,7 @@ test('a snapshot with a pending runtime request offers that approval', () => {
       thread: { id: THREAD, projectId: 'p1', providerInstanceId: 'codex', modelSelection: { instanceId: 'codex', model: 'gpt-5' }, runtimeMode: 'approval-required', worktreePath: null },
       runs: [],
       runtimeRequests: [{ id: 'req-snap', status: 'pending', kind: 'permission' }],
+      turnItems: [turnItem({ type: 'approval_request', requestId: 'req-snap', prompt: 'Allow command?', requestKind: 'permission' })],
     },
   });
   assert.equal(mapper.consumeApproval('req-snap')?.requestId, 'req-snap');
@@ -336,4 +337,27 @@ test('applyDiff honours an explicit runId over the last-seen run', () => {
   mapper.applyStreamItem(streamEvent(1, 'run.created', run('run-7', 'running')));
   mapper.applyDiff({ diff: '--- a/a.ts\n+++ b/a.ts\n', runId: 'run-99' });
   assert.equal(events.at(-1)?.runId, 'run-99');
+});
+
+test('questions survive metadata ordering and snapshots; resolved questions cannot reappear', () => {
+  const { mapper, events } = makeMapper();
+  const item = turnItem({ type: 'user_input_request', requestId: 'q1', questions: [
+    { id: 'style', header: 'Style', question: 'Which style?', options: [{ label: 'City', description: 'Urban', value: 'city-id' }] },
+  ] });
+  mapper.applyStreamItem(streamEvent(1, 'runtime-request.updated', { id: 'q1', kind: 'user_input', status: 'pending' }));
+  mapper.applyStreamItem(streamEvent(2, 'turn-item.updated', item));
+  mapper.applyStreamItem(streamEvent(3, 'turn-item.updated', item));
+  assert.equal(events.filter(event => event.type === 'input').length, 1);
+  assert.equal(mapper.pendingApprovals()[0]?.runId, 'run-1');
+  mapper.applyStreamItem(streamEvent(4, 'runtime-request.updated', { id: 'q1', status: 'resolved' }));
+  mapper.applyStreamItem(streamEvent(5, 'turn-item.updated', item));
+  assert.equal(events.filter(event => event.type === 'input').length, 1);
+  assert.equal(events.at(-1)?.type, 'request-resolved');
+  assert.equal(mapper.consumeApproval('q1'), undefined);
+  const reconnect = makeMapper();
+  reconnect.mapper.applyStreamItem({ kind: 'snapshot', snapshotSequence: 3, projection: {
+    thread: { id: THREAD, projectId: 'p1' }, runs: [run('run-1', 'waiting')], turnItems: [item], runtimeRequests: [{ id: 'q1', kind: 'user_input', status: 'pending' }],
+  } });
+  assert.equal(reconnect.events.filter(event => event.type === 'input').length, 1);
+  assert.equal(reconnect.mapper.pendingApprovals()[0]?.runId, 'run-1');
 });

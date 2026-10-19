@@ -1,4 +1,5 @@
 import { Group, Scene } from 'three';
+import { createProgressiveDesign } from '../core/progressive-design.js';
 import { createRenderSurface } from '../core/renderer.js';
 import type { SceneDocument } from '@forgon/project-schema';
 import { boundsOfEntities, createEditorCamera, type EditorCameraController } from '../core/editor-camera.js';
@@ -47,11 +48,18 @@ export const mountEditorViewport = (
   let gridStep = 0.5;
   const editorCamera = createEditorCamera(canvas); editRoot.add(editorCamera.entity);
 
+  const progressive = createProgressiveDesign(editorCamera);
+  const reducedMotion = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+  let sceneBounds: ReturnType<typeof boundsOfEntities> = null;
+  let boundsDirty = true;
+  const interruptProgressive = (): void => progressive.interrupt();
+  for (const event of ['pointerdown', 'wheel', 'keydown', 'dragover']) canvas.addEventListener(event, interruptProgressive, { capture: true });
+
   const registry: SceneRegistry = createSceneRegistry();
   const materials: MaterialCache = createMaterialCache();
   const diagnostics = createDiagnostics(message => callbacks.onFault(message));
   let modelSelectionDirty = false;
-  const models = createModelCache(options.loadAssetBytes, () => { modelSelectionDirty = true; });
+  const models = createModelCache(options.loadAssetBytes, () => { modelSelectionDirty = true; boundsDirty = true; });
 
   const gestureChanges: { entityId: string; transform: import('@forgon/project-schema').Transform }[] = [];
   let draggingIds: Set<string> = new Set();
@@ -162,6 +170,7 @@ export const mountEditorViewport = (
       const scene = validateScene(view.scene, options.context);
       reconcileScene({ root: worldRoot, registry, materials, diagnostics, models, draggingIds }, scene);
       applySelection();
+      boundsDirty = true;
     } catch (error) {
       callbacks.onFault(faultMessage(error));
     }
@@ -174,6 +183,13 @@ export const mountEditorViewport = (
       dt => {
         playSession.update(dt); const numbers = playSession.getHud(); if (numbers) playHud?.update(numbers);
         if (modelSelectionDirty && !playSession.isPlaying && !gizmoController.isGestureActive) { applySelection(); modelSelectionDirty = false; }
+        if (progressive.isActive && !playSession.isPlaying) {
+          if (boundsDirty) { sceneBounds = boundsOfEntities(worldRoot.children); boundsDirty = false; }
+          // The render surface updates aspect after this callback; set it before fitting too.
+          const aspect = Math.max(container.clientWidth, 1) / Math.max(container.clientHeight, 1);
+          if (editorCamera.camera.aspect !== aspect) { editorCamera.camera.aspect = aspect; editorCamera.camera.updateProjectionMatrix(); }
+          progressive.update(dt, sceneBounds, reducedMotion?.matches ?? false);
+        }
         gizmoController.update();
       },
       error => callbacks.onFault(faultMessage(error)));
@@ -233,7 +249,10 @@ export const mountEditorViewport = (
         return minY !== undefined && Number.isFinite(minY) ? minY : null;
       } } : null;
     },
+    setProgressiveDesign(promptId, active): void { if (!disposed) progressive.setPrompt(promptId, active); },
+    interruptProgressiveDesign: interruptProgressive,
     frameSelection(): void {
+      progressive.interrupt();
       if (disposed) return;
       const view = lastView;
       if (!view) return;
@@ -244,6 +263,7 @@ export const mountEditorViewport = (
     },
     play(scene: SceneDocument, scripts?: import('../scripting/index.js').ScriptModules): void {
       if (disposed) return;
+      progressive.interrupt();
       try {
         if (!physicsReady()) throw new Error('Physics is still loading. Retry Play when initialization completes.');
         playSession.start(scene, scripts);
@@ -289,6 +309,7 @@ export const mountEditorViewport = (
       gizmoController.destroy();
       editorCamera.detach();
       picker?.dispose();
+      for (const event of ['pointerdown', 'wheel', 'keydown', 'dragover']) canvas.removeEventListener(event, interruptProgressive, { capture: true });
       canvas.removeEventListener('pointerdown', onPointerDown);
       canvas.removeEventListener('pointerup', onPointerUp);
       materials.dispose();

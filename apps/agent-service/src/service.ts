@@ -19,6 +19,7 @@
  *    connection closure and the bootstrap token is passed to `connectT3` only.
  */
 import path from 'node:path';
+import { withSceneInstructions } from './sceneInstructions.js';
 import type {
   AgentEvent,
   AgentRunRequest,
@@ -29,10 +30,13 @@ import type {
 import {
   AgentBridgeError,
   ThreadEventMapper,
+  selectModelOptionSchema,
   approvalDecisionFor,
   approvalNotPending,
   availableForgonProviders,
   buildLaunchThreadInput,
+  buildMessageDispatch,
+  FORGON_CREATION,
   buildMessageContext,
   buildProviderSwitch,
   buildRunInterrupt,
@@ -324,6 +328,13 @@ export const createAgentService = async (
       readiness,
       ...(message === undefined ? {} : { message }),
       models,
+      ...(models.length ? { defaultModel: defaultModelFor(forgonId) } : {}),
+      modelOptions: Object.fromEntries((provider.models ?? []).map(model => [model.slug,
+        (model.capabilities?.optionDescriptors ?? []).flatMap(descriptor => {
+          const parsed = selectModelOptionSchema.safeParse(descriptor);
+          return parsed.success ? [parsed.data] : [];
+        }),
+      ])),
       permissionModes,
       ...(limits.length === 0 ? {} : { limits }),
     };
@@ -454,6 +465,34 @@ export const createAgentService = async (
     await connection.orchestration.dispatchCommand(command);
   };
 
+  const respond = async (runId: string, requestId: string, response: Pick<Parameters<typeof buildRuntimeRequestRespond>[0], 'decision' | 'answers'>): Promise<void> => {
+    const tracked = runs.get(runId);
+    if (!tracked) throw runNotFound(runId);
+    const mapper = threadMappers.get(tracked.threadId);
+    const pending = mapper?.pendingApprovals().find(request => request.requestId === requestId && request.runId === runId && !request.answered);
+    if (!pending || Boolean(pending.questions) !== (response.answers !== undefined)) throw approvalNotPending(runId, requestId);
+    if (pending.questions) {
+      const answers = response.answers!;
+      if (Object.keys(answers).some(id => !pending.questions!.some(question => question.id === id))) throw new Error('Unknown question id.');
+      for (const question of pending.questions) {
+        const answer = answers[question.id];
+        if (answer === undefined && question.required === false) continue;
+        const values = typeof answer === 'string' ? [answer] : Array.isArray(answer) ? answer : [];
+        if (values.length === 0 || values.some(value => typeof value !== 'string' || (!value.trim() && question.initialAnswer === undefined)) || (!question.multiSelect && values.length !== 1)
+          || (question.allowCustomAnswer === false && values.some(value => !question.options.some(option => (option.value ?? option.label) === value)))) {
+          throw new Error(`Answer required for ${question.header}.`);
+        }
+      }
+    }
+    mapper!.consumeApproval(requestId);
+    try {
+      await dispatch(buildRuntimeRequestRespond({ commandId: idFactory('cmd'), threadId: tracked.threadId, requestId, ...response }));
+    } catch (error) {
+      pending.answered = false;
+      throw error;
+    }
+  };
+
   const facade: AgentServiceFacade = {
     start: async (request: AgentRunRequest): Promise<{ runId: string }> => {
       const mapping = mapPermissionMode(request.permissionMode, {
@@ -468,33 +507,65 @@ export const createAgentService = async (
         model,
         discoveredProviders: discovered,
       });
+      const routedProvider = discovered.find(provider => provider.instanceId === route.instanceId);
+      if (!routedProvider || !modesForProvider(routedProvider).includes(request.permissionMode)) {
+        throw new AgentBridgeError('unsupported_control', 'The provider does not support this permission mode.');
+      }
+      const modelOptions = request.modelOptions ?? [];
+      const descriptors = routedProvider.models?.find(candidate => candidate.slug === route.model)?.capabilities?.optionDescriptors ?? [];
+      if (new Set(modelOptions.map(option => option.id)).size !== modelOptions.length) throw new AgentBridgeError('unsupported_control', 'A model option can only be selected once.');
+      for (const selection of modelOptions) {
+        const descriptor = descriptors.map(value => selectModelOptionSchema.safeParse(value)).find(parsed => parsed.success && parsed.data.id === selection.id);
+        if (!descriptor?.success || !descriptor.data.options.some(option => option.id === selection.value)) {
+          throw new AgentBridgeError('unsupported_control', 'This model does not support the selected reasoning option. Choose a supported value.');
+        }
+      }
       const projectId = await ensureProject(request.projectRoot);
       const context = buildMessageContext(request.context);
+      const prompt = withSceneInstructions(request.prompt);
       const persisted = store.byThreadId(request.threadId);
       const reuseExistingThread = options.reuseExistingThread !== false && persisted !== undefined;
       const launchInput = buildLaunchThreadInput({
         commandId: idFactory('cmd'),
         projectId,
         title: titleFor(request),
-        modelSelection: { instanceId: route.instanceId, model: route.model },
+        modelSelection: { instanceId: route.instanceId, model: route.model, ...(modelOptions.length ? { options: modelOptions } : {}) },
         runtimeMode: mapping.runtimeMode,
         interactionMode: 'default',
         workspaceStrategy: { type: 'root' },
         threadId: request.threadId,
-        ...(reuseExistingThread ? { reuseExistingThread: true } : {}),
         // The prompt is the run's first message and must always be sent; context is optional.
         initialMessage: {
-          text: request.prompt,
+          text: prompt,
           ...(context === undefined ? {} : { context }),
         },
       });
 
-      const result = await connection.orchestration.launchThread(launchInput);
-      const run = newestRun(result.projection);
+      let result: { threadId: string; projection: T3ThreadProjection };
+      let messageId: string | undefined;
+      if (reuseExistingThread) {
+        if (persisted.projectId !== projectId || persisted.provider !== request.provider) {
+          throw new AgentBridgeError('unsupported_control', 'Start a new thread to change the project or provider.');
+        }
+        if (routedProvider.requiresNewThreadForModelChange && persisted.model !== route.model) {
+          throw new AgentBridgeError('unsupported_control', 'This provider requires a new thread to change models.');
+        }
+        await dispatch(buildThreadRuntimeModeSet({ commandId: idFactory('cmd'), threadId: request.threadId, runtimeMode: mapping.runtimeMode }));
+        messageId = idFactory('msg');
+        await dispatch(buildMessageDispatch({ commandId: idFactory('cmd'), threadId: request.threadId, messageId,
+          text: prompt, creation: FORGON_CREATION,
+          modelSelection: { instanceId: route.instanceId, model: route.model, options: modelOptions },
+          ...(context === undefined ? {} : { context }),
+        }));
+        result = { threadId: request.threadId, projection: await connection.orchestration.getThreadProjection(request.threadId) };
+      } else {
+        result = await connection.orchestration.launchThread(launchInput);
+      }
+      const run = messageId ? result.projection.runs.find(candidate => candidate.userMessageId === messageId) : newestRun(result.projection);
       if (run === undefined) {
         throw new AgentBridgeError(
           'protocol_shape',
-          'T3 accepted the thread launch but created no durable run, so there is nothing to track.',
+          'T3 accepted the message but created no durable run, so there is nothing to track.',
         );
       }
 
@@ -532,21 +603,8 @@ export const createAgentService = async (
       );
     },
 
-    approve: async (runId: string, requestId: string, allow: boolean): Promise<void> => {
-      const tracked = runs.get(runId);
-      if (tracked === undefined) throw runNotFound(runId);
-      const mapper = threadMappers.get(tracked.threadId);
-      const approval = mapper?.consumeApproval(requestId);
-      if (approval === undefined) throw approvalNotPending(runId, requestId);
-      await dispatch(
-        buildRuntimeRequestRespond({
-          commandId: idFactory('cmd'),
-          threadId: tracked.threadId,
-          requestId,
-          decision: approvalDecisionFor(allow),
-        }),
-      );
-    },
+    approve: (runId: string, requestId: string, allow: boolean) => respond(runId, requestId, { decision: approvalDecisionFor(allow) }),
+    answer: (runId, requestId, answers) => respond(runId, requestId, { answers }),
 
     subscribe: (listener: (event: AgentEvent) => void): (() => void) => {
       listeners.add(listener);

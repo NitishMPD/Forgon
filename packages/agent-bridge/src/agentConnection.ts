@@ -20,6 +20,8 @@ export interface AgentProviderInfo {
   readonly message?: string;
   /** Model ids the adapter reports. Empty means the adapter reported none; never invented. */
   readonly models: readonly string[];
+  modelOptions?: Readonly<Record<string, readonly import('@forgon/project-schema').AgentModelOption[]>>;
+  defaultModel?: string;
   /**
    * Permission modes that are actually enforceable over this connection. `inspect` is included
    * only when Forgon enforces it (see `mapPermissionMode`); a mode the bridge cannot honor is
@@ -48,8 +50,8 @@ export const permissionModesForConnection = (options?: {
   readonly forgonEnforcesInspect?: boolean;
 }): readonly PermissionMode[] =>
   options?.forgonEnforcesInspect === true
-    ? ['inspect', 'supervised', 'auto-edits', 'full-local']
-    : ['supervised', 'auto-edits', 'full-local'];
+    ? ['inspect', 'supervised', 'auto-edits', 'auto', 'full-local']
+    : ['supervised', 'auto-edits', 'auto', 'full-local'];
 
 export interface AgentConnectionInput {
   readonly service: AgentService;

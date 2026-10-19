@@ -35,7 +35,7 @@ const createStore = (): { store: ThreadRefStore; refs: Map<string, ThreadRef> } 
       load: async () => [...refs.values()],
       all: () => [...refs.values()],
       get: (runId) => refs.get(runId),
-      byThreadId: (threadId) => [...refs.values()].find((ref) => ref.threadId === threadId),
+      byThreadId: (threadId) => [...refs.values()].reverse().find((ref) => ref.threadId === threadId),
       save: async (ref) => {
         refs.set(ref.runId, ref);
       },
@@ -335,22 +335,24 @@ test('permissionModesFor intersects the connection modes with what the provider 
 
   assert.deepEqual(await service.permissionModesFor('codex'), ['supervised', 'full-local']);
   // An undiscovered provider falls back to the connection's enforceable set, never widened.
-  assert.deepEqual(await service.permissionModesFor('opencode'), ['supervised', 'auto-edits', 'full-local']);
+  assert.deepEqual(await service.permissionModesFor('opencode'), ['supervised', 'auto-edits', 'auto', 'full-local']);
   service.close();
 });
 
 // --- launch reuse ----------------------------------------------------------------------------
 
-test('start reuses an existing durable thread when a ref already names it', async () => {
+test('follow-up messages dispatch on the existing thread after applying selected permissions', async () => {
   const { fake, refs, service } = await runningService({
-    providers: [codexProvider()],
-    projection: projection({ threadId: 'th-1', runs: [run('run-1', 'running', 1)] }),
+    providers: [codexProvider()], projects: [{ id: 'project-1', workspaceRoot: 'C:/work' }], projection: projection({ threadId: 'th-1', runs: [{ ...run('run-1', 'completed', 1), userMessageId: 'previous-message' }] }),
   });
   refs.set('run-1', refFor('th-1', 'run-1'));
-
-  await service.start(request());
-  const second = fake.calls.launches.at(-1);
-  assert.equal(second?.['reuseExistingThread'], true);
-  assert.equal(second?.['threadId'], 'th-1');
+  const result = await service.start(request({ permissionMode: 'full-local' }));
+  assert.equal(fake.calls.launches.length, 0);
+  assert.deepEqual(fake.calls.commands.map(command => command.type), ['thread.runtime-mode.set', 'message.dispatch']);
+  assert.equal(fake.calls.commands[0]?.['runtimeMode'], 'full-access');
+  assert.match(String(fake.calls.commands[1]?.['text']), /^Fix the save bug\n\n\[Forgon scene authoring guidance:/);
+  assert.match(String(fake.calls.commands[1]?.['text']), /clean, meaningful hierarchy using parentId/);
+  assert.notEqual(result.runId, 'run-1');
+  assert.equal(refs.get(result.runId)?.permissionMode, 'full-local');
   service.close();
 });

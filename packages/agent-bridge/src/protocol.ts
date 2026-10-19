@@ -273,6 +273,11 @@ export const turnItemSchema = z.discriminatedUnion('type', [
   z.object({ ...turnItemBase, type: z.literal('subagent'), subagentId: trimmedNonEmpty, prompt: z.string() }).passthrough(),
   z.object({ ...turnItemBase, type: z.literal('dynamic_tool'), input: z.unknown(), output: z.unknown().optional(), toolName: z.string().nullable().optional() }).passthrough(),
 ]);
+export const userInputQuestionsSchema = z.array(z.object({
+  id: z.string().min(1), header: z.string(), question: z.string().min(1),
+  options: z.array(z.object({ label: z.string(), description: z.string(), value: z.string().optional() })),
+  allowCustomAnswer: z.boolean().optional(), initialAnswer: z.string().optional(), multiSelect: z.boolean().optional(), required: z.boolean().optional(),
+})).min(1).refine(questions => new Set(questions.map(question => question.id)).size === questions.length, 'Question ids must be unique');
 export type T3TurnItem = z.infer<typeof turnItemSchema>;
 
 const eventBaseSchema = z.object({
@@ -358,6 +363,12 @@ export const getTurnItemResultSchema = z.object({ item: z.unknown().nullable() }
  * `providers` is an array of `ServerProvider`; `instanceId` is the only stable routing key.
  */
 /** `ServerProviderModel` (`packages/contracts/src/server.ts`): one selectable model. */
+export const selectModelOptionSchema = z.object({
+  id: trimmedNonEmpty, label: trimmedNonEmpty, type: z.literal('select'),
+  options: z.array(z.object({ id: trimmedNonEmpty, label: trimmedNonEmpty, isDefault: z.boolean().optional() }).passthrough()),
+  currentValue: z.string().optional(),
+}).passthrough();
+
 export const serverProviderModelSchema = z
   .object({
     slug: trimmedNonEmpty,

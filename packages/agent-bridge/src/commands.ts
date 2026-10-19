@@ -91,7 +91,7 @@ export interface MessageDispatchInput {
   readonly creation: T3CreationFields;
   /** `start_immediately` runs the turn now; the queue/steer modes alter a live run. */
   readonly dispatchMode?: T3MessageDispatchMode;
-  readonly modelSelection?: { instanceId: string; model: string };
+  readonly modelSelection?: { instanceId: string; model: string; options?: import('@forgon/project-schema').AgentModelSelectionOption[] };
   /** Free-form context the provider sees; Forgon maps `AgentContext` into this. */
   readonly context?: unknown;
 }
@@ -179,7 +179,7 @@ export const buildCheckpointRollback = (input: {
 export const buildThreadModelSelectionSet = (input: {
   readonly commandId: string;
   readonly threadId: string;
-  readonly modelSelection: { instanceId: string; model: string };
+  readonly modelSelection: { instanceId: string; model: string; options?: import('@forgon/project-schema').AgentModelSelectionOption[] };
 }): T3Command => ({
   type: COMMAND_TYPES.threadModelSelectionSet,
   commandId: input.commandId,
@@ -215,7 +215,7 @@ export const buildThreadInteractionModeSet = (input: {
 export const buildProviderSwitch = (input: {
   readonly commandId: string;
   readonly threadId: string;
-  readonly modelSelection: { instanceId: string; model: string };
+  readonly modelSelection: { instanceId: string; model: string; options?: import('@forgon/project-schema').AgentModelSelectionOption[] };
 }): T3Command => ({
   type: COMMAND_TYPES.providerSwitch,
   commandId: input.commandId,
@@ -257,7 +257,7 @@ export interface LaunchThreadInput {
   readonly commandId: string;
   readonly projectId: string;
   readonly title: string;
-  readonly modelSelection: { instanceId: string; model: string };
+  readonly modelSelection: { instanceId: string; model: string; options?: import('@forgon/project-schema').AgentModelSelectionOption[] };
   /** Mapped from Forgon `PermissionMode`; never defaulted here. */
   readonly runtimeMode: string;
   readonly interactionMode: 'default' | 'plan';

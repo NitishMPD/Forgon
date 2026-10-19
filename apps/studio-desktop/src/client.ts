@@ -74,6 +74,7 @@ export async function createDesktopServices(transport: Transport) {
   const service = {
     start: (request: AgentRunRequest) => transport.request<{ runId: string }>('agent:start', { request }),
     cancel: (runId: string) => transport.request<void>('agent:cancel', { runId }),
+    answer: (runId: string, requestId: string, answers: import('@forgon/project-schema').AgentAnswers) => transport.request<void>('agent:answer', { runId, requestId, answers }),
     approve: (runId: string, requestId: string, allow: boolean) => transport.request<void>('agent:approve', { runId, requestId, allow }),
     subscribe(listener: (event: AgentEvent) => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
   };

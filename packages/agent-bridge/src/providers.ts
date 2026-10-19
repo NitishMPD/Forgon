@@ -83,8 +83,7 @@ export const availableForgonProviders = (
 
 /**
  * Reverse of `mapPermissionMode`'s runtime-mode column: which Forgon mode a T3 `RuntimeMode`
- * actually satisfies. T3's `auto` has no Forgon mode, so it maps to `undefined` and is never
- * advertised as a control.
+ * actually satisfies. Unknown modes are never advertised as controls.
  */
 export const forgonPermissionModeForRuntimeMode = (mode: string): PermissionMode | undefined => {
   switch (mode) {
@@ -92,6 +91,8 @@ export const forgonPermissionModeForRuntimeMode = (mode: string): PermissionMode
       return 'supervised';
     case 'auto-accept-edits':
       return 'auto-edits';
+    case 'auto':
+      return 'auto';
     case 'full-access':
       return 'full-local';
     default:

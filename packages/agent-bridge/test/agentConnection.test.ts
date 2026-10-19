@@ -10,6 +10,7 @@ import type { AgentEvent, AgentRunRequest, AgentService } from '@forgon/project-
 const stubService: AgentService = {
   start: (_request: AgentRunRequest) => Promise.resolve({ runId: 'r' }),
   cancel: (_runId: string) => Promise.resolve(),
+  answer: async () => {},
   approve: (_runId: string, _requestId: string, _allow: boolean) => Promise.resolve(),
   subscribe: (_listener: (event: AgentEvent) => void) => () => undefined,
 };
@@ -19,20 +20,22 @@ const providerInfo: AgentProviderInfo = {
   name: 'Codex',
   readiness: 'ready',
   models: ['gpt-5'],
-  permissionModes: ['supervised', 'auto-edits', 'full-local'],
+  permissionModes: ['supervised', 'auto-edits', 'auto', 'full-local'],
 };
 
 test('permissionModesForConnection excludes inspect unless Forgon enforces it', () => {
-  assert.deepEqual(permissionModesForConnection(), ['supervised', 'auto-edits', 'full-local']);
+  assert.deepEqual(permissionModesForConnection(), ['supervised', 'auto-edits', 'auto', 'full-local']);
   assert.deepEqual(permissionModesForConnection({ forgonEnforcesInspect: false }), [
     'supervised',
     'auto-edits',
+    'auto',
     'full-local',
   ]);
   assert.deepEqual(permissionModesForConnection({ forgonEnforcesInspect: true }), [
     'inspect',
     'supervised',
     'auto-edits',
+    'auto',
     'full-local',
   ]);
 });
@@ -62,7 +65,7 @@ test('an unavailable provider reports not-ready with a reason', () => {
     readiness: 'not-ready',
     message: 'Sign in to Claude Code to use it.',
     models: [],
-    permissionModes: ['supervised', 'auto-edits', 'full-local'],
+    permissionModes: ['supervised', 'auto-edits', 'auto', 'full-local'],
   };
   assert.equal(info.readiness, 'not-ready');
   assert.ok(info.message !== undefined);

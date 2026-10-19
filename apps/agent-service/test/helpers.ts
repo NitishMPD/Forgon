@@ -121,6 +121,7 @@ export const createFakeConnection = (config: {
   };
   // `currentProviders` is read at each refresh so a test can change what discovery returns.
   let currentProviders: readonly T3ServerProvider[] = config.providers ?? [];
+  let currentProjection = config.projection;
   let closeCount = 0;
   let projectCounter = 0;
   const projects = new Map((config.projects ?? []).map((project) => [project.workspaceRoot, project.id]));
@@ -130,11 +131,20 @@ export const createFakeConnection = (config: {
     getConfig: async () => ({}),
     enableProvider: async () => undefined,
     launchThread: async (input) => {
+      if (input['reuseExistingThread'] === true && currentProjection.runs.length) throw new Error('Only an empty active thread can be reused during launch.');
       calls.launches.push(input);
       return { threadId: config.projection.thread.id, projection: config.projection, resumed: false };
     },
     dispatchCommand: async (command) => {
       calls.commands.push(command);
+      if (command.type === 'message.dispatch') {
+        const previous = currentProjection.runs.at(-1);
+        currentProjection = { ...currentProjection, runs: [...currentProjection.runs, {
+          ...previous, id: `dispatched-${calls.commands.length}`, threadId: String(command['threadId']), ordinal: (previous?.ordinal ?? 0) + 1,
+          userMessageId: String(command['messageId']), providerInstanceId: previous?.providerInstanceId ?? 'codex',
+          requestedAt: NOW, completedAt: null, status: 'running',
+        }] };
+      }
       return { sequence: calls.commands.length };
     },
     subscribeThread: (input) => {
@@ -145,7 +155,7 @@ export const createFakeConnection = (config: {
       if (config.projectionErrorFor?.includes(threadId) === true) {
         throw new Error(`projection unavailable for ${threadId}`);
       }
-      return config.projection;
+      return currentProjection;
     },
     getTurnDiff: async (input) => ({
       threadId: input.threadId,

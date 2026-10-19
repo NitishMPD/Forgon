@@ -270,6 +270,15 @@ fn main() {
         .setup(|app| {
             let bridge = start(app)?;
             app.manage(bridge);
+            tauri::WebviewWindowBuilder::from_config(app, &app.config().app.windows[0])?
+                .on_web_resource_request(|request, response| {
+                    // Only public bundled assets are served here, never the desktop IPC endpoint.
+                    // Sandboxed Play has an opaque origin and needs CORS for modules and WASM.
+                    if request.headers().get("origin").and_then(|value| value.to_str().ok()) == Some("null") {
+                        response.headers_mut().insert("Access-Control-Allow-Origin", tauri::http::HeaderValue::from_static("null"));
+                    }
+                })
+                .build()?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

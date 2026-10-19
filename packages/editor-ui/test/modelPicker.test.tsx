@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { ModelPicker, ModelPickerPanel } from '../src/agent/ModelPicker.js';
 import { ProviderModels } from '../src/agent/ProviderModels.js';
 import { matchesModel, modelLabel, modelOptions, modelRenderCap } from '../src/agent/modelPickerModel.js';
-import { defaultAgentThread, modelSelectionAction } from '../src/agent/useAgentSessions.js';
+import { defaultAgentThread, modelSelectionAction, restoreAgentSettingsAction } from '../src/agent/useAgentSessions.js';
 import { agentReducer, canChangeProvider, newThread, type AgentState } from '../src/agent/threadState.js';
 import type { AgentProviderInfo } from '../src/services.js';
 import { PermissionPicker, PermissionPickerPanel } from '../src/agent/PermissionPicker.js';
@@ -158,7 +158,7 @@ test('provider catalog starts collapsed with count, search and only twelve rows 
   assert.match(html, /aria-label="Search OpenCode models"/); assert.match(html, /Show all/);
   assert.equal((html.match(/<li /g) ?? []).length, 12); assert.doesNotMatch(html, /fg-chip/);
   const settings = renderToStaticMarkup(<Settings providers={[provider]} onResetLayout={() => {}} />);
-  assert.match(settings, /601 models/); assert.match(settings, /opencode auth login/); assert.match(settings, /Full local/);
+  assert.match(settings, /601 models/); assert.match(settings, /opencode auth login/); assert.match(settings, /Full access/);
 });
 
 test('Appearance is discoverable in Settings with labelled theme, accent, density and size controls', () => {
@@ -216,8 +216,7 @@ test('remembered choice seeds new threads and catalog changes fall back safely w
   rememberModel({ provider: 'claude-code', model: 'claude-opus-4.7' }, storage);
   let thread = defaultAgentThread('new', providers, readPreferences(storage))!;
   assert.equal(thread.provider, 'claude-code'); assert.equal(thread.model, 'claude-opus-4.7'); assert.equal(thread.permissionMode, 'supervised');
-  thread = defaultAgentThread('new', providers.map(provider => ({ ...provider, models: [] })), readPreferences(storage))!;
-  assert.equal(thread.provider, 'claude-code'); assert.equal(thread.model, null);
+  assert.equal(defaultAgentThread('new', providers.map(provider => ({ ...provider, models: [] })), readPreferences(storage)), null);
   thread = defaultAgentThread('new', [providers[0]!], readPreferences(storage))!;
   assert.equal(thread.provider, 'codex'); assert.equal(thread.model, null);
   rememberModel({ provider: 'opencode', model: null }, storage);
@@ -235,7 +234,7 @@ test('permission picker lists only supported modes with descriptions; selection 
     triggerRef: { current: { focus() { focused++; } } as HTMLButtonElement }, onSelect(mode) { selected.push(mode); }, onClose() { closed++; } });
   const html = renderToStaticMarkup(panel);
   assert.match(html, /Inspect/); assert.match(html, /Supervised/); assert.match(html, /not an operating-system sandbox/);
-  assert.doesNotMatch(html, /Full local|Auto edits/);
+  assert.doesNotMatch(html, /Full access|Auto-accept edits/);
   control(panel, element => element.type === 'button' && element.props['aria-pressed'] === false).props.onClick();
   assert.deepEqual(selected, ['inspect']); assert.equal(closed, 1); assert.equal(focused, 1);
   panel.props.onKeyDown({ key: 'Escape', preventDefault() {}, stopPropagation() {} });
@@ -250,5 +249,48 @@ test('permission trigger explains absent modes, disables only unavailable modes 
   assert.match(render([]), /disabled=""/); assert.match(render([]), /did not report supported permission modes/);
   assert.doesNotMatch(render(['supervised']), /disabled=""/); assert.match(render(['supervised'], true), /disabled=""/);
   const full = renderToStaticMarkup(<PermissionPicker provider={providers[2]!} value="full-local" starting={false} onSelect={() => {}} />);
-  assert.match(full, /fg-tone-warning/); assert.match(full, /No approval prompts/);
+  assert.match(full, /Permissions: Full access/); assert.match(full, /without permission prompts/);
+});
+
+const reasoningProvider: AgentProviderInfo = { ...providers[0]!, defaultModel: 'gpt-6.1-sol', permissionModes: ['supervised', 'auto-edits', 'auto', 'full-local'],
+  modelOptions: { 'gpt-6.1-sol': [{ id: 'reasoningEffort', label: 'Reasoning', currentValue: 'low', options: [{ id: 'low', label: 'Low' }, { id: 'high', label: 'High' }] }] } };
+
+test('startup restoration waits for models and restores model, reasoning and explicitly saved Full access', () => {
+  const preferences = { appearance: defaultAppearance, recentModels: [], lastModel: { provider: 'codex' as const, model: 'gpt-6.1-sol', options: [{ id: 'reasoningEffort', value: 'high' }] }, permissionModes: { codex: 'full-local' as const } };
+  assert.equal(defaultAgentThread('t', [{ ...reasoningProvider, models: [], readiness: 'not-ready' }], preferences), null);
+  const restored = defaultAgentThread('t', [reasoningProvider], preferences)!;
+  assert.equal(restored.model, 'gpt-6.1-sol');
+  assert.equal(restored.permissionMode, 'full-local');
+  assert.deepEqual(restored.modelOptions, [{ id: 'reasoningEffort', value: 'high' }]);
+  const initial = newThread('t', 'codex', null, null);
+  const action = restoreAgentSettingsAction(initial, [reasoningProvider], preferences)!;
+  const state = agentReducer({ threads: [initial], activeThreadId: 't' }, action);
+  assert.equal(state.threads[0]?.model, 'gpt-6.1-sol');
+  assert.equal(state.threads[0]?.settingsTouched, false);
+  assert.equal(restoreAgentSettingsAction({ ...restored, settingsTouched: true }, [reasoningProvider], preferences), null);
+  const unavailable = defaultAgentThread('t', [{ ...reasoningProvider, permissionModes: ['supervised'], modelOptions: {} }], preferences)!;
+  assert.equal(unavailable.permissionMode, 'supervised'); assert.deepEqual(unavailable.modelOptions, []);
+});
+
+test('model picker exposes reported reasoning choices and sends their native values', () => {
+  const thread = { ...newThread('t', 'codex', 'full-local', 'gpt-6.1-sol'), modelOptions: [{ id: 'reasoningEffort', value: 'high' }] };
+  let selection: unknown;
+  const panel = ModelPickerPanel({ id: 'effort', providers: [reasoningProvider], providerId: 'codex', recent: [], query: '', active: 0,
+    thread, triggerRef: { current: null }, searchRef: { current: null }, onProvider() {}, onQuery() {}, onActive() {}, onSelect() {}, onClose() {},
+    onOption(id, value) { selection = [id, value]; } });
+  const html = renderToStaticMarkup(panel);
+  assert.match(html, /Reasoning/); assert.match(html, /Provider default \(Low\)/);
+  assert.match(html, /value="high" selected=""/); assert.doesNotMatch(html, /value="ultra"/);
+  const select = control(panel, element => element.type === 'select');
+  select.props.onChange({ currentTarget: { value: 'low' } }); assert.deepEqual(selection, ['reasoningEffort', 'low']);
+  select.props.onChange({ currentTarget: { value: '' } }); assert.deepEqual(selection, ['reasoningEffort', null]);
+  assert.match(renderToStaticMarkup(<ModelPicker providers={[reasoningProvider]} thread={thread} onSelect={() => {}} />), /High/);
+});
+
+test('permission menu matches the four native modes with compact descriptions', () => {
+  const html = renderToStaticMarkup(PermissionPickerPanel({ id: 'native-permissions', provider: reasoningProvider, value: 'auto', triggerRef: { current: null }, onSelect() {}, onClose() {} }));
+  for (const label of ['Supervised', 'Auto-accept edits', 'Auto', 'Full access']) assert.ok(html.includes(label));
+  assert.match(html, /Ask before commands and file changes/);
+  assert.match(html, /<details/); assert.match(html, /Provider details/);
+  assert.equal((html.match(/aria-pressed="true"/g) ?? []).length, 1);
 });

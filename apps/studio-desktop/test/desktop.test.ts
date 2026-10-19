@@ -171,6 +171,7 @@ test('agent proxy preserves early events and binds cancellation and approval to 
     subscribe: (value: typeof listener) => { listener = value; return () => { listener = undefined; }; },
     start: async () => { listener?.({ type: 'started', runId: 'run', threadId: 'thread', provider: 'codex', sequence: 1, timestamp: new Date().toISOString() }); return { runId: 'run' }; },
     cancel: async (id: string) => { calls.push(`cancel:${id}`); },
+    answer: async (id: string, request: string, answers: Record<string, string | string[]>) => { calls.push(`answer:${id}:${request}:${JSON.stringify(answers)}`); },
     approve: async (id: string, request: string, allow: boolean) => { calls.push(`approve:${id}:${request}:${allow}`); },
   }, stop: async () => { stopped++; } } as unknown as RunningAgentService;
   const h = await harness(agent);
@@ -183,8 +184,9 @@ test('agent proxy preserves early events and binds cancellation and approval to 
     assert.equal(events[0]?.type, 'started');
     await assert.rejects(h.services.agent.service.cancel('guessed'), /not owned/);
     await h.services.agent.service.approve('run', 'request', false);
+    await h.services.agent.service.answer('run', 'question', { style: 'city' });
     await h.services.agent.service.cancel('run');
-    assert.deepEqual(calls, ['approve:run:request:false', 'cancel:run']);
+    assert.deepEqual(calls, ['approve:run:request:false', 'answer:run:question:{"style":"city"}', 'cancel:run']);
     await h.bridge.close(); await h.bridge.close();
     assert.equal(stopped, 1); assert.equal(listener, undefined);
   } finally { await h.close(); }

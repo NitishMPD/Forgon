@@ -666,3 +666,18 @@ svg { flex: none; }
 @keyframes fg-typing { 0%, 80%, 100% { opacity: .4; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-2px); } }
 @media (prefers-reduced-motion: reduce) { .fg-typing i { animation: none; } }
 .fg-conflict-float { width: 100%; max-height: 40vh; overflow-y: auto; margin: 0 0 6px; padding: 10px; }
+
+.fg-question-form, .fg-question { display: grid; gap: var(--space-3); min-width: 0; }
+.fg-question { border: 0; padding: 0; margin: 0; }
+.fg-question legend { font-weight: 600; margin-bottom: var(--space-2); }
+.fg-question-option { display: flex; align-items: start; gap: var(--space-2); cursor: pointer; }
+.fg-question-option small { display: block; }
+.fg-question textarea { width: 100%; resize: vertical; }
+
+.fg-model-reasoning { flex: none; border-top: 1px solid var(--border-subtle); padding-top: var(--space-3); }
+.fg-model-reasoning .fg-field { grid-template-columns: 1fr minmax(120px, 1fr); align-items: center; }
+.fg-permission-popover { gap: var(--space-1); padding: var(--space-2); }
+.fg-permission-option { padding: var(--space-3); gap: var(--space-1); }
+.fg-permission-popover > p, .fg-permission-popover > details { margin: 4px 8px; }
+
+.fg-play-preview { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: var(--surface-canvas); }

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { AgentEvent } from '@forgon/project-schema';
 import { createEntity, createScene, parseScene } from '@forgon/project-schema';
-import { attachmentReferences, buildContext, chipStatus, clipboardFiles, insertMention, isSendKey, mentionOptions, mentionQuery, recallPrompt, sendBlockers, type ContextChip, type KeyLike } from '../src/agent/composerModel.js';
+import { attachmentReferences, buildContext, chipStatus, clipboardFiles, insertMention, isSendKey, mentionOptions, mentionQuery, progressiveDesignPrompt, recallPrompt, sendBlockers, type ContextChip, type KeyLike } from '../src/agent/composerModel.js';
 import { defaultPermissionMode, enforcementNote, providerLimitsNote } from '../src/agent/permissions.js';
 import { agentReducer, newThread, threadStatus, type AgentState, type PendingRequest } from '../src/agent/threadState.js';
 import type { AgentProviderInfo } from '../src/services.js';
@@ -247,4 +247,50 @@ test('queued requests retain the model and permissions selected when queued', ()
   assert.equal(state.threads[0]!.permissionMode, 'supervised');
   assert.equal(next.model, 'next-model');
   assert.equal(next.permissionMode, 'inspect');
+});
+
+test('questions wait for answers independently of approvals and close when resolved or completed', () => {
+  const question = { id: 'style', header: 'Style', question: 'Which style?', options: [] };
+  let state = start();
+  state = agentReducer(state, { type: 'event', event: event(1, { type: 'input', requestId: 'q1', questions: [question] }) });
+  assert.equal(threadStatus(state.threads[0]!), 'awaiting_input');
+  state = agentReducer(state, { type: 'input/answered', threadId: 'thread_1', runId: 'run_1', requestId: 'q1' });
+  assert.equal(threadStatus(state.threads[0]!), 'running');
+  state = agentReducer(state, { type: 'event', event: event(2, { type: 'input', requestId: 'q2', questions: [question] }) });
+  state = agentReducer(state, { type: 'event', event: event(3, { type: 'request-resolved', requestId: 'q2' }) });
+  assert.equal(threadStatus(state.threads[0]!), 'running');
+  state = agentReducer(state, { type: 'event', event: event(4, { type: 'input', requestId: 'q3', questions: [question] }) });
+  state = agentReducer(state, { type: 'event', event: event(5, { type: 'completed', outcome: 'cancelled' }) });
+  assert.equal(state.threads[0]!.transcript.some(item => item.kind === 'input' && item.state === 'pending'), false);
+});
+
+test('queued prompts retain reasoning choices when the composer settings change', () => {
+  let state = start();
+  const queued: PendingRequest = { ...request('q'), modelOptions: [{ id: 'reasoningEffort', value: 'high' }] };
+  state = agentReducer(state, { type: 'queue/add', threadId: 'thread_1', request: queued });
+  state = agentReducer(state, { type: 'thread/settings', threadId: 'thread_1', modelOptions: [{ id: 'reasoningEffort', value: 'low' }], permissionMode: 'auto' });
+  assert.deepEqual(state.threads[0]?.queue[0]?.modelOptions, [{ id: 'reasoningEffort', value: 'high' }]);
+  assert.notEqual(state.threads[0]?.queue[0]?.permissionMode, 'auto');
+});
+
+test('Progressive design instructs valid intermediate saves without changing ordinary prompts', () => {
+  assert.equal(progressiveDesignPrompt('Build a city', false), 'Build a city');
+  const prompt = progressiveDesignPrompt('Build a city', true);
+  assert.ok(prompt.startsWith('Build a city\n\n'));
+  assert.match(prompt, /complete, valid intermediate scene snapshots/);
+  assert.match(prompt, /atomically/);
+  assert.match(prompt, /does not grant additional permissions/);
+});
+
+test('queued prompts preserve their Progressive design instruction setting until they start', () => {
+  let state = start();
+  const queued = { ...request('progressive-queued'), progressiveDesign: true };
+  state = agentReducer(state, { type: 'queue/add', threadId: 'thread_1', request: queued });
+  const next = state.threads[0]!.queue[0]!;
+  assert.equal(next.progressiveDesign, true);
+  state = agentReducer(state, { type: 'event', event: event(1, { type: 'completed', outcome: 'succeeded' }) });
+  state = agentReducer(state, { type: 'run/requested', threadId: 'thread_1', request: next, fromQueue: true });
+  assert.equal(state.threads[0]!.queue.length, 0);
+  assert.equal(state.threads[0]!.transcript.at(-1)?.kind, 'user');
+  assert.match(progressiveDesignPrompt(next.text, next.progressiveDesign ?? false), /valid intermediate/);
 });

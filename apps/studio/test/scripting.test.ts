@@ -1,14 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { assertScriptPlaySupported, prepareScriptsForPlay } from '../src/scripts.js';
+import { validateScriptsForPlay, prepareScriptsForPlay } from '../src/scripts.js';
 import { createEntity, createScene } from '@forgon/project-schema';
 
-test('desktop Play rejects every scene with script attachments before compilation or module loading', () => {
-  const scene = createScene('Desktop gate'); const entity = createEntity('Cube'); scene.entities = [entity];
-  assert.doesNotThrow(() => assertScriptPlaySupported(scene, true));
-  entity.components.push({ id: 'script', type: 'script', enabled: false, properties: { src: 'scripts/spinner.ts', params: {} }, entityRefs: [], assetRefs: [] });
-  assert.throws(() => assertScriptPlaySupported(scene, true), /Scripts can't run in the desktop app yet \(isolated script context pending\)/);
-  assert.doesNotThrow(() => assertScriptPlaySupported(scene, false));
+test('Play validates enabled script attachments without executing project code in the editor', () => {
+  const scene = createScene('Desktop Play'); const entity = createEntity('Cube'); scene.entities = [entity];
+  const catalog = { scripts: [], diagnostics: [] };
+  assert.doesNotThrow(() => validateScriptsForPlay(scene, catalog));
+  const script = { id: 'script', type: 'script' as const, enabled: false, properties: { src: 'scripts/spinner.ts', params: {} }, entityRefs: [], assetRefs: [] };
+  entity.components.push(script);
+  assert.doesNotThrow(() => validateScriptsForPlay(scene, catalog));
+  script.enabled = true;
+  assert.throws(() => validateScriptsForPlay(scene, catalog), /Script not found/);
+  assert.doesNotThrow(() => validateScriptsForPlay(scene, { scripts: [{ src: 'scripts/spinner.ts', props: {}, code: 'throw new Error("must not run")' }], diagnostics: [] }));
 });
 
 test('Play preparation blocks compilation failures before evaluating any compiled module', async () => {

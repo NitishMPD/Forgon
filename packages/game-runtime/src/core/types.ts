@@ -82,6 +82,8 @@ export interface ViewportHandle {
   setSnap?(snap: SnapSettings): void;
   surfaceAt?(clientX: number, clientY: number): SurfacePoint | null;
   frameSelection?(): void;
+  setProgressiveDesign?(promptId: string | null, active: boolean): void;
+  interruptProgressiveDesign?(): void;
   play?(scene: SceneDocument, scripts?: import('../scripting/index.js').ScriptModules): void;
   stop?(): void;
   dispose(): void;

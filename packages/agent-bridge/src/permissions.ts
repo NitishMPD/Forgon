@@ -19,6 +19,7 @@ export const FORGON_PERMISSION_MODES: readonly PermissionMode[] = [
   'inspect',
   'supervised',
   'auto-edits',
+  'auto',
   'full-local',
 ];
 
@@ -72,6 +73,8 @@ export const mapPermissionMode = (
       return delegatedMapping('supervised', 'approval-required');
     case 'auto-edits':
       return delegatedMapping('auto-edits', 'auto-accept-edits');
+    case 'auto':
+      return delegatedMapping('auto', 'auto');
     case 'full-local':
       return delegatedMapping('full-local', 'full-access');
     case 'inspect':
@@ -93,7 +96,6 @@ export const mapPermissionMode = (
 };
 
 /**
- * T3 `RuntimeMode` values are a superset of what Forgon asks for. Report the ones Forgon cannot
- * reach as unsupported controls rather than exposing them.
+ * All pinned T3 runtime modes now have a Forgon mapping.
  */
-export const forgonUnreachableT3RuntimeModes = (): readonly T3RuntimeMode[] => ['auto'];
+export const forgonUnreachableT3RuntimeModes = (): readonly T3RuntimeMode[] => [];

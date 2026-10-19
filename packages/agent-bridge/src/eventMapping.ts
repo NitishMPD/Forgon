@@ -16,10 +16,11 @@
  *  - History is not replayed as live text. A snapshot primes the text baseline and reports run
  *    state plus pending approvals only; this keeps `text` events a live delta stream.
  */
-import type { AgentEvent, Diagnostic, ProviderId } from '@forgon/project-schema';
+import type { AgentEvent, AgentQuestion, Diagnostic, ProviderId } from '@forgon/project-schema';
 import { redactSecrets } from './redaction.js';
 import {
   RUN_STATUSES,
+  userInputQuestionsSchema,
   isTerminalRunStatus,
   threadStreamItemSchema,
   type T3Run,
@@ -38,6 +39,8 @@ export type AgentEventPayload =
   | { type: 'tool'; name: string; state: 'started' | 'completed' | 'failed'; text?: string }
   | { type: 'diagnostic'; diagnostic: Diagnostic }
   | { type: 'approval'; requestId: string; description: string }
+  | { type: 'input'; requestId: string; questions: AgentQuestion[] }
+  | { type: 'request-resolved'; requestId: string }
   | { type: 'diff'; paths: string[]; diff?: string }
   | { type: 'completed'; outcome: 'succeeded' | 'failed' | 'cancelled'; message?: string };
 
@@ -76,6 +79,7 @@ export interface PendingApproval {
   readonly runId: string;
   readonly requestId: string;
   readonly description: string;
+  readonly questions?: AgentQuestion[];
   /** Forgon-side flag: once answered, a repeat answer for the same request is refused. */
   answered: boolean;
 }
@@ -150,7 +154,9 @@ export class ThreadEventMapper {
   private readonly itemText = new Map<string, string>();
   /** Run status we last saw, so `completed` is emitted once per run. */
   private readonly runStatuses = new Map<string, T3RunStatus>();
-  /** Live pending approvals, keyed by requestId. */
+  /** Resolved IDs cannot be reopened by a replayed turn item. */
+  private readonly resolvedRequests = new Set<string>();
+  /** Run-bound permission and question requests, keyed by requestId. */
   private readonly approvals = new Map<string, PendingApproval>();
   /** Cursor for reconnect: the highest T3 stream sequence consumed. */
   private cursorSequence = 0;
@@ -227,26 +233,28 @@ export class ThreadEventMapper {
     for (const entry of projection.visibleTurnItems ?? []) {
       this.primeText(entry.item);
     }
-    for (const request of projection.runtimeRequests ?? []) {
-      const record = asRecord(request);
-      if (record === undefined) continue;
-      if (readStatus(record) !== 'pending') continue;
-      const requestId = readString(record, 'id');
-      if (requestId === undefined) continue;
-      const kind = readString(record, 'kind') ?? 'permission';
-      this.approvals.set(requestId, {
-        runId: fallbackRunId(this.threadId),
-        requestId,
-        description: redactSecrets(`pending ${kind} request`),
-        answered: false,
-      });
-    }
     // Report the newest run's state so a reconnect learns whether work is live.
     let newest: T3Run | undefined;
     for (const run of projection.runs) {
       if (newest === undefined || run.ordinal >= newest.ordinal) newest = run;
     }
     if (newest !== undefined) this.applyRun(newest, this.now());
+    const pending = new Set<string>();
+    for (const request of projection.runtimeRequests ?? []) {
+      const record = asRecord(request);
+      if (record) {
+        this.applyRuntimeRequest(record, this.now());
+        const id = readString(record, 'id');
+        if (id && record['status'] === 'pending') pending.add(id);
+      }
+    }
+    for (const request of this.approvals.values()) {
+      if (!pending.has(request.requestId)) this.applyRuntimeRequest({ id: request.requestId, status: 'resolved' }, this.now());
+    }
+    for (const item of [...(projection.turnItems ?? []), ...(projection.visibleTurnItems ?? []).map(entry => entry.item)]) {
+      const record = asRecord(item);
+      if (record && pending.has(String(record['requestId']))) this.applyTurnItem(item as T3TurnItem, this.now());
+    }
   }
 
   /** Prime the text baseline for an item already present in the projection. */
@@ -373,7 +381,7 @@ export class ThreadEventMapper {
     });
     // A finished run can no longer answer its approvals.
     for (const [requestId, approval] of this.approvals) {
-      if (!approval.answered) this.approvals.delete(requestId);
+      if (approval.runId === run.id && !approval.answered) this.approvals.delete(requestId);
     }
   }
 
@@ -381,20 +389,10 @@ export class ThreadEventMapper {
     const requestId = readString(record, 'id');
     if (requestId === undefined) return;
     const status = readStatus(record);
-    const kind = readString(record, 'kind') ?? 'permission';
-    if (status === 'pending') {
-      if (!this.approvals.has(requestId)) {
-        this.approvals.set(requestId, {
-          runId: fallbackRunId(this.threadId),
-          requestId,
-          description: redactSecrets(`T3 runtime request (${kind})`),
-          answered: false,
-        });
-      }
-      return;
-    }
-    // resolved / expired / cancelled: stop offering the approval.
+    if (status !== 'resolved' && status !== 'expired' && status !== 'cancelled') return;
+    this.resolvedRequests.add(requestId);
     this.approvals.delete(requestId);
+    this.emit(this.lastRunId ?? fallbackRunId(this.threadId), timestamp, { type: 'request-resolved', requestId });
   }
 
   private applyTurnItem(item: T3TurnItem, timestamp: string): void {
@@ -402,6 +400,8 @@ export class ThreadEventMapper {
     const runId = typeof record['runId'] === 'string' ? (record['runId'] as string) : fallbackRunId(this.threadId);
     const itemId = typeof record['id'] === 'string' ? (record['id'] as string) : undefined;
     const status = readStatus(record);
+    const runStatus = this.runStatuses.get(runId);
+    if ((record['type'] === 'approval_request' || record['type'] === 'user_input_request') && runStatus && isTerminalRunStatus(runStatus)) return;
     switch (record['type']) {
       case 'assistant_message': {
         this.emitTextDelta(runId, itemId, readString(record, 'text'), timestamp);
@@ -485,7 +485,21 @@ export class ThreadEventMapper {
       case 'user_input_request': {
         const requestId = readString(record, 'requestId');
         if (requestId === undefined) return;
-        this.emitApproval(runId, requestId, 'The agent is waiting for your input.', timestamp);
+        const parsed = userInputQuestionsSchema.safeParse(record['questions']);
+        if (!parsed.success || parsed.data.length === 0) {
+          this.emit(runId, timestamp, { type: 'diagnostic', diagnostic: this.diagnostic('The provider sent an invalid question request.') });
+          return;
+        }
+        const existing = this.approvals.get(requestId);
+        if (existing?.questions || existing?.answered || this.resolvedRequests.has(requestId)) return;
+        const questions = parsed.data;
+        this.approvals.set(requestId, { runId, requestId, description: '', questions, answered: false });
+        this.emit(runId, timestamp, { type: 'input', requestId, questions: questions.map(question => ({
+          ...question, header: redactSecrets(question.header), question: redactSecrets(question.question),
+          options: question.options.map(option => ({ ...option, value: option.value ?? option.label,
+            label: redactSecrets(option.label), description: redactSecrets(option.description) })),
+          ...(question.initialAnswer === undefined ? {} : { initialAnswer: redactSecrets(question.initialAnswer) }),
+        })) });
         return;
       }
       case 'error': {
@@ -531,7 +545,7 @@ export class ThreadEventMapper {
   }
 
   private emitApproval(runId: string, requestId: string, description: string, timestamp: string): void {
-    if (this.approvals.has(requestId)) return;
+    if (this.approvals.has(requestId) || this.resolvedRequests.has(requestId)) return;
     const redacted = redactSecrets(description);
     this.approvals.set(requestId, { runId, requestId, description: redacted, answered: false });
     this.emit(runId, timestamp, { type: 'approval', requestId, description: redacted });

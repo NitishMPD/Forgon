@@ -46,11 +46,12 @@ test('an unknown permission mode is refused', () => {
   );
 });
 
-test('isForgonPermissionMode narrows the four Forgon modes', () => {
+test('isForgonPermissionMode narrows the supported Forgon modes', () => {
   for (const mode of FORGON_PERMISSION_MODES) assert.equal(isForgonPermissionMode(mode), true);
-  assert.equal(isForgonPermissionMode('auto'), false);
+  assert.equal(isForgonPermissionMode('auto'), true);
 });
 
-test('the T3-only auto runtime mode is reported unreachable, not exposed', () => {
-  assert.deepEqual(forgonUnreachableT3RuntimeModes(), ['auto']);
+test('Auto maps to the native automatic permission mode', () => {
+  assert.equal(mapPermissionMode('auto').runtimeMode, 'auto');
+  assert.deepEqual(forgonUnreachableT3RuntimeModes(), []);
 });

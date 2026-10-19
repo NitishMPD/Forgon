@@ -45,3 +45,11 @@ export function modelOptions(providers: readonly AgentProviderInfo[], recent: re
   // shortcut: cap the rendered matches; add windowing only if browsing without search becomes necessary.
   return { options: all.slice(0, modelRenderCap), remaining: Math.max(0, all.length - modelRenderCap) };
 }
+
+export function reasoningOptions(provider: AgentProviderInfo | null | undefined, model: string | null) {
+  return (provider?.modelOptions?.[model ?? provider.defaultModel ?? ''] ?? []).filter(option => /reasoning|effort|thinking/i.test(option.id) && option.options.length > 0);
+}
+
+export function supportedModelOptions(provider: AgentProviderInfo | null | undefined, model: string | null, selected: readonly import('@forgon/project-schema').AgentModelSelectionOption[] = []) {
+  return selected.filter(selection => reasoningOptions(provider, model).some(descriptor => descriptor.id === selection.id && descriptor.options.some(option => option.id === selection.value)));
+}

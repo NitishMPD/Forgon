@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import type { AgentEvent, AgentRunRequest, AssetRecord, PermissionMode, ProviderId, SceneDocument } from '@forgon/project-schema';
 import type { AgentConnection, AgentProviderInfo } from '../services.js';
 import type { LogInput } from '../model/consoleLog.js';
-import { readPreferences, rememberModel, type Preferences } from '../model/preferences.js';
-import { buildContext, sendBlockers, type ContextChip } from './composerModel.js';
+import { readPreferences, rememberModel, rememberPermission, saveProgressiveDesign, type Preferences } from '../model/preferences.js';
+import { buildContext, sendBlockers, progressiveDesignPrompt, type ContextChip } from './composerModel.js';
+import { reasoningOptions, supportedModelOptions } from './modelPickerModel.js';
 import { defaultPermissionMode } from './permissions.js';
 import { agentReducer, canChangeProvider, newThread, type AgentAction, type AgentState, type AgentThread, type PendingRequest } from './threadState.js';
 
@@ -12,6 +13,10 @@ export interface AgentController {
   state: AgentState;
   activeThread: AgentThread | null;
   activeProvider: AgentProviderInfo | null;
+  progressiveDesign: boolean;
+  setProgressiveDesign(enabled: boolean): void;
+  progressivePromptId: string | null;
+  progressiveBuilding: boolean;
   draft: string;
   setDraft(text: string): void;
   chips: readonly ContextChip[];
@@ -21,11 +26,13 @@ export interface AgentController {
   canSend: boolean;
   send(): void;
   cancel(): void;
+  answer(threadId: string, runId: string, requestId: string, answers: import('@forgon/project-schema').AgentAnswers): Promise<void>;
   approve(threadId: string, runId: string, requestId: string, allow: boolean): void;
   newThread(): void;
   selectThread(threadId: string): void;
   setProvider(provider: ProviderId): void;
   setModel(model: string | null, provider?: ProviderId): void;
+  setModelOption(id: string, value: string | null): void;
   setPermissionMode(mode: PermissionMode): void;
   refreshProviders?: (() => Promise<void>) | undefined;
 }
@@ -49,25 +56,38 @@ function errorMessage(error: unknown): string {
 }
 
 function defaultProvider(providers: readonly AgentProviderInfo[]): AgentProviderInfo | null {
-  return providers.find(provider => provider.readiness !== 'not-ready') ?? providers[0] ?? null;
+  return providers.find(provider => provider.readiness !== 'not-ready' && provider.models.length > 0) ?? null;
 }
 
 export function defaultAgentThread(id: string, providers: readonly AgentProviderInfo[], preferences: Preferences = readPreferences()): AgentThread | null {
   const choice = preferences.lastModel;
-  const remembered = choice && providers.find(provider => provider.id === choice.provider && provider.readiness !== 'not-ready');
+  const remembered = choice && providers.find(provider => provider.id === choice.provider && provider.readiness !== 'not-ready' && provider.models.length > 0);
   const provider = remembered || defaultProvider(providers);
   if (!provider) return null;
-  const model = remembered && choice?.model !== null && choice?.model !== undefined && provider.models.includes(choice.model) ? choice.model : null;
-  return newThread(id, provider.id, defaultPermissionMode(provider.permissionModes), model);
+  const model = remembered && choice?.model === null ? null
+    : remembered && choice?.model && provider.models.includes(choice.model) ? choice.model : provider.defaultModel ?? null;
+  const savedMode = preferences.permissionModes?.[provider.id];
+  const permissionMode = savedMode && provider.permissionModes.includes(savedMode) ? savedMode : defaultPermissionMode(provider.permissionModes);
+  return { ...newThread(id, provider.id, permissionMode, model), modelOptions: supportedModelOptions(provider, model, remembered ? choice?.options : []) };
 }
 
 export function modelSelectionAction(thread: AgentThread, providers: readonly AgentProviderInfo[], model: string | null, provider: ProviderId = thread.provider): AgentAction | null {
   if (thread.starting || (provider !== thread.provider && !canChangeProvider(thread))) return null;
   const info = providers.find(item => item.id === provider);
   if (!info || (model !== null && !info.models.includes(model))) return null;
-  const current = thread.permissionMode;
+  const saved = readPreferences().permissionModes?.[provider];
+  const current = provider === thread.provider ? thread.permissionMode : saved ?? null;
   return { type: 'thread/settings', threadId: thread.id, provider, model,
-    permissionMode: current !== null && info.permissionModes.includes(current) ? current : defaultPermissionMode(info.permissionModes) };
+    permissionMode: current !== null && info.permissionModes.includes(current) ? current : defaultPermissionMode(info.permissionModes),
+    modelOptions: model === thread.model && provider === thread.provider ? supportedModelOptions(info, model, thread.modelOptions) : [] };
+}
+
+export function restoreAgentSettingsAction(thread: AgentThread, providers: readonly AgentProviderInfo[], preferences: Preferences = readPreferences()): AgentAction | null {
+  if (thread.settingsTouched || !canChangeProvider(thread)) return null;
+  const restored = defaultAgentThread(thread.id, providers, preferences);
+  if (!restored || (restored.provider === thread.provider && restored.model === thread.model && restored.permissionMode === thread.permissionMode && JSON.stringify(restored.modelOptions) === JSON.stringify(thread.modelOptions))) return null;
+  return { type: 'thread/settings', threadId: thread.id, restoring: true, provider: restored.provider, model: restored.model,
+    permissionMode: restored.permissionMode, modelOptions: restored.modelOptions ?? [] };
 }
 
 // Owns thread state for the agent dock. Events from the service are folded into transcripts;
@@ -93,6 +113,9 @@ export function useAgentSessions(input: AgentSessionInput): AgentController | nu
     return originalConnection.onProvidersChanged(reread);
   }, [originalConnection]);
   const [state, dispatch] = useReducer(agentReducer, emptyState);
+  const [progressiveDesign, setProgressive] = useState(() => readPreferences().progressiveDesign ?? false);
+  const [progressivePrompt, setProgressivePrompt] = useState<{ id: string; threadId: string } | null>(null);
+  const setProgressiveDesign = useCallback((enabled: boolean) => { setProgressive(enabled); saveProgressiveDesign(enabled); }, []);
   const [draft, setDraft] = useState('');
   const [chips, setChips] = useState<ContextChip[]>([]);
   const onLogRef = useRef(onLog);
@@ -120,16 +143,24 @@ export function useAgentSessions(input: AgentSessionInput): AgentController | nu
     if (thread) dispatch({ type: 'thread/ensure', thread });
   }, [connection, state.threads.length]);
 
+  useEffect(() => {
+    if (!connection || !activeThread) return;
+    const action = restoreAgentSettingsAction(activeThread, connection.providers);
+    if (action) dispatch(action);
+  }, [connection, activeThread]);
+
   const start = useCallback((threadId: string, request: PendingRequest, fromQueue: boolean) => {
     if (!connection || projectRoot === null) return;
+    setProgressivePrompt({ id: request.id, threadId });
     dispatch({ type: 'run/requested', threadId, request, fromQueue });
     const runRequest: AgentRunRequest = {
       threadId,
       provider: request.provider,
-      prompt: request.text,
+      prompt: progressiveDesignPrompt(request.text, request.progressiveDesign ?? false),
       projectRoot,
       permissionMode: request.permissionMode,
       context: request.context,
+      ...(request.modelOptions?.length ? { modelOptions: request.modelOptions } : {}),
       ...(request.model !== null ? { model: request.model } : {}),
     };
     Promise.resolve()
@@ -168,9 +199,11 @@ export function useAgentSessions(input: AgentSessionInput): AgentController | nu
     if (!connection || !activeThread || !canSend || mode === null) return;
     const request: PendingRequest = {
       id: localId('request'),
+      progressiveDesign,
       text: draft.trim(),
       provider: activeThread.provider,
       model: activeThread.model,
+      modelOptions: [...(activeThread.modelOptions ?? [])],
       permissionMode: mode,
       context: buildContext(chips),
     };
@@ -181,7 +214,7 @@ export function useAgentSessions(input: AgentSessionInput): AgentController | nu
     } else {
       start(activeThread.id, request, false);
     }
-  }, [connection, activeThread, canSend, draft, chips, start]);
+  }, [connection, activeThread, canSend, draft, chips, start, progressiveDesign]);
 
   const cancel = useCallback(() => {
     const runId = activeThread?.activeRunId;
@@ -204,6 +237,15 @@ export function useAgentSessions(input: AgentSessionInput): AgentController | nu
     });
   }, [connection]);
 
+  const answer = useCallback(async (threadId: string, runId: string, requestId: string, answers: import('@forgon/project-schema').AgentAnswers) => {
+    if (!connection || answering.current.has(requestId)) return;
+    answering.current.add(requestId);
+    try {
+      await connection.service.answer(runId, requestId, answers);
+      dispatch({ type: 'input/answered', threadId, runId, requestId });
+    } finally { answering.current.delete(requestId); }
+  }, [connection]);
+
   const newThreadAction = useCallback(() => {
     if (!connection) return;
     const thread = defaultAgentThread(localId('thread'), connection.providers);
@@ -215,15 +257,26 @@ export function useAgentSessions(input: AgentSessionInput): AgentController | nu
     const action = modelSelectionAction(activeThread, connection.providers, model, provider);
     if (action) {
       dispatch(action);
-      rememberModel({ provider: provider ?? activeThread.provider, model });
+      rememberModel({ provider: provider ?? activeThread.provider, model, ...(action.type === 'thread/settings' && action.modelOptions?.length ? { options: action.modelOptions } : {}) });
     }
   }, [activeThread, connection]);
 
   const setProvider = useCallback((provider: ProviderId) => setModel(null, provider), [setModel]);
 
   const setPermissionMode = useCallback((permissionMode: PermissionMode) => {
-    if (activeThread) dispatch({ type: 'thread/settings', threadId: activeThread.id, permissionMode });
-  }, [activeThread]);
+    if (!activeThread || activeThread.starting || !activeProvider?.permissionModes.includes(permissionMode)) return;
+    dispatch({ type: 'thread/settings', threadId: activeThread.id, permissionMode });
+    rememberPermission(activeThread.provider, permissionMode);
+  }, [activeThread, activeProvider]);
+
+  const setModelOption = useCallback((id: string, value: string | null) => {
+    if (!activeThread || activeThread.starting) return;
+    const descriptor = reasoningOptions(activeProvider, activeThread.model).find(option => option.id === id);
+    if (!descriptor || (value !== null && !descriptor.options.some(option => option.id === value))) return;
+    const modelOptions = [...(activeThread.modelOptions ?? []).filter(option => option.id !== id), ...(value === null ? [] : [{ id, value }])];
+    dispatch({ type: 'thread/settings', threadId: activeThread.id, modelOptions });
+    rememberModel({ provider: activeThread.provider, model: activeThread.model, ...(modelOptions.length ? { options: modelOptions } : {}) });
+  }, [activeThread, activeProvider]);
 
   const addChip = useCallback((chip: ContextChip) => {
     setChips(current => (current.some(item => item.kind === chip.kind && item.ref === chip.ref) ? current : [...current, chip]));
@@ -236,6 +289,10 @@ export function useAgentSessions(input: AgentSessionInput): AgentController | nu
   if (!connection) return null;
   return {
     connection,
+    progressiveDesign,
+    setProgressiveDesign,
+    progressivePromptId: progressivePrompt?.id ?? null,
+    progressiveBuilding: state.threads.some(thread => thread.id === progressivePrompt?.threadId && (thread.starting || thread.activeRunId !== null)),
     refreshProviders,
     state,
     activeThread,
@@ -250,10 +307,12 @@ export function useAgentSessions(input: AgentSessionInput): AgentController | nu
     send,
     cancel,
     approve,
+    answer,
     newThread: newThreadAction,
     selectThread: threadId => dispatch({ type: 'thread/select', threadId }),
     setProvider,
     setModel,
     setPermissionMode,
+    setModelOption,
   };
 }

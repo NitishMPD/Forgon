@@ -1,6 +1,14 @@
 ﻿# Forgon Engine design
 Author: Nitish
 
+AI-authored scenes should read as a small set of named areas and systems in Hierarchy. Expand a group to reach blocks, roads or assembled objects, then expand the object for its mesh details. Prefer meaningful grouping and distinguishing names over a long flat root or a single catch-all folder. Keep existing user organization and independent objects intact.
+
+Play keeps the scene in the existing viewport and moves keyboard focus into the game after successful startup. During startup the mode reads Preparing and the Stop button remains available to cancel. F5 and Ctrl+P stop both loading and running previews, including when the game has focus. Startup errors return to Edit and reveal Console instead of showing a false Playing state. Stopping restores the unchanged editor scene.
+
+## Progressive design control
+Use a Lucide Orbit icon toggle beside the composer attachment control, with the accessible name "Progressive design", a pressed state and a tooltip explaining live saved updates, turntable viewing and interruption until the next prompt. Keep the footer compact with no persistent explanatory label. Reuse existing icon-button hover, focus and selected states. Camera motion is slow and continuous while work runs; direct viewport interaction immediately returns control to the user. Respect reduced motion by fitting updates without orbiting.
+
+
 ## Direction
 Modern, minimal, dark Windows desktop workspace. Near-black app background with floating rounded panel groups separated by small gaps; the game viewport stays the hero and agent work stays visible beside it. Icon + short label everywhere, minimal prose; detail lives in tooltips, popovers and the inspector. Soft translucent floating toolbars and overlay cards on the viewport; pill tabs, pill tags and activity-feed timelines instead of boxed tables. Avoid promotional dashboard cards and decorative gradients beyond the subtle viewport glow.
 
@@ -112,3 +120,13 @@ Ctrl+D duplicates the selection outside text fields. Hold Ctrl while dragging a 
 The model trigger opens with Enter/Space. Focus moves to its search combobox; ArrowUp/ArrowDown move through the rendered matches and Enter selects. Provider tabs use a roving tab stop with Left/Right arrows and Home/End. Escape closes the popover before workspace Escape handling. Selection and Escape return focus to the trigger. Tab can reach the active provider tab and search, then leaves and closes the popover. The separate permission picker focuses its selected mode (or first supported mode), supports ArrowUp/ArrowDown and Home/End, and returns focus on selection or Escape. Provider catalog disclosures and Appearance selectors retain native keyboard behavior.
 
 Component properties must be editable through validated whole-component updates; a dedicated property-patch command is not required. Permission descriptions must reflect actual provider guarantees and must not equate approval modes or cwd with OS confinement. Full-local mode requires deliberate selection when no safer supported mode exists.
+
+## Agent clarification questions
+
+Agent questions appear inline as ?Your answer needed?, separate from ?Approval needed?. Show each question with labelled radio or checkbox options, option descriptions, and a text answer when the provider permits one. Keep unanswered required questions visible and disable Send answers until complete; show submission errors in the card and allow retry. The thread status reads ?Waiting for your answer?. Answered and closed questions collapse into activity steps. Full access suppresses permission approvals; clarification questions remain a separate interaction. Changing composer permissions during a run continues to apply to the next message, as with model selection.
+
+## Model and permission picker preferences
+
+The permission popover uses compact native-style rows: Supervised, Auto-accept edits, Auto and Full access, each with an icon and one short description. Only supported modes appear. Selection uses the existing neutral selected surface and checkmark. Usage and provider limitations live in a collapsed Provider details disclosure; the next-message timing stays visible without filling the menu with explanatory paragraphs. Legacy stored permission names are internal only.
+
+The model popover includes a labelled Reasoning select below its model list, using only choices reported for the selected model. Provider default is explicit and shows its reported level when available; the composer model trigger also shows the effective reported reasoning label. Unsupported models explain that no adjustable levels were reported. Model, reasoning and explicitly chosen permissions restore across new threads and reloads after provider discovery, retaining the existing keyboard navigation, focus return and recent-model list. Changes during a running message apply to the next submitted message; already queued messages keep their captured choices.

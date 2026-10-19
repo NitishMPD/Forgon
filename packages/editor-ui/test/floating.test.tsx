@@ -242,10 +242,11 @@ function agentFixture() {
   const provider = { id: 'codex' as const, name: 'Codex', readiness: 'ready' as const, models: ['model-a'], permissionModes: ['inspect' as const, 'supervised' as const] };
   const action = (name: string) => (...args: unknown[]) => { calls.push([name, ...args]); };
   const agent: AgentController = {
-    connection: { providers: [provider], service: { start: async () => ({ runId: 'run_1' }), cancel: async () => {}, approve: async () => {}, subscribe: () => () => {} } }, state: { threads: [thread], activeThreadId: thread.id },
+    progressiveDesign: false, setProgressiveDesign: action('progressive'), progressivePromptId: null, progressiveBuilding: false,
+    connection: { providers: [provider], service: { start: async () => ({ runId: 'run_1' }), cancel: async () => {}, approve: async () => {}, answer: async () => {}, subscribe: () => () => {} } }, state: { threads: [thread], activeThreadId: thread.id },
     activeThread: thread, activeProvider: provider, draft: 'Make a cube', setDraft: action('draft'), chips: [{ id: 'selection:cube', kind: 'entity', ref: 'cube', label: 'Cube' }],
-    addChip: action('add'), removeChip: action('remove'), blockers: [], canSend: true, send: action('send'), cancel: action('cancel'), approve: action('approve'),
-    newThread: action('new'), selectThread: action('thread'), setProvider: action('provider'), setModel: action('model'), setPermissionMode: action('mode'), refreshProviders: async () => {},
+    addChip: action('add'), removeChip: action('remove'), blockers: [], canSend: true, send: action('send'), cancel: action('cancel'), approve: action('approve'), answer: async () => {},
+    newThread: action('new'), selectThread: action('thread'), setProvider: action('provider'), setModel: action('model'), setModelOption: action('modelOption'), setPermissionMode: action('mode'), refreshProviders: async () => {},
   };
   return { agent, calls, thread };
 }
@@ -403,4 +404,16 @@ test('running composer retains Queue/Stop, approvals stay inline, and completed 
   thread.activeRunId = null; thread.outcome = 'succeeded';
   assert.equal(threadStatus(thread), 'done');
   assert.match(renderToStaticMarkup(<AgentDock agent={agent} scene={null} assets={[]} projectOpen focusToken={0} />), />Done</);
+});
+
+test('Progressive design is an accessible icon toggle beside composer controls', () => {
+  const { agent, calls } = agentFixture();
+  const off = composer(agent);
+  const toggle = control(off.tree, 'Progressive design');
+  assert.equal(toggle.props['aria-pressed'], false);
+  assert.match(toggle.props.title, /next prompt/);
+  toggle.props.onClick();
+  assert.deepEqual(calls, [['progressive', true]]);
+  agent.progressiveDesign = true;
+  assert.match(composer(agent).html, /aria-label="Progressive design"[^>]*aria-pressed="true"/);
 });

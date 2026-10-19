@@ -14,6 +14,7 @@ import {
 import type { AgentEvent, AgentRunRequest, AgentService } from '@forgon/project-schema';
 
 const request: AgentRunRequest = {
+  modelOptions: [{ id: 'reasoningEffort', value: 'high' }],
   threadId: 't1',
   provider: 'codex',
   prompt: 'hello',
@@ -54,6 +55,7 @@ const link = (service: AgentService): { transport: AgentServiceTransport; calls:
 const recordingService = (overrides: Partial<AgentService> = {}): AgentService => ({
   start: overrides.start ?? (() => Promise.resolve({ runId: 'r1' })),
   cancel: overrides.cancel ?? (() => Promise.resolve()),
+  answer: overrides.answer ?? (() => Promise.resolve()),
   approve: overrides.approve ?? (() => Promise.resolve()),
   subscribe: overrides.subscribe ?? (() => () => undefined),
 });
@@ -190,4 +192,16 @@ test('createRemoteAgentConnection exposes the proxy, providers and refresh', asy
   assert.deepEqual(connection.providers, providers);
   assert.deepEqual(await connection.refreshProviders!(), refreshed);
   assert.deepEqual(await connection.service.start(request), { runId: 'r1' });
+});
+
+test('question answers cross IPC as answers and malformed values are refused', async () => {
+  const received: unknown[] = [];
+  const service = recordingService({ answer: async (...args) => { received.push(args); } });
+  const handler = createAgentServiceRpcHandler(service);
+  const proxy = createAgentServiceProxy({ call: handler, onEvent: () => () => {} });
+  await proxy.answer('run', 'question', { style: ['urban', 'green'], details: 'Trees' });
+  assert.deepEqual(received, [['run', 'question', { style: ['urban', 'green'], details: 'Trees' }]]);
+  const invalid = await handler({ method: 'answer', runId: 'run', requestId: 'question', answers: { style: true } });
+  assert.equal(invalid.ok, false);
+  assert.equal(received.length, 1);
 });

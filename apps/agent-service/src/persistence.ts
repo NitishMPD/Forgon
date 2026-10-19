@@ -151,7 +151,7 @@ export const createThreadRefStore = (options: ThreadRefStoreOptions): ThreadRefS
     load,
     all: () => [...refs.values()],
     get: (runId) => refs.get(runId),
-    byThreadId: (threadId) => [...refs.values()].find((ref) => ref.threadId === threadId),
+    byThreadId: (threadId) => [...refs.values()].reverse().find((ref) => ref.threadId === threadId),
     save: async (ref) => {
       assertNoSecrets(ref);
       refs.set(ref.runId, ref);

@@ -1,6 +1,22 @@
 # Forgon Engine
 Author: Nitish
 
+## Agent scene organization
+The agent service adds scene-authoring guidance to initial and follow-up requests for every provider, independently of Progressive design. Scene work should reuse named logical groups, split large collections into areas or systems, parent mesh details under their owning objects, and distinguish repeated object names. Organizational parents use identity transforms; reparenting must preserve world transforms, stable references, prefab boundaries, collider constraints and authoring replay. Unrelated user content is left alone. This is provider guidance, not automatic rewriting or a guarantee of provider compliance; the editor never silently reorganizes a user's scene.
+
+## Isolated Studio Play
+Studio compiles scripts in the project host and starts a detached scene snapshot in an opaque-origin iframe inside the viewport. The preview permits scripts without same-origin access; project modules never execute in the editor. Its private message port grants only read access to catalogued snapshot assets, with at most 32 reads in flight, plus startup/fault reporting and Stop requests. Opening or compiling a project does not run scripts. Play becomes active only after preview startup succeeds; startup failures open Console. Stop also cancels preparation and removes the preview, leaving authored state intact.
+
+The desktop bridge bundles the existing project script compiler and stages esbuild's matching Windows executable alongside it. Native bundled assets allow the sandbox's opaque origin to load modules and WASM. Native IPC remains restricted to the main Studio frame. Compiler packaging and native preview changes require a desktop restart/rebundle. Source tests and native type-checking pass; packaged installation and interactive native gameplay acceptance remain pending.
+
+The ESM bridge bundle supplies Node CommonJS compatibility values (`require`, `__filename`, `__dirname`) for bundled TypeScript initialization. Omitting the filename/directory values terminates the bridge before its first response and surfaces as a closed desktop pipe. A regression test initializes the real TypeScript source inside the emitted CommonJS-in-ESM shape using the bundle's actual banner, without building or launching Studio.
+
+## Progressive design
+The composer offers an opt-in, persisted Progressive design toggle. Enabled prompts ask the provider to publish complete, valid scene snapshots in small meaningful batches, starting early, using atomic file replacement and existing authoring workflows. Updates arrive through the existing validated file watcher; unsaved edits still produce conflicts rather than being overwritten, and invalid files retain the last valid scene. Visibility follows saved snapshots, not partially streamed JSON or unsaved agent edits; provider compliance determines batch frequency.
+
+During a started prompt, the editor slowly orbits the entire scene and refits when scene/model bounds or viewport aspect change. Prompt identity is stable across startup and run-ID assignment, and queued messages get a new identity only when they start. Viewport pointer, wheel, keyboard, drag/drop or framing interaction latches camera automation off until the next started prompt; toggling cannot clear that latch. Completion stops rotation. Play interrupts automation, Settings pauses it, and reduced-motion preferences keep auto-framing without rotation. This only moves the editor camera and never edits authored cameras or executes scripts.
+
+
 Console Clear resets the project-session log entries and dropped count at the App state owner while preserving the next entry ID. Status-bar error/warning counts reset with it, and subsequent messages continue normally. Clearing messages does not resolve scene validity or conflicts.
 
 Scene-store equality compares JSON object fields independent of key order (including nested component properties), while preserving array order and actual value differences. Native JSON map reordering must not mark a saved revision invalid; different content under the same revision still fails.
@@ -997,7 +1013,7 @@ Minimum credible start: 2 strong engineers plus part-time game/design/QA support
 - [ ] N03. Persist chat threads per project (list and transcript) across close and reopen; reuse agent-service thread resume.
 - [ ] N04. Apply the remembered model and permissions as soon as providers load, so the composer never flashes "Default model / Can't send".
 - [ ] N05. Effort/reasoning chips in the model picker: pass T3's per-model reasoning options through agent-bridge.
-- [ ] N06. Sandboxed preview so scripts run in the desktop app; package the script compiler with the desktop bridge.
+- [ ] N06. Sandboxed preview and compiler packaging implemented in source; verify packaged installation and native interactive Play before acceptance.
 - [ ] N07. Investigate `apps/studio/test/io.test.ts:41` failing after out-of-session edits (structural edits to generated scenes now save; likely `packages/procedural-authoring/src/overrides.ts`).
 
 ### Epic A: Architecture and source foundations
@@ -1217,3 +1233,15 @@ The desktop bridge accepts project requests while its configured T3 agent servic
 The engine now has a shipping shape for complete games, not only single-scene demos. `progression/campaign.json` (strict schema v1, referenced by `game.project.json`) sequences scenes into courses with medal targets and sequential unlocks. The runtime adds `mountCampaign`, a DOM game shell (title, course select, results, pause, settings, credits), a versioned local save with tolerant migration, per-run HUD labelling, play-session pause/master-volume, and audio cues routed to `arrival`/`checkpoint`/`goal`/`death`. `forge build --target web` ships the campaign document with all scenes, and the standalone player mounts the shell; `forge create --template rooftop-relay` creates a working game project.
 
 Rooftop Relay ships five courses (303 entities, 5 scenes, 5 ferry/lift prefabs, 25 shards, 17 gates, 6 sentinels, 3 moving platforms, synthesized ambient and finish audio) in `examples/rooftop-relay`, with verified title/course/results/pause/settings screens in a real headless-Chrome run. Headless tests prove every gap, chasm, ferry, lift and slide gate, plus medals, unlocks, best times and save recovery. Limits: Studio Play still mounts one scene, `forge bake` tracks the generated base scene only, exported campaigns cannot use scripts, art is primitive-only, saves are device-local, and Windows game export is still unfinished.
+
+### Agent questions and permission responses (19 October 2026)
+
+Full local maps to the provider's `full-access` runtime mode. Permission approval and user input are separate request types: Full local does not answer an agent's clarification questions automatically. Question requests retain their question IDs, option values, custom-answer rules and multi-select behavior, and return an `answers` payload through both IPC seams. Permission requests return an approval `decision`. Responses must match the pending request's run and type; invalid, stale and duplicate responses are refused. A failed dispatch releases the response reservation so the user can retry. Snapshots recover pending requests from their descriptive turn items and runtime status; resolved or finished requests cannot remain actionable. Verification uses unit tests and type-checking; a real provider session has not been exercised for this change.
+
+### Composer model, reasoning and permission preferences (19 October 2026)
+
+The model picker exposes the selected model's reported reasoning option descriptors, including the provider default; option IDs and values travel unchanged in the native model selection. Unsupported reasoning values and permission modes are rejected before sending. The provider catalog includes its actual default model and supported select options rather than dropping those capabilities at the renderer boundary.
+
+The existing version 1 preference payload remembers the last provider/model, selected reasoning options, and explicitly selected permissions per provider while preserving appearance and recent models. Startup waits for a usable model catalog and restores untouched thread settings when discovery updates; a user's settings are never overwritten by a later catalog refresh. Unavailable settings fall back to a supported default, and Full access is restored only when previously selected explicitly. Each queued message snapshots its settings.
+
+Permission labels match the native controls: Supervised, Auto-accept edits, Auto, Full access. Auto delegates to the native `auto` mode and is exposed only when supported. Existing `auto-edits` and `full-local` storage values remain compatible. Follow-up messages use `message.dispatch` on the existing thread after setting the selected runtime mode; they do not relaunch nonempty threads. The new run is identified by the dispatched message ID. Thread-reference lookup returns the latest saved run for settings while retaining older references. Real-provider and packaged-app verification remains manual.

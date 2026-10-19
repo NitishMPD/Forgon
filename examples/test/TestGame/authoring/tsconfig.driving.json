@@ -1,0 +1,10 @@
+{
+  "extends": "../../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "three": ["../../../../packages/game-runtime/node_modules/@types/three/index.d.ts"],
+      "@forgon/game-runtime/scripting": ["../../../../packages/game-runtime/src/scripting/index.ts"]
+    }
+  },
+  "include": ["../scripts/*.ts"]
+}

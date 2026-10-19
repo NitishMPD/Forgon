@@ -5,7 +5,7 @@ import {
   MessageSquare, ShieldCheck, SlidersHorizontal, Square, Terminal, TriangleAlert, Undo2, X, type LucideIcon,
 } from 'lucide-react';
 import { duplicatePlan, type SceneCommand } from '@forgon/editor-core';
-import { createEntity, type AssetRecord, type Entity, type ScriptCatalog, type ScriptModules, type Transform } from '@forgon/project-schema';
+import { createEntity, type AssetRecord, type Entity, type ScriptCatalog, type Transform } from '@forgon/project-schema';
 import { AgentDock } from '../agent/AgentDock.js';
 import { ForgonMark } from '../brand/ForgonMark.js';
 import { AgentsPanel } from '../agent/AgentsPanel.js';
@@ -39,7 +39,7 @@ export interface SceneEntry {
 export interface WorkspaceProps {
   scripts?: ScriptCatalog['scripts'];
   onRefreshScripts?: (() => Promise<void>) | undefined;
-  preparePlay?: ((signal: AbortSignal) => Promise<ScriptModules>) | undefined;
+  preparePlay?: ((signal: AbortSignal) => Promise<ScriptCatalog>) | undefined;
   projectName: string;
   source: 'project' | 'sample';
   sourcePath: string | null;
@@ -127,6 +127,11 @@ export function Workspace(props: WorkspaceProps) {
   useEffect(() => {
     handle?.setTool?.(canEdit ? tool : 'select');
   }, [handle, canEdit]);
+
+  useEffect(() => {
+    handle?.setProgressiveDesign?.(agent?.progressivePromptId ?? null,
+      !!agent?.progressiveDesign && !!agent?.progressiveBuilding && !playing && !preparingPlay && view_ === 'editor');
+  }, [handle, agent?.progressivePromptId, agent?.progressiveDesign, agent?.progressiveBuilding, playing, preparingPlay, view_]);
 
   useEffect(() => { handle?.setSpace?.(space); }, [handle]);
   useEffect(() => { handle?.setSnap?.(snap); }, [handle, snap]);
@@ -245,7 +250,11 @@ export function Workspace(props: WorkspaceProps) {
     try {
       const scripts = await props.preparePlay?.(preparation.signal);
       if (generation !== playGeneration.current) return;
-      handle.play(scene, scripts); setPlaying(true);
+      if (scripts && handle.playCompiled) await handle.playCompiled(scene, scripts, preparation.signal);
+      else if (scripts?.scripts.length) throw new Error('This viewport does not support isolated script Play.');
+      else handle.play(scene);
+      if (generation !== playGeneration.current) return;
+      setPlaying(true);
     } catch (error) {
       if (generation === playGeneration.current) {
         props.onLog({ source: 'editor', severity: 'error', message: `Could not play: ${String(error)}` });
@@ -329,7 +338,7 @@ export function Workspace(props: WorkspaceProps) {
     if (mod && key === '`') { event.preventDefault(); setLayout(toggleCard(layout, 'console')); return; }
     if (mod && key === '.' && agent) { event.preventDefault(); agent.cancel(); return; }
     if (mod && event.shiftKey && key === 'r') { event.preventDefault(); show('review'); return; }
-    if (key === 'f5' || (mod && key === 'p' && !event.shiftKey)) { event.preventDefault(); (playing ? stop : play)(); return; }
+    if (key === 'f5' || (mod && key === 'p' && !event.shiftKey)) { event.preventDefault(); (playing || preparingPlay ? stop : play)(); return; }
     if (isEditableTarget(event.target)) return;
     if (view_ !== 'editor') return;
     if (!event.ctrlKey && !event.altKey && !event.metaKey && (key === 'delete' || key === 'backspace')) {
@@ -556,12 +565,12 @@ export function Workspace(props: WorkspaceProps) {
             type="button"
             className="fg-play"
             aria-pressed={playing}
-            disabled={preparingPlay || (!playing && !handle?.play)}
+            disabled={!preparingPlay && !playing && !handle?.play}
             title={handle?.play ? 'Play a snapshot of the scene (F5)' : 'Play needs the viewport runtime, which is not connected in this build.'}
-            onClick={playing ? stop : play}
+            onClick={playing || preparingPlay ? stop : play}
           >
-            <span className="fg-play-icon">{playing ? <Square {...iconProps} /> : <Play {...iconProps} />}</span>
-            {preparingPlay ? 'Preparing…' : playing ? 'Stop' : 'Play'}
+            <span className="fg-play-icon">{playing || preparingPlay ? <Square {...iconProps} /> : <Play {...iconProps} />}</span>
+            {playing || preparingPlay ? 'Stop' : 'Play'}
           </button>
         </div>
         <div className="fg-pill fg-icon-group" role="group" aria-label="History">

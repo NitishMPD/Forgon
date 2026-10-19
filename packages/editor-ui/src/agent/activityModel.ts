@@ -19,7 +19,7 @@ export interface ActivityGroup {
   steps: ActivityStep[];
 }
 
-export type ActivityRow = ActivityGroup | Extract<TranscriptItem, { kind: 'user' | 'assistant' | 'approval' | 'status' }>;
+export type ActivityRow = ActivityGroup | Extract<TranscriptItem, { kind: 'user' | 'assistant' | 'approval' | 'input' | 'status' }>;
 
 // Service diagnostic paths can contain the transport's thread id, not a project file.
 export function activityText(text: string): string {
@@ -71,7 +71,7 @@ export function groupActivity(items: readonly TranscriptItem[], activeRunId: str
   const rows: ActivityRow[] = [];
   const commands = new Map<string, ActivityStep>();
   for (const item of items) {
-    if (item.kind === 'user' || item.kind === 'assistant' || (item.kind === 'approval' && item.state === 'pending')) {
+    if (item.kind === 'user' || item.kind === 'assistant' || ((item.kind === 'approval' || item.kind === 'input') && item.state === 'pending')) {
       rows.push(item.kind === 'approval' ? { ...item, description: activityText(item.description) } : item);
       continue;
     }
@@ -102,6 +102,8 @@ export function groupActivity(items: readonly TranscriptItem[], activeRunId: str
       step.label = item.state === 'allowed' ? 'Approved once' : item.state === 'denied' ? 'Denied' : 'Approval closed';
       step.detail = activityText(item.description);
       step.state = item.state === 'denied' ? 'failed' : 'done';
+    } else if (item.kind === 'input') {
+      step.label = item.state === 'answered' ? 'Answered questions' : 'Questions closed';
     } else if (item.kind === 'diff') {
       step.kind = 'edit';
       step.label = `Changed ${item.paths.length} ${item.paths.length === 1 ? 'file' : 'files'}`;
@@ -124,6 +126,7 @@ export function workStatusLabel(thread: Pick<AgentThread, 'starting' | 'activeRu
   if (!thread.starting && thread.activeRunId === null) return null;
   if (thread.starting) return 'Starting';
   const items = thread.transcript.filter(item => 'runId' in item && item.runId === thread.activeRunId);
+  if (items.some(item => item.kind === 'input' && item.state === 'pending')) return 'Needs your answer';
   if (items.some(item => item.kind === 'approval' && item.state === 'pending')) return 'Needs your approval';
   const running = [...items].reverse().find(item => item.kind === 'tool' && item.state === 'started');
   if (running && running.kind === 'tool') return running.name === 'command' && running.text ? commandLabel(running.text) : `Using ${running.name}`;

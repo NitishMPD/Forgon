@@ -1,10 +1,10 @@
 import { useEffect, useId, useRef, useState, type RefObject } from 'react';
-import { Check, Lock, LockOpen, Pencil, ShieldCheck } from 'lucide-react';
+import { Check, Lock, LockOpen, Pencil, ShieldCheck, Sparkles } from 'lucide-react';
 import type { PermissionMode } from '@forgon/project-schema';
 import type { AgentProviderInfo } from '../services.js';
-import { permissionDescriptions, permissionLabels, providerLimitsNote } from './permissions.js';
+import { enforcementNote, permissionDescriptions, permissionLabels, providerLimitsNote } from './permissions.js';
 
-const modeIcons = { inspect: Lock, supervised: ShieldCheck, 'auto-edits': Pencil, 'full-local': LockOpen };
+const modeIcons = { inspect: Lock, supervised: ShieldCheck, 'auto-edits': Pencil, auto: Sparkles, 'full-local': LockOpen };
 
 export function PermissionPickerPanel({ id, provider, value, triggerRef, onSelect, onClose }: {
   id: string;
@@ -33,7 +33,7 @@ export function PermissionPickerPanel({ id, provider, value, triggerRef, onSelec
         <span className="fg-small fg-muted">{permissionDescriptions[mode]}</span>
       </button>;
     })}
-    <p className="fg-small fg-muted">{providerLimitsNote(provider)}</p>
+    <details className="fg-small fg-muted"><summary>Provider details</summary><p>{enforcementNote(value ?? 'supervised')}</p><p>{providerLimitsNote(provider)}</p></details>
     <p className="fg-small fg-muted">Applies to your next message</p>
   </div>;
 }
@@ -65,7 +65,7 @@ export function PermissionPicker({ provider, value, starting, onSelect }: {
   return <div className="fg-model-picker fg-permission-picker" ref={rootRef} onBlur={event => {
     if (event.relatedTarget instanceof Node && !event.currentTarget.contains(event.relatedTarget)) setOpen(false);
   }}>
-    <button type="button" ref={triggerRef} className={`fg-model-trigger${value === 'full-local' ? ' fg-tone-warning' : ''}`}
+    <button type="button" ref={triggerRef} className="fg-model-trigger"
       aria-label={`Permissions: ${label}`} aria-describedby={`${id}-help`} title={explanation} aria-haspopup="dialog"
       aria-expanded={open} aria-controls={open ? `${id}-panel` : undefined} disabled={disabled} onClick={() => setOpen(value => !value)}>
       <Icon size={14} strokeWidth={1.75} aria-hidden="true" /><span>{value ? permissionLabels[value] : 'Permissions'}</span>

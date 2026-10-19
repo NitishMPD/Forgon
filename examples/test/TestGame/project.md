@@ -1,10 +1,16 @@
 # TestGame City
 Author: Nitish
 
-A compact static city scene built with Forgon's existing render primitives. The start scene contains 24 buildings, four intersecting boulevards, crossings, a central park and fountain, 24 trees, and ten parked cars.
+Hierarchy has City, Cameras and Lighting roots alongside the user's Box. City contains Ground, Roads, Buildings, Central park, Vehicles and Borders. Buildings are divided into eight spatial blocks; each boulevard owns its markings; crossings have a separate group; the park contains a fountain assembly and 24 tree assemblies. All organizational groups have identity transforms, preserving existing object transforms and IDs. The driving script discovers colliders across the scene rather than only beneath its immediate parent.
+
+A playable city scene built with Forgon's existing render primitives. The start scene contains 120 buildings in eight blocks, four intersecting boulevards, crossings, a central park and fountain, 24 trees, nine parked cars, and one tour/player car. The ground area is five times the original 46-by-46 island, with the enlarged blocks filled by five times as many distinct buildings. Buildings keep their original horizontal footprint; the original 24 retain full facade detail, and 96 additional buildings use a compact facade, cornice and window-band treatment. Cars retain their original size. Four visible border walls enclose the city; buildings, tree trunks, the fountain basin, and cars have collision boxes.
 
 The original scene identity, camera, lights, and user-created box are retained. The camera frames the city. Scene edits are captured as overrides in `authoring/generated.json`, preserving the original generator base and manual editing behavior. No external assets or dependencies are required.
 
 Lighting uses the original directional sun and local omni light plus one city-wide directional sky fill. Only the sun casts shadows; it sits above the skyline. The omni light accents the fountain with an eight-unit range. Lighting remains ordinary editable scene data and replays through authoring overrides.
 
-This is a scene, with no traffic simulation or player gameplay. Validate runtime semantics and exact authoring replay from this directory with `pnpm exec tsx authoring/verify-city.ts`. Visual appearance has not been checked by launching the app.
+In Play, `scripts/city-car.ts` drives the tour car continuously around the park on a closed route with rounded corners. Enter takes control of that car at its current position and switches the existing camera to third-person chase. W/Up accelerates, S/Down brakes into reverse, A/Left and D/Right steer, and Space brakes. R resets the tour and overview. Keyboard input uses the runtime's existing input source. A controls hint appears during Play and is removed when Play stops.
+
+The car uses a conservative circular footprint enclosing its body against the projected, enabled solid collision boxes, including parent transforms. Movement is substepped at up to 120 Hz and frame time is capped at 0.25 seconds to avoid tunneling. Collisions stop the car and allow reversing away. The chase camera shortens its distance around obstacles. This is flat-ground arcade driving with static obstacles; no suspension or general traffic simulation is included. Runtime transforms never modify the authored scene.
+
+Validate runtime semantics and exact authoring replay from this directory with `pnpm exec tsx authoring/verify-city.ts`; check script compilation and headless driving with `pnpm exec tsx authoring/verify-driving.ts`; type-check the script with `pnpm exec tsc -p authoring/tsconfig.driving.json`. Visual appearance has not been checked by launching the app.

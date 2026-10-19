@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ActivityGroupRow, ActivityStepRow, PendingApproval } from '../src/agent/AgentDock.js';
+import { ActivityGroupRow, ActivityStepRow, PendingApproval, PendingInput } from '../src/agent/AgentDock.js';
 import { activityDuration, activityGroupLabel, activityText, commandLabel, groupActivity, unwrapCommand, type ActivityGroup } from '../src/agent/activityModel.js';
 import { agentReducer, newThread, type AgentState, type TranscriptItem } from '../src/agent/threadState.js';
 
@@ -108,4 +108,20 @@ test('reducer retains a tool start and completion timestamp for presentation', (
   const result = group(state.threads[0]!.transcript);
   assert.equal(activityDuration(result.steps[0]!), '12s');
   assert.equal(result.steps.length, 1);
+});
+
+test('pending questions expose labelled choices and free text without approve/deny actions', () => {
+  const item: Extract<TranscriptItem, { kind: 'input' }> = { id: 'q', kind: 'input', runId: 'run', requestId: 'q1', state: 'pending', questions: [
+    { id: 'style', header: 'Style', question: 'Choose the city style', allowCustomAnswer: false, multiSelect: true, options: [{ label: 'Modern', description: 'Glass and steel', value: 'modern-id' }] },
+    { id: 'details', header: 'Details', question: 'What should change?', options: [] },
+  ] };
+  const rows = groupActivity([item], 'run');
+  assert.equal(rows[0]?.kind, 'input');
+  const html = renderToStaticMarkup(<PendingInput item={item} onAnswer={async () => {}} />);
+  assert.match(html, /Choose the city style/);
+  assert.match(html, /type="checkbox"/);
+  assert.match(html, /Glass and steel/);
+  assert.match(html, /<textarea/);
+  assert.match(html, /Send answers/);
+  assert.doesNotMatch(html, /Approve once|Deny|Approval needed/);
 });

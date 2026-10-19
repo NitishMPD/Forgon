@@ -82,7 +82,12 @@ export function ViewportSlot({ mount, view, updatesEnabled, visible, onPick, onF
   };
 
   return (
-    <div className="fg-viewport" style={{ visibility: visible ? 'visible' : 'hidden' }}>
+    <div className="fg-viewport"
+      onPointerDownCapture={() => handleRef.current?.interruptProgressiveDesign?.()}
+      onWheelCapture={() => handleRef.current?.interruptProgressiveDesign?.()}
+      onKeyDownCapture={() => handleRef.current?.interruptProgressiveDesign?.()}
+      onDragOverCapture={() => handleRef.current?.interruptProgressiveDesign?.()}
+      style={{ visibility: visible ? 'visible' : 'hidden' }}>
       <div ref={containerRef} className="fg-viewport-canvas" data-slot="scene-viewport"
         onPointerDownCapture={event => {
           quickDown.current = null;

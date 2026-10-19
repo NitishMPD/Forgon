@@ -28,7 +28,7 @@ const createStore = (): { store: ThreadRefStore; refs: Map<string, ThreadRef> } 
     load: async () => [...refs.values()],
     all: () => [...refs.values()],
     get: (runId) => refs.get(runId),
-    byThreadId: (threadId) => [...refs.values()].find((ref) => ref.threadId === threadId),
+    byThreadId: (threadId) => [...refs.values()].reverse().find((ref) => ref.threadId === threadId),
     save: async (ref) => {
       refs.set(ref.runId, ref);
     },
@@ -67,7 +67,11 @@ test('start launches a thread with the mapped runtime mode and always sends the 
   assert.equal(launch['interactionMode'], 'default');
   assert.deepEqual(launch['workspaceStrategy'], { type: 'root' });
   assert.deepEqual(launch['modelSelection'], { instanceId: 'codex', model: 'gpt-5' });
-  assert.deepEqual(launch['initialMessage'], { text: 'Fix the save bug', attachments: [] });
+  const initialMessage = launch['initialMessage'] as { text: string; attachments: unknown[] };
+  assert.ok(initialMessage.text.startsWith('Fix the save bug\n\n'));
+  assert.match(initialMessage.text, /clean, meaningful hierarchy using parentId/);
+  assert.match(initialMessage.text, /preserve existing world transforms, stable IDs/);
+  assert.deepEqual(initialMessage.attachments, []);
 
   const ref = refs.get('run-1');
   assert.equal(ref?.provider, 'codex');
@@ -85,7 +89,7 @@ test('start sends composer context only when there is something to send', async 
   const launch = fake.calls.launches[0];
   assert.ok(launch !== undefined);
   const initialMessage = launch['initialMessage'] as { text: string; context?: { records: unknown[] } };
-  assert.equal(initialMessage.text, 'Fix the save bug');
+  assert.ok(initialMessage.text.startsWith('Fix the save bug\n\n'));
   assert.equal(initialMessage.context?.records.length, 2);
   service.close();
 });
@@ -286,7 +290,7 @@ test('listProviders reports readiness, models and reported limits', async () => 
   const codex = infos.find((info) => info.id === 'codex');
   assert.equal(codex?.readiness, 'ready');
   assert.deepEqual(codex?.models, ['gpt-5']);
-  assert.deepEqual(codex?.permissionModes, ['supervised', 'auto-edits', 'full-local']);
+  assert.deepEqual(codex?.permissionModes, ['supervised', 'auto-edits', 'auto', 'full-local']);
 
   const claude = infos.find((info) => info.id === 'claude-code');
   assert.equal(claude?.readiness, 'not-ready');
@@ -377,4 +381,84 @@ test('close clears listeners and closes the connection', async () => {
   fake.push(event(1, 'run.updated', run('run-1', 'running')));
   await tick();
   assert.deepEqual(events, []);
+});
+
+test('Full local questions require answers, retain provider values and remain retryable after failure', async () => {
+  const { fake, store } = setup();
+  const service = await createAgentService({ connection: fake.connection, store, now: () => NOW });
+  const events: AgentEvent[] = [];
+  service.subscribe(event => events.push(event));
+  const { runId } = await service.start(request({ permissionMode: 'full-local' }));
+  assert.equal(fake.calls.launches[0]?.['runtimeMode'], 'full-access');
+  fake.push(event(1, 'runtime-request.updated', { id: 'question-1', kind: 'user_input', status: 'pending' }));
+  fake.push(event(2, 'turn-item.updated', { id: 'item-q', threadId: 'th-1', runId, ordinal: 0, status: 'waiting', updatedAt: NOW,
+    type: 'user_input_request', requestId: 'question-1', questions: [
+      { id: 'direction', header: 'Direction', question: 'Which direction?', allowCustomAnswer: false,
+        options: [{ label: 'North', description: 'Towards the station', value: 'north-id' }] },
+      { id: 'details', header: 'Details', question: 'Anything else?', options: [] },
+      { id: 'optional', header: 'Optional', question: 'Extra notes?', options: [], required: false },
+      { id: 'features', header: 'Features', question: 'Choose features', multiSelect: true, allowCustomAnswer: false, options: [{ label: 'Trees', description: 'Plant trees', value: 'trees' }, { label: 'Water', description: 'Add water', value: 'water' }] },
+    ] }));
+  await tick();
+  assert.equal(events.some(event => event.type === 'approval'), false);
+  assert.equal(events.some(event => event.type === 'input'), true);
+  await assert.rejects(service.approve(runId, 'question-1', true));
+  await assert.rejects(service.answer(runId, 'question-1', { direction: 'made-up', details: 'Trees' }));
+  await assert.rejects(service.answer(runId, 'question-1', { direction: 'north-id' }));
+  await assert.rejects(service.answer(runId, 'question-1', { direction: 'north-id', details: 'Trees', unknown: 'x' }));
+  const dispatch = fake.connection.orchestration.dispatchCommand;
+  fake.connection.orchestration.dispatchCommand = async () => { throw new Error('Disconnected'); };
+  const answers = { direction: 'north-id', details: 'Add trees', features: ['trees', 'water'] };
+  await assert.rejects(service.answer(runId, 'question-1', answers), /Disconnected/);
+  fake.connection.orchestration.dispatchCommand = dispatch;
+  await service.answer(runId, 'question-1', answers);
+  assert.deepEqual(fake.calls.commands.at(-1)?.['answers'], answers);
+  assert.equal(fake.calls.commands.at(-1)?.['decision'], undefined);
+  await assert.rejects(service.answer(runId, 'question-1', answers));
+  service.close();
+});
+
+test('approval dispatch failure permits a retry but not simultaneous or cross-run responses', async () => {
+  const { fake, store } = setup();
+  const service = await createAgentService({ connection: fake.connection, store, now: () => NOW });
+  const { runId } = await service.start(request());
+  fake.push(event(1, 'turn-item.updated', { id: 'item-a', threadId: 'th-1', runId, ordinal: 0, status: 'waiting', updatedAt: NOW,
+    type: 'approval_request', requestId: 'approve-1', requestKind: 'command', prompt: 'Run command?' }));
+  fake.push(event(2, 'turn-item.updated', { id: 'item-other', threadId: 'th-1', runId: 'another-run', ordinal: 1, status: 'waiting', updatedAt: NOW,
+    type: 'approval_request', requestId: 'other-request', requestKind: 'command', prompt: 'Run other command?' }));
+  await tick();
+  await assert.rejects(service.approve(runId, 'other-request', true));
+  const dispatch = fake.connection.orchestration.dispatchCommand;
+  let rejectDispatch!: (error: Error) => void;
+  fake.connection.orchestration.dispatchCommand = () => new Promise((_resolve, reject) => { rejectDispatch = reject; });
+  const response = service.approve(runId, 'approve-1', true);
+  await assert.rejects(service.approve(runId, 'approve-1', true));
+  rejectDispatch(new Error('Connection lost'));
+  await assert.rejects(response, /Connection lost/);
+  fake.connection.orchestration.dispatchCommand = dispatch;
+  await service.approve(runId, 'approve-1', true);
+  service.close();
+});
+
+test('reported reasoning choices reach initial and subsequent messages with selected permissions', async () => {
+  const descriptor = { id: 'reasoningEffort', label: 'Reasoning', type: 'select', currentValue: 'low', options: [{ id: 'low', label: 'Low' }, { id: 'high', label: 'High' }] };
+  const { fake, store } = setup({ providers: [serverProvider({ instanceId: 'codex', driver: 'codex', supportedRuntimeModes: ['approval-required', 'auto', 'full-access'],
+    models: [{ ...models('gpt-5', true)[0]!, capabilities: { optionDescriptors: [descriptor] } }] })],
+    projects: [{ id: 'project-1', workspaceRoot: 'C:/work' }], projection: projection({ threadId: 'th-1', runs: [run('run-1', 'completed')] }) });
+  const service = await createAgentService({ connection: fake.connection, store });
+  const info = (await service.listProviders())[0]!;
+  assert.equal(info.defaultModel, 'gpt-5'); assert.equal(info.modelOptions?.['gpt-5']?.[0]?.id, 'reasoningEffort');
+  const modelOptions = [{ id: 'reasoningEffort', value: 'high' }];
+  await service.start(request({ permissionMode: 'auto', modelOptions }));
+  assert.equal(fake.calls.launches[0]?.['runtimeMode'], 'auto');
+  assert.deepEqual(fake.calls.launches[0]?.['modelSelection'], { instanceId: 'codex', model: 'gpt-5', options: modelOptions });
+  const next = await service.start(request({ permissionMode: 'full-local', modelOptions: [{ id: 'reasoningEffort', value: 'low' }] }));
+  assert.notEqual(next.runId, 'run-1');
+  assert.equal(fake.calls.commands.at(-2)?.['runtimeMode'], 'full-access');
+  assert.deepEqual(fake.calls.commands.at(-1)?.['modelSelection'], { instanceId: 'codex', model: 'gpt-5', options: [{ id: 'reasoningEffort', value: 'low' }] });
+  const count = fake.calls.commands.length;
+  await assert.rejects(service.start(request({ modelOptions: [{ id: 'reasoningEffort', value: 'invented' }] })), /does not support/);
+  await assert.rejects(service.start(request({ permissionMode: 'auto-edits' })), /does not support/);
+  assert.equal(fake.calls.commands.length, count);
+  service.close();
 });

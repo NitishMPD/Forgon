@@ -1,11 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile, realpath } from 'node:fs/promises';
 import { join, dirname, isAbsolute } from 'node:path';
+import { compileProjectScripts } from '@forgon/project-io/scripting';
 import { createNodeProjectHost, createProject, readProject } from '@forgon/project-io/node';
 import type { NodeProjectSession, RecentProject } from '@forgon/project-io';
 import { importAsset, readAssetRegistry } from '@forgon/asset-pipeline';
 import type { SaveSceneRequest, AgentRunRequest, AgentEvent } from '@forgon/project-schema';
 import type { RunningAgentService } from '@forgon/agent-service';
+import { agentAnswersSchema } from '@forgon/agent-service';
 import { parseRequest, string, type BridgeEvent } from './protocol.js';
 
 export interface BridgeOptions {
@@ -155,6 +157,7 @@ export async function createDesktopBridge(options: BridgeOptions) {
         }
         const runId = string(a.runId, 'run id');
         if (!runs.has(runId)) throw new Error('Run is not owned by this window');
+        if (method === 'agent:answer') return options.agent.service.answer(runId, string(a.requestId, 'question id'), agentAnswersSchema.parse(a.answers));
         if (method === 'agent:cancel') return options.agent.service.cancel(runId);
         if (method === 'agent:approve' && typeof a.allow === 'boolean') return options.agent.service.approve(runId, string(a.requestId, 'approval id'), a.allow);
         throw new Error('Unsupported agent method');
@@ -206,14 +209,7 @@ export async function createDesktopBridge(options: BridgeOptions) {
         case 'scene:read': return s.sceneIO.readScene(string(a.path, 'scene path'));
         case 'scene:save': return s.sceneIO.saveScene(a.request as SaveSceneRequest);
         case 'catalog:read': return s.readCatalog();
-        case 'scripts:compile': {
-          // Keep compiler/native esbuild dependencies out of the existing bridge bundle until packaging owns them.
-          const compilerPackage = ['@forgon/project-io', 'scripting'].join('/');
-          let compiler: typeof import('@forgon/project-io/scripting');
-          try { compiler = await import(compilerPackage) as typeof compiler; }
-          catch { return { scripts: [], diagnostics: [{ path: 'scripts', message: 'Script compiler unavailable in this desktop package (compiler packaging pending).' }] }; }
-          return compiler.compileProjectScripts(s.root);
-        }
+        case 'scripts:compile': return compileProjectScripts(s.root);
         case 'asset:read': {
           const value = await s.readAsset(string(a.assetId, 'asset id'));
           return { ...value, bytes: Buffer.from(value.bytes).toString('base64') };

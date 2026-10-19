@@ -1,10 +1,12 @@
-import type { AgentContext, AgentEvent, Diagnostic, PermissionMode, ProviderId } from '@forgon/project-schema';
+import type { AgentContext, AgentEvent, AgentQuestion, Diagnostic, PermissionMode, ProviderId } from '@forgon/project-schema';
 
 export interface PendingRequest {
   id: string;
   text: string;
+  progressiveDesign?: boolean;
   provider: ProviderId;
   model: string | null;
+  modelOptions?: import('@forgon/project-schema').AgentModelSelectionOption[];
   permissionMode: PermissionMode;
   context: AgentContext;
 }
@@ -15,6 +17,7 @@ export type TranscriptItem = (
   | { id: string; kind: 'tool'; runId: string; name: string; state: 'started' | 'completed' | 'failed'; text: string | null }
   | { id: string; kind: 'diagnostic'; runId: string; diagnostic: Diagnostic }
   | { id: string; kind: 'approval'; runId: string; requestId: string; description: string; state: 'pending' | 'allowed' | 'denied' | 'closed' }
+  | { id: string; kind: 'input'; runId: string; requestId: string; questions: AgentQuestion[]; state: 'pending' | 'answered' | 'closed' }
   | { id: string; kind: 'diff'; runId: string; paths: string[] }
   | { id: string; kind: 'status'; runId: string; text: string }
 ) & { timestamp?: string; completedAt?: string };
@@ -24,6 +27,8 @@ export interface AgentThread {
   title: string;
   provider: ProviderId;
   model: string | null;
+  modelOptions?: import('@forgon/project-schema').AgentModelSelectionOption[];
+  settingsTouched?: boolean;
   // Null until the user picks a mode. Forgon never chooses full-local for the user.
   permissionMode: PermissionMode | null;
   transcript: TranscriptItem[];
@@ -41,7 +46,7 @@ export interface AgentState {
   activeThreadId: string | null;
 }
 
-export type ThreadStatus = 'idle' | 'done' | 'starting' | 'running' | 'awaiting_approval' | 'failed' | 'stopped' | 'changes';
+export type ThreadStatus = 'idle' | 'done' | 'starting' | 'running' | 'awaiting_approval' | 'awaiting_input' | 'failed' | 'stopped' | 'changes';
 
 export const threadStatusLabels: Record<ThreadStatus, string> = {
   idle: 'Idle',
@@ -49,6 +54,7 @@ export const threadStatusLabels: Record<ThreadStatus, string> = {
   starting: 'Starting',
   running: 'Running',
   awaiting_approval: 'Waiting for approval',
+  awaiting_input: 'Waiting for your answer',
   failed: 'Failed',
   stopped: 'Stopped',
   changes: 'Changes to review',
@@ -58,12 +64,13 @@ export type AgentAction =
   | { type: 'thread/add'; thread: AgentThread }
   | { type: 'thread/ensure'; thread: AgentThread }
   | { type: 'thread/select'; threadId: string }
-  | { type: 'thread/settings'; threadId: string; provider?: ProviderId; model?: string | null; permissionMode?: PermissionMode | null }
+  | { type: 'thread/settings'; threadId: string; restoring?: boolean; provider?: ProviderId; model?: string | null; modelOptions?: import('@forgon/project-schema').AgentModelSelectionOption[]; permissionMode?: PermissionMode | null }
   | { type: 'run/requested'; threadId: string; request: PendingRequest; fromQueue: boolean }
   | { type: 'queue/add'; threadId: string; request: PendingRequest }
   | { type: 'run/started'; threadId: string; runId: string }
   | { type: 'run/failed'; threadId: string; requestId: string; message: string }
   | { type: 'approval/answered'; threadId: string; runId: string; requestId: string; allow: boolean }
+  | { type: 'input/answered'; threadId: string; runId: string; requestId: string }
   | { type: 'event'; event: AgentEvent };
 
 export function newThread(id: string, provider: ProviderId, permissionMode: PermissionMode | null, model: string | null): AgentThread {
@@ -90,6 +97,7 @@ export function canChangeProvider(thread: AgentThread): boolean {
 
 export function threadStatus(thread: AgentThread): ThreadStatus {
   if (thread.activeRunId !== null) {
+    if (thread.transcript.some(item => item.kind === 'input' && item.runId === thread.activeRunId && item.state === 'pending')) return 'awaiting_input';
     const waiting = thread.transcript.some(item => item.kind === 'approval' && item.runId === thread.activeRunId && item.state === 'pending');
     return waiting ? 'awaiting_approval' : 'running';
   }
@@ -153,13 +161,18 @@ function applyEvent(thread: AgentThread, event: AgentEvent): AgentThread {
     case 'approval':
       transcript.push({ id, timestamp: event.timestamp, kind: 'approval', runId: event.runId, requestId: event.requestId, description: event.description, state: 'pending' });
       return { ...base, transcript };
+    case 'input':
+      transcript.push({ id, timestamp: event.timestamp, kind: 'input', runId: event.runId, requestId: event.requestId, questions: event.questions, state: 'pending' });
+      return { ...base, transcript };
+    case 'request-resolved':
+      return { ...base, transcript: transcript.map(item => (item.kind === 'input' || item.kind === 'approval') && item.requestId === event.requestId && item.state === 'pending' ? { ...item, state: 'closed' as const } : item) };
     case 'diff': {
       transcript.push({ id, timestamp: event.timestamp, kind: 'diff', runId: event.runId, paths: event.paths });
       const changedPaths = [...new Set([...thread.changedPaths, ...event.paths])];
       return { ...base, transcript, changedPaths };
     }
     case 'completed': {
-      const closed = transcript.map(item => (item.kind === 'approval' && item.runId === event.runId && item.state === 'pending' ? { ...item, state: 'closed' as const } : item));
+      const closed = transcript.map(item => ((item.kind === 'approval' || item.kind === 'input') && item.runId === event.runId && item.state === 'pending' ? { ...item, state: 'closed' as const } : item));
       closed.push({ id, timestamp: event.timestamp, kind: 'status', runId: event.runId, text: event.message ? `${event.outcome}: ${event.message}` : event.outcome });
       const sameRun = thread.activeRunId === null || thread.activeRunId === event.runId;
       return {
@@ -197,8 +210,10 @@ export function agentReducer(state: AgentState, action: AgentAction): AgentState
         if (action.provider !== undefined && action.provider !== thread.provider && !canChangeProvider(thread)) return thread;
         return {
           ...thread,
+          settingsTouched: action.restoring ? thread.settingsTouched ?? false : true,
           provider: action.provider ?? thread.provider,
           model: action.model !== undefined ? action.model : thread.model,
+          modelOptions: action.modelOptions ?? thread.modelOptions ?? [],
           permissionMode: action.permissionMode !== undefined ? action.permissionMode : thread.permissionMode,
         };
       });
@@ -232,6 +247,8 @@ export function agentReducer(state: AgentState, action: AgentAction): AgentState
         outcome: 'failed',
         transcript: [...thread.transcript, { id: `failed-${action.requestId}`, kind: 'status', runId: action.requestId, text: `Failed to start: ${action.message}` }],
       }));
+    case 'input/answered':
+      return updateThread(state, action.threadId, thread => ({ ...thread, transcript: thread.transcript.map(item => item.kind === 'input' && item.runId === action.runId && item.requestId === action.requestId ? { ...item, state: 'answered' as const } : item) }));
     case 'approval/answered':
       return updateThread(state, action.threadId, thread => ({
         ...thread,

@@ -166,3 +166,5 @@ export const startAgentService = async (
     },
   };
 };
+
+export { agentAnswersSchema } from '@forgon/agent-bridge';

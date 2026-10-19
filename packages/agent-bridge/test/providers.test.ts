@@ -97,11 +97,11 @@ test('isForgonProviderId accepts only the three Forgon names', () => {
   assert.equal(isForgonProviderId('claudeAgent'), false);
 });
 
-test('forgonPermissionModeForRuntimeMode maps the three shared modes and refuses T3 auto', () => {
+test('forgonPermissionModeForRuntimeMode maps the shared modes including Auto', () => {
   assert.equal(forgonPermissionModeForRuntimeMode('approval-required'), 'supervised');
   assert.equal(forgonPermissionModeForRuntimeMode('auto-accept-edits'), 'auto-edits');
   assert.equal(forgonPermissionModeForRuntimeMode('full-access'), 'full-local');
-  assert.equal(forgonPermissionModeForRuntimeMode('auto'), undefined);
+  assert.equal(forgonPermissionModeForRuntimeMode('auto'), 'auto');
   assert.equal(forgonPermissionModeForRuntimeMode('nonsense'), undefined);
 });
 

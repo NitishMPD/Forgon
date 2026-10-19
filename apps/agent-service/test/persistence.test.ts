@@ -151,3 +151,15 @@ test('defaultThreadRefPath lives inside the isolated home', () => {
   assert.equal(path.dirname(refPath), home);
   assert.match(path.basename(refPath), /forgon-threads\.json$/);
 });
+
+test('thread lookup restores the latest run settings while preserving older run references', async () => {
+  const { io } = createMemoryIo();
+  const store = createThreadRefStore({ filePath: FILE, io });
+  await store.save(ref());
+  await store.save({ ...ref(), runId: 'latest', model: 'new-model', permissionMode: 'full-local' });
+  const reloaded = createThreadRefStore({ filePath: FILE, io });
+  await reloaded.load();
+  assert.equal(reloaded.get('run-1')?.model, 'gpt-5');
+  assert.equal(reloaded.byThreadId('th-1')?.model, 'new-model');
+  assert.equal(reloaded.byThreadId('th-1')?.permissionMode, 'full-local');
+});

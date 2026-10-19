@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { ArrowUp, Bookmark, Braces, ChevronRight, Circle, FileDiff, LoaderCircle, Paperclip, Plus, Search, ShieldCheck, Square, Terminal, TriangleAlert, X } from 'lucide-react';
+import { ArrowUp, Bookmark, Braces, ChevronRight, Circle, FileDiff, LoaderCircle, Paperclip, Orbit, Plus, Search, ShieldCheck, Square, Terminal, TriangleAlert, X } from 'lucide-react';
 import type { AssetRecord, SceneDocument } from '@forgon/project-schema';
 import { Banner, Button, IconButton, StatusText, cx, type Tone } from '../primitives/primitives.js';
 import { ModelPicker } from './ModelPicker.js';
@@ -27,12 +27,15 @@ export const statusTone: Record<ThreadStatus, Tone> = {
   starting: 'info',
   running: 'info',
   awaiting_approval: 'warning',
+  awaiting_input: 'info',
   failed: 'danger',
   stopped: 'neutral',
   changes: 'accent',
 };
 
-function Transcript({ thread, onApprove }: { thread: AgentThread; onApprove(runId: string, requestId: string, allow: boolean): void }) {
+type AnswerHandler = (runId: string, requestId: string, answers: import('@forgon/project-schema').AgentAnswers) => Promise<void>;
+
+function Transcript({ thread, onApprove, onAnswer }: { thread: AgentThread; onApprove(runId: string, requestId: string, allow: boolean): void; onAnswer: AnswerHandler }) {
   const endRef = useRef<HTMLLIElement>(null);
   useEffect(() => {
     endRef.current?.scrollIntoView?.({ block: 'end' });
@@ -45,7 +48,7 @@ function Transcript({ thread, onApprove }: { thread: AgentThread; onApprove(runI
   for (const item of rows) if (item.kind === 'assistant') lastAnswers.set(item.runId, item.id);
   return (
     <ol className="fg-transcript" aria-label="Transcript" aria-live="polite">
-      {rows.map(item => <TranscriptRow key={item.id} item={item} final={item.kind === 'assistant' && item.runId !== thread.activeRunId && lastAnswers.get(item.runId) === item.id} onApprove={onApprove} />)}
+      {rows.map(item => <TranscriptRow key={item.id} item={item} final={item.kind === 'assistant' && item.runId !== thread.activeRunId && lastAnswers.get(item.runId) === item.id} onApprove={onApprove} onAnswer={onAnswer} />)}
       <li ref={endRef} aria-hidden="true" />
     </ol>
   );
@@ -104,9 +107,57 @@ export function PendingApproval({ item, onApprove }: {
   </li>;
 }
 
-function TranscriptRow({ item, final, onApprove }: {
+export function PendingInput({ item, onAnswer }: { item: Extract<ActivityRow, { kind: 'input' }>; onAnswer: AnswerHandler }) {
+  const [custom, setCustom] = useState<Record<string, string>>(() => Object.fromEntries(item.questions.map(question => [question.id, question.initialAnswer ?? ''])));
+  const [selected, setSelected] = useState<Record<string, string[]>>(() => Object.fromEntries(item.questions.map(question => [question.id, []])));
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+  const answers: import('@forgon/project-schema').AgentAnswers = Object.create(null);
+  for (const question of item.questions) {
+    const text = question.allowCustomAnswer !== false ? custom[question.id] : undefined;
+    const choices = selected[question.id] ?? [];
+    if (choices.length) answers[question.id] = question.multiSelect ? choices : choices[0]!;
+    else if (text !== undefined && (text.trim() || question.initialAnswer !== undefined)) answers[question.id] = text;
+  }
+  const complete = item.questions.every(question => question.required === false || Object.hasOwn(answers, question.id));
+  return <li className="fg-approval" aria-label="Agent questions">
+    <p className="fg-approval-title">Your answer needed</p>
+    <form className="fg-question-form" onSubmit={event => {
+      event.preventDefault();
+      if (sending || !complete) return;
+      setSending(true); setError('');
+      onAnswer(item.runId, item.requestId, answers).catch((cause: unknown) => setError(cause instanceof Error ? cause.message : String(cause))).finally(() => setSending(false));
+    }}>
+      {item.questions.map(question => <fieldset key={question.id} disabled={sending} className="fg-question">
+        <legend>{question.header}</legend><p>{question.question}</p>
+        {question.options.map((option, index) => {
+          const value = option.value ?? option.label;
+          return <label className="fg-question-option" key={index}>
+            <input type={question.multiSelect ? 'checkbox' : 'radio'} name={`${item.requestId}:${question.id}`} checked={(selected[question.id] ?? []).includes(value)}
+              onChange={() => {
+                setCustom(current => ({ ...current, [question.id]: '' }));
+                setSelected(current => {
+                  const choices = current[question.id] ?? [];
+                  const next = question.multiSelect ? choices.includes(value) ? choices.filter(choice => choice !== value) : [...choices, value] : [value];
+                  return { ...current, [question.id]: next };
+                });
+              }} />
+            <span>{option.label}{option.description ? <small className="fg-field-hint">{option.description}</small> : null}</span>
+          </label>;
+        })}
+        {question.allowCustomAnswer !== false ? <label className="fg-field"><span className="fg-field-label">{question.options.length ? 'Or type your answer' : 'Your answer'}</span>
+          <textarea className="fg-textarea" rows={2} value={custom[question.id] ?? ''} onChange={event => { const value = event.target.value; setCustom(current => ({ ...current, [question.id]: value })); setSelected(current => ({ ...current, [question.id]: [] })); }} /></label> : null}
+      </fieldset>)}
+      {error ? <p role="alert" className="fg-tone-danger">{error}</p> : null}
+      <Button type="submit" variant="primary" disabled={sending || !complete}>{sending ? 'Sending...' : 'Send answers'}</Button>
+    </form>
+  </li>;
+}
+
+function TranscriptRow({ item, final, onApprove, onAnswer }: {
   item: ActivityRow;
   final: boolean;
+  onAnswer: AnswerHandler;
   onApprove(runId: string, requestId: string, allow: boolean): void;
 }) {
   switch (item.kind) {
@@ -118,6 +169,8 @@ function TranscriptRow({ item, final, onApprove }: {
       return <ActivityGroupRow group={item} />;
     case 'approval':
       return <PendingApproval item={item} onApprove={onApprove} />;
+    case 'input':
+      return <PendingInput item={item} onAnswer={onAnswer} />;
     case 'status':
       return <li className="fg-status-line fg-tone-danger">{item.text}</li>;
   }
@@ -317,13 +370,17 @@ function Composer({ agent, scene, assets, projectOpen, focusToken, onOpenTranscr
       <div className="fg-composer-footer">
         {thread ? <>
           <PermissionPicker key={`permissions-${thread.id}`} provider={provider} value={thread.permissionMode} starting={thread.starting} onSelect={agent.setPermissionMode} />
-          <ModelPicker key={thread.id} providers={agent.connection.providers} thread={thread} onSelect={agent.setModel} />
+          <ModelPicker key={thread.id} providers={agent.connection.providers} thread={thread} onSelect={agent.setModel} onOption={agent.setModelOption} />
         </> : null}
         <IconButton label="What will be sent" aria-expanded={showContext} onClick={() => setShowContext(open => !open)}>
           <Braces size={14} strokeWidth={1.75} aria-hidden="true" />
         </IconButton>
         <IconButton label="Reference project file" title="Reference a project asset file (no upload). Paste, drop, or choose a file." disabled={!projectOpen || !thread} onClick={() => fileRef.current?.click()}>
           <Paperclip size={14} strokeWidth={1.75} aria-hidden="true" />
+        </IconButton>
+        <IconButton label="Progressive design" title="Progressive design: show saved scene updates and orbit while the agent works. Interact with the viewport to stop until the next prompt."
+          aria-pressed={agent.progressiveDesign} onClick={() => agent.setProgressiveDesign(!agent.progressiveDesign)}>
+          <Orbit size={14} strokeWidth={1.75} aria-hidden="true" />
         </IconButton>
         <input ref={fileRef} type="file" multiple hidden onChange={event => { addFiles(Array.from(event.currentTarget.files ?? [])); event.currentTarget.value = ''; }} />
         <span className="fg-composer-spacer" />
@@ -379,7 +436,7 @@ export function AgentDock({ agent, scene, assets, projectOpen, focusToken, trans
           <IconButton label="New thread" className="fg-agent-new" onClick={agent.newThread}><Plus size={14} strokeWidth={1.75} aria-hidden="true" /></IconButton>
           {onCloseTranscript ? <IconButton label="Close conversation" title="Close (Escape)" onClick={onCloseTranscript}><X size={14} aria-hidden="true" /></IconButton> : null}
         </header>
-        {thread ? <Transcript thread={thread} onApprove={(runId, requestId, allow) => agent.approve(thread.id, runId, requestId, allow)} /> : null}
+        {thread ? <Transcript thread={thread} onApprove={(runId, requestId, allow) => agent.approve(thread.id, runId, requestId, allow)} onAnswer={(runId, requestId, answers) => agent.answer(thread.id, runId, requestId, answers)} /> : null}
       </section>
       <Composer agent={agent} scene={scene} assets={assets} projectOpen={projectOpen} focusToken={focusToken} onOpenTranscript={onOpenTranscript} />
     </section>

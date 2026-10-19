@@ -4,7 +4,7 @@ import type { ProviderId } from '@forgon/project-schema';
 import type { AgentProviderInfo } from '../services.js';
 import { readPreferences, type RecentModel } from '../model/preferences.js';
 import { canChangeProvider, type AgentThread } from './threadState.js';
-import { modelLabel, modelOptions, type ModelOption } from './modelPickerModel.js';
+import { modelLabel, modelOptions, reasoningOptions, type ModelOption } from './modelPickerModel.js';
 
 const providerTabs = [
   { id: 'codex', label: 'Codex', Icon: Terminal },
@@ -26,11 +26,12 @@ interface PanelProps {
   onQuery(query: string): void;
   onActive(index: number): void;
   onSelect(option: ModelOption): void;
+  onOption?(id: string, value: string | null): void;
   onClose(): void;
 }
 
 // Controlled so keyboard behavior and focus return can be checked without launching the editor.
-export function ModelPickerPanel({ id, providers, providerId, recent, query, active, thread, triggerRef, searchRef, onProvider, onQuery, onActive, onSelect, onClose }: PanelProps) {
+export function ModelPickerPanel({ id, providers, providerId, recent, query, active, thread, triggerRef, searchRef, onProvider, onQuery, onActive, onSelect, onOption, onClose }: PanelProps) {
   const provider = providers.find(item => item.id === providerId);
   const available = provider !== undefined && provider.readiness !== 'not-ready';
   const { options, remaining } = modelOptions(available ? [provider] : [], recent, query);
@@ -97,16 +98,28 @@ export function ModelPickerPanel({ id, providers, providerId, recent, query, act
           </div>)}
         </div>)}
       </div>
+      {providerId === thread.provider ? <div className="fg-model-reasoning">
+        {reasoningOptions(provider, thread.model).map(descriptor => <label key={descriptor.id} className="fg-field">
+          <span className="fg-field-label">{descriptor.label}</span>
+          <select className="fg-select" value={thread.modelOptions?.find(option => option.id === descriptor.id)?.value ?? ''}
+            disabled={!onOption || thread.starting} onChange={event => onOption?.(descriptor.id, event.currentTarget.value || null)}>
+            <option value="">Provider default{descriptor.currentValue ? ` (${descriptor.options.find(option => option.id === descriptor.currentValue)?.label ?? descriptor.currentValue})` : ''}</option>
+            {descriptor.options.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+          </select>
+        </label>)}
+        {reasoningOptions(provider, thread.model).length === 0 ? <p className="fg-small fg-muted">This model does not report adjustable reasoning levels.</p> : null}
+      </div> : null}
       {available && options.length === 0 ? <p className="fg-small fg-muted" role="status">No models match. Try a different search.</p> : null}
       {remaining > 0 ? <p className="fg-small fg-muted" role="status">{`${remaining} more — refine search`}</p> : null}
     </div>
   </div>;
 }
 
-export function ModelPicker({ providers, thread, onSelect }: {
+export function ModelPicker({ providers, thread, onSelect, onOption }: {
   providers: readonly AgentProviderInfo[];
   thread: AgentThread;
   onSelect(model: string | null, provider: ProviderId): void;
+  onOption?(id: string, value: string | null): void;
 }) {
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -120,6 +133,10 @@ export function ModelPicker({ providers, thread, onSelect }: {
   const disabled = thread.starting;
   const tabProvider = canChangeProvider(thread) ? providerId : thread.provider;
   const display = modelLabel(thread.model, thread.provider);
+  const effort = reasoningOptions(providers.find(provider => provider.id === thread.provider), thread.model).flatMap(descriptor => {
+    const value = thread.modelOptions?.find(option => option.id === descriptor.id)?.value ?? descriptor.currentValue ?? descriptor.options.find(option => option.isDefault)?.id;
+    return value ? [descriptor.options.find(option => option.id === value)?.label ?? value] : [];
+  }).join(', ');
   const Icon = providerTabs.find(item => item.id === thread.provider)!.Icon;
   useEffect(() => {
     if (!open) return;
@@ -139,12 +156,12 @@ export function ModelPicker({ providers, thread, onSelect }: {
       aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? `${id}-popover` : undefined}
       disabled={disabled} title={`${providers.find(provider => provider.id === thread.provider)?.name ?? thread.provider} · ${thread.model ?? 'Default model'}`}
       onClick={() => { setOpen(value => !value); setProviderId(thread.provider); setQuery(''); setActive(0); setRecent(readPreferences().recentModels); }}>
-      <Icon size={14} strokeWidth={1.75} aria-hidden="true" /><span className="fg-model-name">{display.label}</span>
+      <Icon size={14} strokeWidth={1.75} aria-hidden="true" /><span className="fg-model-name">{display.label}</span>{effort ? <span className="fg-small fg-muted">{effort}</span> : null}
       <ChevronDown size={14} strokeWidth={1.75} aria-hidden="true" />
     </button>
     {open && !disabled ? <ModelPickerPanel id={id} providers={providers} providerId={tabProvider} recent={recent} query={query} active={active}
       thread={thread} triggerRef={triggerRef} searchRef={searchRef} onProvider={value => { setProviderId(value); setQuery(''); setActive(0); }}
       onQuery={value => { setQuery(value); setActive(0); }} onActive={setActive}
-      onSelect={option => onSelect(option.model, option.provider)} onClose={() => setOpen(false)} /> : null}
+      onSelect={option => onSelect(option.model, option.provider)} {...(onOption ? { onOption } : {})} onClose={() => setOpen(false)} /> : null}
   </div>;
 }

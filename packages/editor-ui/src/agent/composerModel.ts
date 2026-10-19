@@ -139,3 +139,9 @@ export function sendBlockers(input: SendInput): string[] {
   if (missing > 0) reasons.push(`${missing} context ${missing === 1 ? 'reference is' : 'references are'} no longer in the scene. Remove them to send.`);
   return reasons;
 }
+
+/** Keep the visible user message intact; only the provider receives the generation guidance. */
+export function progressiveDesignPrompt(text: string, enabled: boolean): string {
+  if (!enabled) return text;
+  return `${text}\n\n[Forgon Progressive design is enabled. While building or editing the scene, save complete, valid intermediate scene snapshots in small meaningful batches so the open editor can show progress. Publish the first visible batch early and continue saving as you add things; do not wait until the end. Keep every published snapshot schema-valid with its dependencies available, and replace scene files atomically. Preserve existing content and authoring/generator workflows. Do not run game scripts merely to preview edits. This instruction does not grant additional permissions.]`;
+}

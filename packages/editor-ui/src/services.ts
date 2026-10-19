@@ -73,6 +73,8 @@ export interface AgentProviderInfo {
   readiness: ProviderReadiness;
   message?: string;
   models: readonly string[];
+  modelOptions?: Readonly<Record<string, readonly import('@forgon/project-schema').AgentModelOption[]>>;
+  defaultModel?: string;
   permissionModes: readonly PermissionMode[];
   // Limits the provider adapter reports, in plain words. Absent means the provider reported nothing.
   limits?: readonly string[];
@@ -125,7 +127,10 @@ export interface ViewportHandle {
   setSnap?(snap: SnapSettings): void;
   surfaceAt?(clientX: number, clientY: number): SurfacePoint | null;
   frameSelection?(): void;
+  setProgressiveDesign?(promptId: string | null, active: boolean): void;
+  interruptProgressiveDesign?(): void;
   play?(scene: SceneDocument, scripts?: ScriptModules): void;
+  playCompiled?(scene: SceneDocument, catalog: ScriptCatalog, signal: AbortSignal): Promise<void>;
   stop?(): void;
   dispose(): void;
 }

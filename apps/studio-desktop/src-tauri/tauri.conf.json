@@ -10,11 +10,11 @@
     "frontendDist": "../../studio/dist"
   },
   "app": {
-    "windows": [{ "label": "studio", "title": "Forgon Engine", "width": 1440, "height": 900, "minWidth": 900, "minHeight": 600, "dragDropEnabled": false }],
+    "windows": [{ "label": "studio", "create": false, "title": "Forgon Engine", "width": 1440, "height": 900, "minWidth": 900, "minHeight": 600, "dragDropEnabled": false }],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost; worker-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'",
-      "devCsp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost ws://127.0.0.1:5173; worker-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'"
+      "csp": "default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost; worker-src 'self' blob:; object-src 'none'; frame-src 'self'; base-uri 'self'",
+      "devCsp": "default-src 'self'; script-src 'self' blob: 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost ws://127.0.0.1:5173; worker-src 'self' blob:; object-src 'none'; frame-src 'self'; base-uri 'self'"
     }
   },
-  "bundle": { "active": true, "targets": ["nsis"], "icon": ["icons/icon.ico"], "resources": ["resources/bridge.mjs", "resources/node.exe"], "windows": { "webviewInstallMode": { "type": "downloadBootstrapper" } } }
+  "bundle": { "active": true, "targets": ["nsis"], "icon": ["icons/icon.ico"], "resources": ["resources/bridge.mjs", "resources/node.exe", "resources/node_modules/**/*"], "windows": { "webviewInstallMode": { "type": "downloadBootstrapper" } } }
 }

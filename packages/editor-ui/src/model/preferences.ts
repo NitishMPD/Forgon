@@ -1,4 +1,4 @@
-import type { ProviderId } from '@forgon/project-schema';
+import type { ProviderId, PermissionMode, AgentModelSelectionOption } from '@forgon/project-schema';
 import type { KeyValueStorage } from './layout.js';
 
 export const preferencesKey = 'forgon.preferences.v1';
@@ -15,8 +15,8 @@ export interface Appearance {
   fontSize: (typeof appearanceChoices.fontSize)[number];
 }
 export interface RecentModel { provider: ProviderId; model: string }
-export interface ModelChoice { provider: ProviderId; model: string | null }
-export interface Preferences { appearance: Appearance; recentModels: RecentModel[]; lastModel?: ModelChoice }
+export interface ModelChoice { provider: ProviderId; model: string | null; options?: AgentModelSelectionOption[] }
+export interface Preferences { progressiveDesign?: boolean; appearance: Appearance; recentModels: RecentModel[]; lastModel?: ModelChoice; permissionModes?: Partial<Record<ProviderId, PermissionMode>> }
 export const defaultAppearance: Appearance = { theme: 'dark', accent: 'ember', density: 'comfortable', fontSize: 'default' };
 
 export function browserPreferencesStorage(): KeyValueStorage | null {
@@ -30,12 +30,26 @@ export function readPreferences(storage: KeyValueStorage | null = browserPrefere
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return preferences;
     const value = raw as Record<string, unknown>;
     if (value['version'] !== 1) return preferences;
+    if (typeof value['progressiveDesign'] === 'boolean') preferences.progressiveDesign = value['progressiveDesign'];
     const last = value['lastModel'];
     if (last && typeof last === 'object') {
       const choice = last as Record<string, unknown>;
       if (['codex', 'claude-code', 'opencode'].includes(String(choice['provider']))
         && (choice['model'] === null || (typeof choice['model'] === 'string' && choice['model'].trim()))) {
         preferences.lastModel = { provider: choice['provider'] as ProviderId, model: choice['model'] as string | null };
+        if (Array.isArray(choice['options'])) {
+          const options = choice['options'].filter((option): option is AgentModelSelectionOption => Boolean(option) && typeof option === 'object' && typeof option.id === 'string' && typeof option.value === 'string');
+          if (options.length) preferences.lastModel.options = options;
+        }
+      }
+    }
+    const modes = value['permissionModes'];
+    if (modes && typeof modes === 'object') {
+      for (const provider of ['codex', 'claude-code', 'opencode'] as const) {
+        const mode = (modes as Record<string, unknown>)[provider];
+        if (['inspect', 'supervised', 'auto-edits', 'auto', 'full-local'].includes(String(mode))) {
+          (preferences.permissionModes ??= {})[provider] = mode as PermissionMode;
+        }
       }
     }
     const appearance = value['appearance'];
@@ -77,9 +91,18 @@ export function rememberModel(model: ModelChoice, storage: KeyValueStorage | nul
   return recentModels;
 }
 
+export function rememberPermission(provider: ProviderId, mode: PermissionMode, storage: KeyValueStorage | null = browserPreferencesStorage()): void {
+  const preferences = readPreferences(storage);
+  writePreferences(storage, { ...preferences, permissionModes: { ...preferences.permissionModes, [provider]: mode } });
+}
+
 export function applyAppearance(appearance: Appearance, root: Pick<HTMLElement, 'setAttribute'>): void {
   root.setAttribute('data-theme', appearance.theme);
   root.setAttribute('data-accent', appearance.accent);
   root.setAttribute('data-density', appearance.density);
   root.setAttribute('data-font-size', appearance.fontSize);
+}
+
+export function saveProgressiveDesign(enabled: boolean, storage: KeyValueStorage | null = browserPreferencesStorage()): void {
+  writePreferences(storage, { ...readPreferences(storage), progressiveDesign: enabled });
 }

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
-import { applyAppearance, defaultAppearance, preferencesKey, readPreferences, rememberModel, saveAppearance, type Appearance } from '../src/model/preferences.js';
+import { applyAppearance, defaultAppearance, preferencesKey, readPreferences, saveProgressiveDesign, rememberModel, rememberPermission, saveAppearance, type Appearance } from '../src/model/preferences.js';
 import type { KeyValueStorage } from '../src/model/layout.js';
 
 function memoryStorage(): KeyValueStorage {
@@ -84,4 +84,35 @@ test('remembering provider default preserves recents and validates stored choice
     storage.setItem(preferencesKey, JSON.stringify({ version: 1, lastModel }));
     assert.equal(readPreferences(storage).lastModel, undefined);
   }
+});
+
+test('model, reasoning and explicit permissions survive reload without overwriting appearance or each other', () => {
+  const storage = memoryStorage();
+  saveAppearance({ ...defaultAppearance, accent: 'blue' }, storage);
+  rememberModel({ provider: 'codex', model: 'gpt-6.1-sol', options: [{ id: 'reasoningEffort', value: 'high' }] }, storage);
+  rememberPermission('codex', 'full-local', storage);
+  rememberPermission('opencode', 'auto', storage);
+  const reloaded = readPreferences(storage);
+  assert.deepEqual(reloaded.lastModel, { provider: 'codex', model: 'gpt-6.1-sol', options: [{ id: 'reasoningEffort', value: 'high' }] });
+  assert.deepEqual(reloaded.permissionModes, { codex: 'full-local', opencode: 'auto' });
+  assert.equal(reloaded.appearance.accent, 'blue');
+  rememberModel({ provider: 'codex', model: 'other' }, storage);
+  assert.deepEqual(readPreferences(storage).permissionModes, reloaded.permissionModes);
+  assert.equal(readPreferences(storage).lastModel?.options, undefined);
+});
+
+test('Progressive design persists independently of model, permissions and appearance', () => {
+  const storage = memoryStorage();
+  assert.equal(readPreferences(storage).progressiveDesign ?? false, false);
+  saveProgressiveDesign(true, storage);
+  rememberModel({ provider: 'codex', model: 'm' }, storage);
+  rememberPermission('codex', 'full-local', storage);
+  saveAppearance({ ...defaultAppearance, theme: 'light' }, storage);
+  assert.equal(readPreferences(storage).progressiveDesign, true);
+  saveProgressiveDesign(false, storage);
+  assert.equal(readPreferences(storage).progressiveDesign, false);
+  assert.equal(readPreferences(storage).lastModel?.model, 'm');
+  assert.equal(readPreferences(storage).permissionModes?.codex, 'full-local');
+  storage.setItem(preferencesKey, JSON.stringify({ version: 1, progressiveDesign: 'true' }));
+  assert.equal(readPreferences(storage).progressiveDesign, undefined);
 });

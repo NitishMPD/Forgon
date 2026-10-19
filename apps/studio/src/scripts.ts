@@ -1,9 +1,13 @@
 import type { SceneDocument, ScriptCatalog, ScriptModules } from '@forgon/project-schema';
 import { loadScriptModule } from '@forgon/game-runtime/scripting';
 
-export function assertScriptPlaySupported(scene: SceneDocument, desktop: boolean): void {
-  if (desktop && scene.entities.some(entity => entity.components.some(component => component.type === 'script'))) {
-    throw new Error("Scripts can't run in the desktop app yet (isolated script context pending).");
+export function validateScriptsForPlay(scene: SceneDocument, catalog: ScriptCatalog): void {
+  if (catalog.diagnostics.length) throw new Error('Scripts did not compile. Check Console for file and line details.');
+  const available = new Set(catalog.scripts.map(script => script.src));
+  for (const entity of scene.entities) for (const component of entity.components) {
+    if (entity.enabled && component.type === 'script' && component.enabled && !available.has(String(component.properties.src))) {
+      throw new Error(`Script not found or invalid: ${String(component.properties.src)} (${entity.name}). Check Console.`);
+    }
   }
 }
 
